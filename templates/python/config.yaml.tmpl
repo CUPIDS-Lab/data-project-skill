@@ -1,0 +1,19 @@
+# Pipeline configuration for {{PROJECT_NAME}}.
+# Keep parameters and paths here, not hard-coded in scripts. Override on the CLI
+# with e.g. `snakemake --config seed=123`.
+
+project: "{{PROJECT_SLUG}}"
+
+paths:
+  raw: "data/raw"
+  interim: "data/interim"
+  processed: "data/processed"
+  results: "results"
+
+# Reproducibility: set a seed for any stochastic step.
+seed: 42
+
+# Analysis parameters (examples — replace with the project's real knobs).
+params:
+  min_year: null
+  max_year: null

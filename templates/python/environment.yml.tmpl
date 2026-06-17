@@ -1,0 +1,15 @@
+name: {{PROJECT_SLUG}}
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pandas
+  - pyarrow            # Parquet/Arrow I/O (open, columnar)
+  - snakemake-minimal  # pipeline-as-code
+  - jupyterlab         # exploration only (notebooks live in exploratory/)
+  - pytest             # data/code validation
+  - pandera            # schema-as-contract validation
+  - ruff               # lint + format
+  - pre-commit         # local hooks
+  - python-dotenv      # load secrets from .env, never from code
+  # Add project-specific dependencies below, pinned where stability matters.

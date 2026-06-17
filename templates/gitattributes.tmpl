@@ -1,0 +1,17 @@
+# Normalize line endings so diffs stay clean across platforms
+* text=auto eol=lf
+
+# Treat common data/binary types as binary (no line-ending munging, clearer diffs)
+*.parquet binary
+*.feather binary
+*.h5 binary
+*.pkl binary
+*.xlsx binary
+*.pdf binary
+*.png binary
+*.jpg binary
+
+# Optional: track large data files with Git LFS instead of committing them directly.
+# Uncomment and run `git lfs install` + `git lfs track "..."` if you adopt LFS.
+# *.csv filter=lfs diff=lfs merge=lfs -text
+# data/processed/** filter=lfs diff=lfs merge=lfs -text

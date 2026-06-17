@@ -1,0 +1,17 @@
+# ROADMAP — what's deferred and how to add it
+
+This project was scaffolded at level **{{LEVEL}}**, deliberately right-sized. This file records concerns that are real but not built yet, so nothing important is lost and the next maintainer (or agent) knows exactly what to add and when. Building less now and documenting the rest here is the intended workflow, not a shortcut.
+
+## How to climb a level
+
+Re-run the `data-project` skill in this directory and ask to climb to the next level (e.g. "take this to L2"). The skill will add only the new level's artifacts and update this roadmap. Items marked **blocking** below should be resolved before the project does the thing they guard (e.g. before ingesting sensitive data or publishing).
+
+## Deferred items
+
+| Concern | Why deferred | Adds it (template / level) | Blocking? |
+| --- | --- | --- | --- |
+{{ROADMAP_ROWS}}
+
+<!-- IF:SENSITIVE -->## Safeguards coupling (do not skip)
+
+This project handles **{{SENSITIVITY_TIER}}** data. Any identifier scheme, retention policy, or audit log added later **must** ship with the matching access tiers and contestable-governance/remedy process (see `installed-base` values: affordances without duties are theater). Treat the governance items above as blocking for those affordances.<!-- /IF -->

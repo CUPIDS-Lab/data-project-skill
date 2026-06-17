@@ -1,0 +1,54 @@
+# {{PROJECT_NAME}}
+
+{{DESCRIPTION}}
+
+A {{LAB_NAME}} data project. Maturity level: **{{LEVEL}}**. Sensitivity: **{{SENSITIVITY_TIER}}**. Openness: **{{OPENNESS}}**.
+
+## What & why
+
+<!-- IF:WHY -->Briefly state the problem this project addresses, who it serves (the beneficiaries) and who builds it (the design partners), and what success looks like. Keep it legible to someone with none of the project's context.<!-- /IF -->
+
+## Repository layout
+
+This repo follows the {{LAB_NAME}} data-project conventions. Key locations: `data/raw` holds original, **immutable** source data (never edited in place); `data/interim` and `data/processed` hold derived data that can always be regenerated from raw; `DATA-DICTIONARY.md` documents the schema. See `ROADMAP.md` for what is planned but not yet built.
+
+## Getting started
+
+```bash
+git clone {{REPO_URL}}
+cd {{PROJECT_SLUG}}
+```
+
+<!-- IF:PIPELINE -->Set up the environment and run the pipeline:
+
+```bash
+conda env create -f environment.yml
+conda activate {{PROJECT_SLUG}}
+snakemake -n          # dry-run: preview the steps
+snakemake --cores 4   # run the pipeline
+```
+<!-- /IF -->
+
+## Data access
+
+<!-- IF:SENSITIVE -->This project handles **{{SENSITIVITY_TIER}}** data. Sensitive data is **not** in this repository. See `GOVERNANCE.md` for access tiers and the process to request access; see `responsible-data-checklist.md` before ingesting or sharing data.<!-- /IF -->
+<!-- IF:OPEN -->Processed, non-sensitive data is shared in open formats. See `DATA-DICTIONARY.md` for the schema and `knowledge/` for the open-knowledge catalog (if present).<!-- /IF -->
+
+## Documentation
+
+- `DATA-DICTIONARY.md` — variables, grain, provenance, units, missingness, known issues.
+- `decision-log.md` — why key choices were made.
+- `CHANGELOG.md` — what changed and when.
+<!-- IF:COLLAB -->- `CONTRIBUTING.md`, `GOVERNANCE.md`, `ROLES.md` — how to collaborate here.<!-- /IF -->
+
+## Citation
+
+If you use this project, please cite it. {{PI_NAME}} et al., *{{PROJECT_NAME}}*, {{LAB_NAME}}, {{YEAR}}.
+
+## License
+
+Released under {{LICENSE}}. See `LICENSE`.
+
+## Contact
+
+{{PI_NAME}} · {{CONTACT_EMAIL}} · {{LAB_NAME}}.
