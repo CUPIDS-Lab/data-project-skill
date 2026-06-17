@@ -1,0 +1,314 @@
+#!/usr/bin/env bash
+# seed-github.sh — project this repo's ROADMAP tasks onto GitHub, idempotently.
+#
+# The Markdown checklist in ROADMAP.md stays the source of truth; this script is a
+# re-runnable *projection* of it. It matches existing work before creating anything
+# (by a manifest entry, then by a hidden body marker), so a second run updates issues
+# rather than duplicating them. Every GitHub-mutating step is guarded: a missing
+# permission prints a notice and continues, downgrading the achievable tier instead of
+# aborting. The tiers (richest to leanest) are A: issues + Project, B: issues +
+# milestones + labels, C: this script / paste-list only — see ACCESS.md and
+# PROJECT-MANAGEMENT.md.
+#
+# Usage:
+#   ./seed-github.sh            # reconcile labels, milestone, and issues
+#   DRY_RUN=1 ./seed-github.sh  # print the gh commands instead of running them
+set -euo pipefail
+
+# ----- Configuration (filled by the scaffolder) -----------------------------
+REPO_SLUG="{{REPO_SLUG}}"             # owner/repo
+MILESTONE_TITLE="{{MILESTONE_TITLE}}" # one milestone per level/release
+PROJECT_TITLE="{{PROJECT_TITLE}}"     # the standardized Project (see project-template.md)
+OWNER_DEFAULT="{{OWNER_DEFAULT}}"     # default assignee / role
+LABELS_FILE="$(dirname "$0")/labels.yml"
+SYNC_FILE="$(dirname "$0")/engagement-sync.json"  # task-id -> issue/item + content hash
+
+# ----- DRY_RUN plumbing ------------------------------------------------------
+# In dry-run, print the command (quoted) instead of executing it. Read-only
+# preflight calls run regardless so the report reflects real access.
+DRY_RUN="${DRY_RUN:-0}"
+run() {
+  if [[ "$DRY_RUN" == "1" ]]; then
+    printf 'DRY_RUN:'; printf ' %q' "$@"; printf '\n'
+  else
+    "$@"
+  fi
+}
+
+note()  { printf '  -- %s\n' "$*" >&2; }   # a downgrade/skip notice
+fail()  { printf 'ERROR: %s\n' "$*" >&2; }  # a hard stop (only before any mutation)
+
+# Capability flags, lowered by preflight as gaps are found.
+CAN_ISSUES=1
+CAN_PROJECT=1
+CAN_WIKI=1
+
+# ----- PREFLIGHT (run before mutating; never abort, just downgrade) ----------
+# Confirm auth + scopes + repo features and attempt a Project list. On any gap,
+# print exactly what is missing and how to grant it (mirrors ACCESS.md), then
+# clear the matching capability flag so the relevant steps are skipped.
+preflight() {
+  printf '== Preflight: checking access for %s ==\n' "$REPO_SLUG" >&2
+
+  if ! command -v gh >/dev/null 2>&1; then
+    fail "gh CLI not found. Install it, or use the paste-able list in engagement-issues.md (Tier C)."
+    exit 1
+  fi
+
+  if ! gh auth status >/dev/null 2>&1; then
+    fail "Not authenticated. Run: gh auth login  (then: gh auth refresh -s project,read:project,repo)."
+    exit 1
+  fi
+
+  # Projects v2 live at org/user scope, not repo scope, so the 'project' token
+  # scope is what unlocks board steps. Detect its absence from auth status.
+  if gh auth status 2>&1 | grep -qiE "Token scopes:.*\bproject\b"; then
+    :
+  else
+    note "Missing 'project' scope -> grant it via: gh auth refresh -s project,read:project,repo"
+    note "Downgrading: will create issues/labels/milestone but skip the Project (Tier B)."
+    CAN_PROJECT=0
+  fi
+
+  # Repo features. Issues must be enabled to create any; wiki must be enabled AND
+  # initialized before a push to <repo>.wiki.git succeeds.
+  local feats
+  if feats="$(gh repo view "$REPO_SLUG" --json hasIssuesEnabled,hasWikiEnabled 2>/dev/null)"; then
+    if ! grep -q '"hasIssuesEnabled":true' <<<"$feats"; then
+      note "Issues are disabled on $REPO_SLUG -> enable via Settings -> Features -> Issues."
+      note "Downgrading to Tier C: nothing to create here; use engagement-issues.md."
+      CAN_ISSUES=0
+    fi
+    if ! grep -q '"hasWikiEnabled":true' <<<"$feats"; then
+      note "Wiki disabled -> enable via Settings -> Features -> Wiki AND create its first page before pushing."
+      CAN_WIKI=0
+    fi
+  else
+    note "Could not read repo features (token may lack repo read) -> grant 'repo' scope; skipping wiki."
+    CAN_WIKI=0
+  fi
+
+  # Project create/list permission. Failure here is common (org scope) and non-fatal.
+  if ! gh project list --owner "${REPO_SLUG%%/*}" >/dev/null 2>&1; then
+    note "Cannot list Projects for ${REPO_SLUG%%/*} -> needs org 'Projects: Read and write' (PAT/App) or the 'project' gh scope."
+    note "Downgrading: skipping the Project; issues still created (Tier B)."
+    CAN_PROJECT=0
+  fi
+
+  printf '== Preflight done: issues=%s project=%s wiki=%s ==\n' "$CAN_ISSUES" "$CAN_PROJECT" "$CAN_WIKI" >&2
+}
+
+# ----- Labels: reconcile from labels.yml -------------------------------------
+# Create-or-update each label so colors/descriptions converge on the file.
+# Parses the simple "- name:/color:/description:" blocks without needing yq.
+seed_labels() {
+  [[ "$CAN_ISSUES" == "1" ]] || { note "Skipping labels (issues unavailable)."; return 0; }
+  [[ -f "$LABELS_FILE" ]] || { note "No labels.yml found at $LABELS_FILE; skipping labels."; return 0; }
+  printf '== Labels ==\n' >&2
+
+  local name="" color="" desc=""
+  flush_label() {
+    [[ -n "$name" ]] || return 0
+    # `--force` makes `gh label create` update an existing label, giving idempotency.
+    run gh label create "$name" --color "$color" --description "$desc" \
+        --repo "$REPO_SLUG" --force || note "Label '$name' could not be set (permission?); continuing."
+    name=""; color=""; desc=""
+  }
+  while IFS= read -r line; do
+    case "$line" in
+      "- name:"*)        flush_label; name="${line#*: }" ;;
+      *"color:"*)        color="${line#*: }" ;;
+      *"description:"*)  desc="${line#*: }" ;;
+    esac
+  done < "$LABELS_FILE"
+  flush_label
+}
+
+# ----- Milestone: create if absent -------------------------------------------
+# One milestone per level/release. Look it up via the REST API (gh api) and only
+# create when missing, so re-runs are no-ops.
+seed_milestone() {
+  [[ "$CAN_ISSUES" == "1" ]] || { note "Skipping milestone (issues unavailable)."; return 0; }
+  printf '== Milestone: %s ==\n' "$MILESTONE_TITLE" >&2
+
+  local existing
+  existing="$(gh api "repos/$REPO_SLUG/milestones?state=all" \
+                --jq ".[] | select(.title==\"$MILESTONE_TITLE\") | .number" 2>/dev/null || true)"
+  if [[ -n "$existing" ]]; then
+    note "Milestone '$MILESTONE_TITLE' already exists (#$existing); leaving as is."
+  else
+    run gh api -X POST "repos/$REPO_SLUG/milestones" -f "title=$MILESTONE_TITLE" \
+        || note "Could not create milestone (permission?); continuing without it."
+  fi
+}
+
+# ----- Issues: create-or-update one per task ---------------------------------
+# Each task carries a stable id. We embed a hidden marker in the issue body:
+#     <!-- data-project:task=<id> -->
+# Matching order: the manifest (engagement-sync.json), then a search for the
+# marker, then create. On a match we update title/body/labels/assignee/milestone;
+# otherwise we create and record the mapping + a content hash. This is what makes
+# re-runs converge instead of duplicating.
+#
+# The per-task call block in main() is filled by the scaffolder with one
+# `seed_issue` call per task, e.g.:
+#   seed_issue "reconcile-totals" "Reconcile intake totals" "priority:high,level:L2,type:data" "$BODY"
+seed_issue() {
+  local task_id="$1" title="$2" labels="$3" body="$4"
+  [[ "$CAN_ISSUES" == "1" ]] || { note "Skipping issue '$title' (issues unavailable)."; return 0; }
+
+  local marker="<!-- data-project:task=$task_id -->"
+  local full_body="${body}"$'\n\n'"${marker}"
+  local hash; hash="$(printf '%s' "$full_body" | (sha256sum 2>/dev/null || shasum -a 256) | awk '{print $1}')"
+
+  # 1) Try the manifest for a recorded issue number.
+  local num=""
+  if [[ -f "$SYNC_FILE" ]] && command -v jq >/dev/null 2>&1; then
+    num="$(jq -r --arg id "$task_id" '.[$id].issue // empty' "$SYNC_FILE" 2>/dev/null || true)"
+  fi
+  # 2) Fall back to searching for the hidden marker in issue bodies.
+  if [[ -z "$num" ]]; then
+    num="$(gh issue list --repo "$REPO_SLUG" --state all --search "$marker in:body" \
+             --json number --jq '.[0].number' 2>/dev/null || true)"
+  fi
+
+  if [[ -n "$num" && "$num" != "null" ]]; then
+    note "Updating issue #$num for task '$task_id'."
+    run gh issue edit "$num" --repo "$REPO_SLUG" --title "$title" --body "$full_body" \
+        --add-label "$labels" --add-assignee "$OWNER_DEFAULT" --milestone "$MILESTONE_TITLE" \
+        || note "Could not fully update #$num (permission?); continuing."
+  else
+    note "Creating issue for task '$task_id'."
+    run gh issue create --repo "$REPO_SLUG" --title "$title" --body "$full_body" \
+        --label "$labels" --assignee "$OWNER_DEFAULT" --milestone "$MILESTONE_TITLE" \
+        || { note "Could not create issue for '$task_id' (permission?); continuing."; return 0; }
+    # Resolve the new number for the manifest (skip in dry-run, nothing was created).
+    if [[ "$DRY_RUN" != "1" ]]; then
+      num="$(gh issue list --repo "$REPO_SLUG" --state all --search "$marker in:body" \
+               --json number --jq '.[0].number' 2>/dev/null || true)"
+    fi
+  fi
+
+  record_sync "$task_id" "$num" "$hash"
+  # Best-effort: place the issue on the Project and set its fields.
+  project_upsert_item "$task_id" "$num" "$labels"
+}
+
+# ----- Manifest: task-id -> issue/item + content hash ------------------------
+# Stored at .github/engagement-sync.json. We never write values that Projects
+# already syncs (labels/assignee/milestone) — only the mapping and a hash, so the
+# next run can tell what changed. Idempotent merge via jq when available.
+record_sync() {
+  local task_id="$1" num="$2" hash="$3"
+  [[ "$DRY_RUN" == "1" ]] && { note "DRY_RUN: would record sync for '$task_id' (#$num)."; return 0; }
+  command -v jq >/dev/null 2>&1 || { note "jq not found; skipping manifest update."; return 0; }
+  [[ -f "$SYNC_FILE" ]] || echo '{}' > "$SYNC_FILE"
+  local tmp; tmp="$(mktemp)"
+  jq --arg id "$task_id" --arg num "$num" --arg hash "$hash" \
+     '.[$id] = ((.[$id] // {}) + {issue: ($num|tonumber? // $num), hash: $hash})' \
+     "$SYNC_FILE" > "$tmp" && mv "$tmp" "$SYNC_FILE"
+}
+
+<!-- IF:PROJECT -->
+# ----- Project (best effort): add item + set fields --------------------------
+# Projects v2 are org/user-scoped; this whole block is skipped when CAN_PROJECT=0.
+# Locate (or create) the Project once, cache its number, add each issue as an item,
+# and set Status/Priority/Size/Level from the task's labels. Field edits use
+# `gh project item-edit`; failures are noticed, not fatal.
+PROJECT_NUMBER=""
+project_locate() {
+  [[ "$CAN_PROJECT" == "1" ]] || return 0
+  [[ -n "$PROJECT_NUMBER" ]] && return 0
+  local owner="${REPO_SLUG%%/*}"
+  PROJECT_NUMBER="$(gh project list --owner "$owner" --format json \
+                      --jq ".projects[] | select(.title==\"$PROJECT_TITLE\") | .number" 2>/dev/null || true)"
+  if [[ -z "$PROJECT_NUMBER" ]]; then
+    note "Project '$PROJECT_TITLE' not found; creating it."
+    run gh project create --owner "$owner" --title "$PROJECT_TITLE" \
+        || { note "Could not create Project (org 'Projects: RW' missing?); skipping board steps."; CAN_PROJECT=0; return 0; }
+    [[ "$DRY_RUN" != "1" ]] && PROJECT_NUMBER="$(gh project list --owner "$owner" --format json \
+        --jq ".projects[] | select(.title==\"$PROJECT_TITLE\") | .number" 2>/dev/null || true)"
+  fi
+}
+
+project_upsert_item() {
+  local task_id="$1" num="$2" labels="$3"
+  [[ "$CAN_PROJECT" == "1" ]] || return 0
+  [[ -n "$num" && "$num" != "null" ]] || return 0
+  project_locate
+  [[ "$CAN_PROJECT" == "1" && -n "$PROJECT_NUMBER" ]] || return 0
+  local owner="${REPO_SLUG%%/*}"
+  local url="https://github.com/$REPO_SLUG/issues/$num"
+
+  note "Adding issue #$num to Project '$PROJECT_TITLE' and setting fields from labels."
+  run gh project item-add "$PROJECT_NUMBER" --owner "$owner" --url "$url" \
+      || note "Could not add #$num to the Project; continuing."
+  # Derive single-select values from the labels and set the matching fields.
+  # `gh project item-edit` keys by field name; missing fields are noticed, not fatal.
+  local pri size lvl
+  pri="$(grep -oE 'priority:(high|med|low)' <<<"$labels" | head -n1 | cut -d: -f2 || true)"
+  size="$(grep -oE 'size:(s|m|l)' <<<"$labels" | head -n1 | cut -d: -f2 || true)"
+  lvl="$(grep -oE 'level:L[0-5]' <<<"$labels" | head -n1 | cut -d: -f2 || true)"
+  [[ -n "$pri"  ]] && run gh project item-edit --owner "$owner" --project-number "$PROJECT_NUMBER" \
+      --url "$url" --field Priority --value "$pri"  || true
+  [[ -n "$size" ]] && run gh project item-edit --owner "$owner" --project-number "$PROJECT_NUMBER" \
+      --url "$url" --field Size --value "$size"      || true
+  [[ -n "$lvl"  ]] && run gh project item-edit --owner "$owner" --project-number "$PROJECT_NUMBER" \
+      --url "$url" --field Level --value "$lvl"       || true
+  run gh project item-edit --owner "$owner" --project-number "$PROJECT_NUMBER" \
+      --url "$url" --field Status --value "Todo"       || true
+}
+
+project_status_update() {
+  [[ "$CAN_PROJECT" == "1" && -n "$PROJECT_NUMBER" ]] || return 0
+  note "Posting an 'On track' status update to the Project."
+  # Status updates are a Projects v2 GraphQL mutation; gh exposes it where available.
+  run gh project status-update "$PROJECT_NUMBER" --owner "${REPO_SLUG%%/*}" \
+      --status "On track" --body "Seeded from ROADMAP.md; tasks on track." \
+      || note "Could not post a status update; continuing."
+}
+<!-- /IF -->
+
+<!-- IF:WIKI -->
+# ----- Wiki (optional): push seeds to <repo>.wiki.git ------------------------
+# The wiki is a SEPARATE git repo and must be enabled AND have its first page
+# created in the UI before any push succeeds. Fine-grained PATs cannot push wikis;
+# use a classic PAT or your gh credentials. Skipped when CAN_WIKI=0.
+seed_wiki() {
+  [[ "$CAN_WIKI" == "1" ]] || { note "Skipping wiki (disabled/uninitialized or token cannot push wikis)."; return 0; }
+  local seeds; seeds="$(dirname "$0")/wiki-seeds"
+  [[ -d "$seeds" ]] || { note "No wiki-seeds/ directory; skipping wiki."; return 0; }
+  printf '== Wiki ==\n' >&2
+  local tmp; tmp="$(mktemp -d)"
+  if ! run git clone "https://github.com/$REPO_SLUG.wiki.git" "$tmp"; then
+    note "Wiki repo not clonable yet — create its first page in the UI, then re-run. Skipping."
+    return 0
+  fi
+  run cp "$seeds"/*.md "$tmp"/ || true
+  run git -C "$tmp" add -A
+  run git -C "$tmp" commit -m "Seed wiki from data-project" || note "Nothing new to commit to wiki."
+  run git -C "$tmp" push origin HEAD || note "Could not push wiki (token may be fine-grained, which cannot push wikis)."
+}
+<!-- /IF -->
+
+# ----- Main ------------------------------------------------------------------
+main() {
+  preflight
+  seed_labels
+  seed_milestone
+
+  # --- Per-task issue create-or-update calls (filled by the scaffolder) ---
+  {{ISSUE_SEED_ROWS}}
+  # --- end per-task calls ---
+
+<!-- IF:PROJECT -->
+  project_status_update
+<!-- /IF -->
+<!-- IF:WIKI -->
+  seed_wiki
+<!-- /IF -->
+
+  printf '== Done. ROADMAP.md remains the source of truth; this projected it onto %s. ==\n' "$REPO_SLUG" >&2
+}
+
+main "$@"

@@ -1,0 +1,17 @@
+# Summary
+
+Describe what this PR changes and, more importantly, *why* — the diff already shows what changed, so use this space for the reasoning and any tradeoff you accepted. Keep the change focused on one concern so a reviewer can reason about it.
+
+Closes #
+
+## PR checklist
+
+Before requesting review, confirm:
+
+- [ ] Branched from the default branch; the PR describes the change and *why* it was made.
+- [ ] Derived data is regenerable from `data/raw/` via the pipeline; nothing under `data/raw/` was edited in place.
+- [ ] Reusable logic lives in `src/`; notebooks stay in `exploratory/` with outputs cleared.
+- [ ] No secrets or sensitive data in the diff (code, config, or notebook outputs).
+- [ ] Environment/lockfile updated if dependencies changed; results reproduce in a clean environment.
+- [ ] Docs updated (`README.md`, `DATA-DICTIONARY.md`, `decision-log.md`) for any user-visible or non-obvious change.
+- [ ] The right `CODEOWNERS` reviewer is requested.

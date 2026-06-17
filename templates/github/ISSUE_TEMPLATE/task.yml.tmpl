@@ -1,0 +1,83 @@
+name: Task
+description: File a unit of work — one issue per task, mirroring the ROADMAP checklist so the tracker can sync it.
+labels: [task]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form to file a single, assignable task. One issue equals one unit of work, which keeps progress legible and lets a Project board, milestone, and assignee each track exactly one thing. Fields below mirror the engagement TODO schema in `ROADMAP.md`, so editing the checklist and re-running the tracker create-or-updates this issue rather than duplicating it. Pick from the dropdowns instead of typing free text — fixed options keep labels and Project fields consistent across the team and stay legible without relying on color.
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: One sentence stating the outcome this task delivers, written so a teammate who lacks your context can tell what "done" looks like.
+      placeholder: Reconcile intake totals against the publisher's published figures.
+    validations:
+      required: true
+  - type: textarea
+    id: definition-of-done
+    attributes:
+      label: Definition of done
+      description: The checklist that must be true to close this issue. Make each item observable so a reviewer can verify it, rather than restating the title.
+      placeholder: |
+        - [ ] Totals match the source within tolerance
+        - [ ] Reconciliation step added to the pipeline
+        - [ ] Result documented in decision-log.md
+      value: |
+        - [ ]
+    validations:
+      required: true
+  - type: dropdown
+    id: level
+    attributes:
+      label: Level
+      description: The escalation level (L0-L5) this task belongs to, so it can be grouped under the matching milestone and Project field.
+      options:
+        - L0
+        - L1
+        - L2
+        - L3
+        - L4
+        - L5
+    validations:
+      required: false
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How urgently this should be picked up, so the board can be sorted by what matters now rather than by guesswork.
+      options:
+        - High
+        - Medium
+        - Low
+    validations:
+      required: false
+  - type: dropdown
+    id: size
+    attributes:
+      label: Size
+      description: A rough effort estimate (S/M/L) used for planning capacity, not a commitment — refine it as the work becomes clear.
+      options:
+        - S
+        - M
+        - L
+    validations:
+      required: false
+  - type: dropdown
+    id: blocking
+    attributes:
+      label: Blocking?
+      description: Whether this task gates other work or a guarded action (for example ingesting sensitive data or publishing). Mark Yes so it can be modeled as a dependency and resolved before the gate.
+      options:
+        - "No"
+        - "Yes"
+    validations:
+      required: false
+  - type: input
+    id: links
+    attributes:
+      label: Links
+      description: References that ground the task — a roadmap row, a source dataset, a prior PR, or a decision-log entry — so a reviewer can follow the trail without asking.
+      placeholder: ROADMAP.md row 3; data/raw/source.csv; decision-log.md 2026-06-17
+    validations:
+      required: false

@@ -35,4 +35,4 @@ Any multi-person project; whenever the user mentions collaborators, pull request
 
 ## Caveats / conflicts
 
-Open-source patterns were built for code, not data — treat them as good-enough, not ideal, and pair them with data-specific practices (pipeline-as-code as the shared artifact, immutable raw data). See `collaboration-architecture.md` anti-patterns.
+Open-source patterns were built for code, not data — treat them as good-enough, not ideal, and pair them with data-specific practices (pipeline-as-code as the shared artifact, immutable raw data). See `collaboration-architecture.md` anti-patterns. This digest covers the code-review loop (branches/PRs/CI); for planning and handoff tracking — issues, Projects, milestones, and wikis — see `github-project-management.md`.
