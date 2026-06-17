@@ -1,0 +1,29 @@
+# AGENTS.md — guidance for agents and humans working in this repo
+
+Read this first. It states the non-negotiables and points you at the right place for each task. This repo was scaffolded with the {{LAB_NAME}} `data-project` skill at level **{{LEVEL}}**.
+
+## Non-negotiables
+
+- **Raw data is immutable.** Never edit anything under `data/raw/` in place. Read it, write derived data to `data/interim/` or `data/processed/`. Anything derived must be reproducible from raw.
+- **Open, version-controllable formats.** Prefer plain text, CSV/Parquet, Markdown, and text-based pipeline definitions. Do not introduce a vendor-locked artifact as a required dependency; anything a hosted tool produces must be exportable.
+- **Provenance lives with the data.** Record where data came from, its license, and any transformations in `DATA-DICTIONARY.md` and `decision-log.md`.
+- **Secrets and sensitive data never land in the repo.** Keep credentials out of code and notebooks. <!-- IF:SENSITIVE -->This project handles **{{SENSITIVITY_TIER}}** data — desensitize before anything leaves the controlled tier, and follow the access tiers in `GOVERNANCE.md`.<!-- /IF -->
+
+## Where things are
+
+- Source data and derived outputs: `data/`. Schema: `DATA-DICTIONARY.md`.
+- Exploration: `exploratory/` (notebooks stay here; package reusable code into `src/`).
+- What's planned but not built yet: `ROADMAP.md`.
+
+<!-- IF:NESTED_SKILLS -->## Task-specific guidance
+
+For specific work, read the matching nested skill before you start:
+
+- Acquiring or assessing data → `.skills/data-intake/SKILL.md`
+- Writing or updating documentation → `.skills/documentation/SKILL.md`
+- Packaging or publishing outputs → `.skills/release-and-share/SKILL.md`
+<!-- /IF -->
+
+## How we work
+
+Explore in `exploratory/`, then package code into `src/` at the exploration boundary. Pipelines are code (re-runnable), not cleaned snapshots. Pin environments so others — and other agents — can reproduce results. <!-- IF:COLLAB -->Follow `CONTRIBUTING.md` for the branch/PR/review workflow and `CODE_OF_CONDUCT.md` for community norms.<!-- /IF -->

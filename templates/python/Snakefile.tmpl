@@ -1,0 +1,43 @@
+# Pipeline-as-code for {{PROJECT_NAME}}.
+# Pipelines, not cleaned snapshots, are the shared artifact: when raw data is
+# re-released, re-running this re-applies every transformation. Keep it legible
+# to subject-matter experts, not only developers. Preview with `snakemake -n`.
+
+configfile: "config.yaml"
+
+
+# Final targets the pipeline produces.
+rule all:
+    input:
+        "data/processed/analysis_ready.parquet",
+        "results/tables/summary.csv",
+
+
+# Ingest: copy/validate raw into interim. Raw is immutable — read, never edit in place.
+rule ingest:
+    input:
+        "data/raw/{{RAW_FILE}}",
+    output:
+        "data/interim/ingested.parquet",
+    shell:
+        "python -m src.{{PKG_NAME}}.ingest {input} {output}"
+
+
+# Clean / tidy: one variable per column, one observation per row.
+rule clean:
+    input:
+        "data/interim/ingested.parquet",
+    output:
+        "data/processed/analysis_ready.parquet",
+    shell:
+        "python -m src.{{PKG_NAME}}.clean {input} {output}"
+
+
+# Analyze: produce a summary table from the analysis-ready data.
+rule analyze:
+    input:
+        "data/processed/analysis_ready.parquet",
+    output:
+        "results/tables/summary.csv",
+    shell:
+        "python -m src.{{PKG_NAME}}.analyze {input} {output}"

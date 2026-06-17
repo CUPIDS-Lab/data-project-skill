@@ -1,0 +1,29 @@
+# Data dictionary — {{PROJECT_NAME}}
+
+Documentation is half the work: a dataset without this file is a private spreadsheet. Keep this current and co-located with the data. One entry per dataset/table below; one variable per row within each table.
+
+## Dataset: `<dataset-name>`
+
+- **Grain (unit of observation):** one row per `<thing>` (e.g. one row per patient-visit).
+- **Source / provenance:** where this came from, collection method, and date obtained. Record the chain of custody.
+- **Input license:** `<license of the source data>`.
+- **Sensitivity:** {{SENSITIVITY_TIER}}.
+- **Update cadence:** static / re-released `<how often>`.
+
+### Variables
+
+| Variable | Type | Units | Allowed values / range | Description | Missingness |
+| --- | --- | --- | --- | --- | --- |
+| `<name>` | `<string/int/float/bool/date>` | `<unit>` | `<domain>` | what it means and *why it exists* | how missing is represented and why |
+
+### Derived variables
+
+Computed/normalized/summary variables published centrally (not re-derived per analyst): document each one's formula and the columns it depends on.
+
+### Known issues & caveats
+
+List the data problems you have found and how you handled them — missing values vs. zeros, inconsistent spelling/encoding, suspicious sentinels, truncation, aggregation mismatches, totals that don't reconcile with published figures. State what the data can plausibly support (description and comparison far more readily than prediction) and what it cannot. Unresolved issues that constrain use go here so downstream users are not surprised.
+
+<!-- IF:OKF -->### Open-knowledge mapping
+
+At L5 this dataset is mirrored as an OKF concept under `knowledge/datasets/` (and one `knowledge/tables/<name>.md` per table): the fields above map to frontmatter (`type`, `title`, `description`, `resource`, `tags`, `timestamp`) plus a `# Schema` section and bundle-relative cross-links.<!-- /IF -->
