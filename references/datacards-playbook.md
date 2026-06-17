@@ -22,7 +22,7 @@ A Data Card is a "structured summary of essential facts about various aspects of
 - **Document intended *and* extended/out-of-scope uses** [transparent, inclusive] — naming foreseeable misuse is part of responsible release.
 - **Surface sensitive attributes & fairness** [inclusive, transparent] — the "Human & Other Sensitive Attributes" and "Access, Retention & Wipeout" dimensions force PII, protected attributes, representation gaps, and disposal to the surface.
 - **Answer for diverse audiences** [accessible] — make each fact legible to non-experts as well as experts.
-- **Share openly** [transparent] — completed Data Cards are shared under CC BY-SA 4.0.
+- **Share openly** [transparent] — the Data Cards Playbook itself is licensed CC BY-SA 4.0; release completed cards under an open license too.
 
 ## Artifacts it implies
 

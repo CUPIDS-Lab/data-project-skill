@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this skill, please cite it."
+title: "data-project: an Agent Skill for scaffolding accessible, documented, transparent, and inclusive data collaborations"
+abstract: "A portable Agent Skill from the CU Public Interest Data Science (CUPIDS) Lab that interviews the user, samples a curated corpus of data-science and data-collaboration frameworks, and scaffolds a right-sized data project across six escalating levels (L0–L5), deferring above-level concerns into a project roadmap rather than over-building."
+type: software
+authors:
+  - name: "University of Colorado Public Interest Data Science Lab"
+    website: "https://github.com/cupids-lab"
+repository-code: "https://github.com/cupids-lab/data-project-skill"
+license: MIT
+version: "0.2.1"
+date-released: "2026-06-17"
+keywords:
+  - data science
+  - reproducibility
+  - open data
+  - responsible data
+  - data collaboration
+  - agent skill
+  - FAIR
+  - open knowledge format

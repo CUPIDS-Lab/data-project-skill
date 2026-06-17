@@ -25,7 +25,7 @@ The canvas walks a collaboration through phases — demand (problem, value), sup
 
 ## Artifacts it implies
 
-- → `templates/data-collaborative-canvas.md.tmpl` (roadmap); feeds `GOVERNANCE.md` and `CHARTER.md`.
+- → `templates/data-collaborative-canvas.md.tmpl`; feeds `GOVERNANCE.md` and `CHARTER.md`.
 
 ## When most relevant
 
@@ -33,4 +33,4 @@ Multi-organization or cross-sector collaborations, data-sharing agreements, part
 
 ## Caveats / conflicts
 
-Strategic and fairly heavy; for a single-team internal project most blocks collapse to a few lines. Pair it with ProPublica Collaborative (roadmap) for the operational partner-management detail.
+Strategic and fairly heavy; for a single-team internal project most blocks collapse to a few lines. Pair it with ProPublica Collaborative for the operational partner-management detail.

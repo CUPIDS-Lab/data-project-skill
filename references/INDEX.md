@@ -7,7 +7,7 @@ tags: [index, crosswalk, sampling]
 
 # Reference Corpus Crosswalk (sampling map)
 
-This is the indexer's primary working file. Use it to turn a Project Context Profile into a small, cited set of relevant practices and the templates they imply — a table lookup refined by judgment, not a vector search. Cite source files by name. With ~18 short digests this lookup is the right tool; if the corpus ever grows past a few dozen documents, revisit with a retrieval index.
+This is the indexer's primary working file. Use it to turn a Project Context Profile into a small, cited set of relevant practices and the templates they imply — a table lookup refined by judgment, not a vector search. Cite source files by name. With ~14 framework digests plus the skill's spine references this lookup is the right tool; if the corpus ever grows past a few dozen documents, revisit with a retrieval index.
 
 Build status legend: **⭐ built** — the template/digest exists now and can be generated; **○ roadmap** — not yet built, so route the concern into `ROADMAP.md` instead of generating a file. As of this build, every template and digest below is **⭐ built**; the now/later mechanism (see `escalation-levels.md`) still defers concerns into `ROADMAP.md` by the user's choice, not because a template is missing.
 
@@ -15,7 +15,7 @@ Build status legend: **⭐ built** — the template/digest exists now and can be
 
 | Goal | Practices (source file) |
 | --- | --- |
-| **Accessible** | plain-language summary, multiple formats (`turing-way`); FAIR/open access (`turing-way`); colorblind-safe viz & alt text (`turing-way`, accessibility-checklist ⭐); OKF concept catalog at L5 (`okf-open-knowledge-format` ⭐) |
+| **Accessible** | plain-language summary, multiple formats (`turing-way`); FAIR/open access (`turing-way`); colorblind-safe viz & alt text (`turing-way`, accessibility-checklist ⭐); OKF concept catalog at L5 (`okf-open-knowledge-format` ⭐); user-centered design & default-to-open (`usds-playbook`) |
 | **Documented** | data dictionary w/ grain, provenance, units, missingness, known-issues (`ouhsc-bbmc-practices`, `data-collaboratives-canvas`); decision log & changelog (`ouhsc-bbmc-practices`); README front door (`cookiecutter-data-science`); comments explain *why* (`git-github-collaboration`); dataset transparency Data Card (`datacards-playbook`) |
 | **Transparent** | immutable raw data & DAG provenance (`cookiecutter-data-science`); decision/change logs (`ouhsc-bbmc-practices`); data bulletproofing/QA (`propublica-data-bulletproofing` ⭐, `quartz-bad-data-guide` ⭐); Data Card — provenance, uses, sensitive attributes (`datacards-playbook`); licensing (`turing-way`); access tiers & oversight (`installed-base`) |
 | **Inclusive** | code of conduct & contributor recognition (`turing-way`); design partners vs. beneficiaries, mediator, gap-check (`collaboration-architecture`); responsible data & consent (`responsible-data-handbook`); sensitive-attributes & fairness documentation (`datacards-playbook`); accessible comms (`turing-way`) |
@@ -34,6 +34,7 @@ Build status legend: **⭐ built** — the template/digest exists now and can be
 | publish as open knowledge / FAIR | `okf-open-knowledge-format` ⭐, `turing-way` | `knowledge/` OKF bundle ⭐, `LICENSE-NOTE` ⭐ |
 | tooling = R | `ouhsc-bbmc-practices` | `r/` variant ⭐ (default Python ⭐) |
 | accessibility flagged | `turing-way` | `accessibility-checklist` ⭐ |
+| user-facing / civic service; openness or iterative delivery | `usds-playbook` | `project-design-canvas` ⭐, `accessibility-checklist` ⭐, `LICENSE-NOTE` ⭐ |
 | small synchronous team, low sensitivity | `cookiecutter-data-science`, `collaboration-architecture` (typology) | keep light — prefer L0–L1 ⭐ and `ROADMAP.md` over governance bloat |
 
 ## §C — Level → artifact → template (with build status)

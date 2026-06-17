@@ -26,8 +26,8 @@ This guide translates general git collaboration into data-science specifics: des
 ## Artifacts it implies
 
 - Ignore + attributes → `templates/gitignore.tmpl`, `templates/gitattributes.tmpl`.
-- Workflow + review norms → `templates/CONTRIBUTING.md.tmpl` (roadmap).
-- CI → `templates/ci/github-actions-ci.yml.tmpl` (roadmap).
+- Workflow + review norms → `templates/CONTRIBUTING.md.tmpl`.
+- CI → `templates/ci/github-actions-ci.yml.tmpl`.
 
 ## When most relevant
 

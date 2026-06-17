@@ -27,8 +27,8 @@ OUHSC encodes how a careful research-data team actually works day to day: a publ
 
 - Naming/grain + provenance → `templates/data-dictionary.md.tmpl`.
 - Public/unshared split → `templates/directory-tree.md` and `templates/gitignore.tmpl`.
-- Orchestration file → `templates/python/Snakefile.tmpl` (Python) / `_targets.R` (R, roadmap).
-- Review/onboarding norms → `templates/CONTRIBUTING.md.tmpl` (roadmap).
+- Orchestration file → `templates/python/Snakefile.tmpl` (Python) / `templates/r/_targets.R.tmpl` (R).
+- Review/onboarding norms → `templates/CONTRIBUTING.md.tmpl`.
 
 ## When most relevant
 

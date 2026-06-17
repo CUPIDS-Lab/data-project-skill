@@ -9,9 +9,17 @@ Reproducibility starts with a pinned environment so that another person — or a
 ```bash
 git clone {{REPO_URL}}
 cd {{PROJECT_SLUG}}
+```
+
+<!-- IF:PIPELINE -->For the Python toolchain, create the environment and install the project so the pipeline's modules import:
+
+```bash
 conda env create -f environment.yml
 conda activate {{PROJECT_SLUG}}
+pip install -e .
 ```
+
+For an R toolchain, restore the pinned environment instead with `renv::restore()` (see `renv-note.md`).<!-- /IF -->
 
 If you add or upgrade a dependency, update the environment file in the same change so the lock and the code never drift apart. Do not rely on packages that only exist on your machine.
 
