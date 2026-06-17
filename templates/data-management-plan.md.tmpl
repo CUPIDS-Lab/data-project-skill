@@ -1,0 +1,33 @@
+# Data management plan — {{PROJECT_NAME}}
+
+How this project handles its data across its life: what we hold, where it lives, how it is documented and shared, who can reach it, how long we keep it, and the rules we are bound by. Maintained by {{PI_NAME}} ({{CONTACT_EMAIL}}, {{LAB_NAME}}). Right-size each section to what this project actually holds; the hard gates are privacy law and the CARE Principles, and everything else is advisory. Keep this consistent with `GOVERNANCE.md`, `DATA-DICTIONARY.md`, and `decision-log.md`.
+
+## Data types & sources
+
+Describe the data this project holds: the kinds of data (tabular, text, geospatial, images), the unit of observation, the approximate volume, and the upstream sources with their licenses and collection methods. Note for each source whether it is reachable and re-releasable, so the pipeline can regenerate results rather than depending on a frozen snapshot. Detailed per-field provenance lives in `DATA-DICTIONARY.md` rather than here.
+
+## Storage & backup
+
+State where each tier of data lives and how it is backed up. Raw sources are committed read-only under `data/raw/` (or, when too large or too sensitive for version control, stored in the designated object store and referenced — see `.gitignore`), and derived data under `data/interim/` and `data/processed/` is treated as regenerable output rather than a source of truth. Record the backup target and cadence, where redundant copies live, and who is responsible for them, so a lost laptop or a closed account never loses the project.
+
+## Metadata & documentation standards
+
+Documentation is half the work, so it is part of the plan, not an afterthought. Keep `DATA-DICTIONARY.md` current and co-located with the data — grain, fields, units, allowed values, missingness, derived-variable formulas, and known issues — and record non-obvious choices in `decision-log.md`. The project practices recognized standards informally rather than mandating them: provenance records resemble W3C PROV, dataset metadata mirrors DCAT, and openness aims at FAIR (findable, accessible, interoperable, reusable). Where you maintain a Data Card, keep it consistent with the dictionary.
+
+## Sharing conditions
+
+State what is shared, with whom, in what form, and under what license ({{LICENSE}}; openness {{OPENNESS}}). Release processed outputs in open, version-stamped formats through a defined export, and share the re-runnable pipeline rather than only a cleaned snapshot. Name foreseeable misuses and out-of-scope uses up front, and run the `data-bulletproofing-checklist` (and `data-quality-checklist` where warranted) before anything is published.
+
+## Access controls
+
+Describe who can reach which data and how access is granted, following the tiers in `GOVERNANCE.md`. Apply least privilege: people get the narrowest access their role needs, credentials are read from the environment rather than committed, and changes to data are tracked and replayable. Record how access is requested, who approves it, and how it is revoked when a role ends.
+
+## Retention & secure disposal
+
+State how long each kind of data is kept and why, then how it is disposed of when that period ends. Define a retention schedule tied to the stated purpose, a secure disposal/wipeout procedure for data that has reached the end of its life, and the named custodians responsible for carrying both out. Recording the disposal plan is part of what makes retention legitimate rather than open-ended accumulation.
+
+## Compliance
+
+Identify the legal and ethical regimes that bind this project and how each is satisfied: IRB/ethics approval, any Data Use Agreements, and the consent basis for human data, alongside the applicable privacy law (e.g. GDPR, CCPA, FERPA/HIPAA where relevant). These are hard gates, not advisory preferences — they can constrain or redirect what may be collected, linked, retained, or published, and they take precedence over convenience.
+
+<!-- IF:SENSITIVE -->This project handles **{{SENSITIVITY_TIER}}** data, so the gates above are load-bearing. Where Indigenous data is implicated, the CARE Principles (collective benefit, authority to control, responsibility, ethics) govern alongside privacy law. Every identifier and retention affordance must ship with the matching access tiers and contestable governance in `GOVERNANCE.md` — affordances without duties are theater. Complete the `responsible-data-checklist` before ingesting or sharing, and desensitize before anything leaves the controlled tier.<!-- /IF -->

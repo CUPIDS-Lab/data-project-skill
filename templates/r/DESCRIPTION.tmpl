@@ -1,0 +1,17 @@
+Package: {{PKG_NAME}}
+Title: {{PROJECT_NAME}}
+Version: 0.1.0
+Authors@R:
+    person("{{PI_NAME}}", email = "{{CONTACT_EMAIL}}", role = c("aut", "cre"))
+Description: {{DESCRIPTION}}
+License: {{LICENSE}}
+Encoding: UTF-8
+# Exact versions are pinned via renv (see renv.lock), not here; this list declares
+# intent while renv guarantees reproducibility across machines.
+Imports:
+    targets,
+    tarchetypes,
+    dplyr,
+    readr,
+    arrow,
+    checkmate

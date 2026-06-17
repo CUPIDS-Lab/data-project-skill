@@ -1,0 +1,35 @@
+# CODEOWNERS — {{PROJECT_NAME}}
+#
+# This file maps repository paths to the roles responsible for reviewing them,
+# so that review responsibility is legible and every part of the project has an
+# owner. GitHub requests a review from the listed owners when a pull request
+# touches a matching path. The handles below are placeholders of the form
+# @org/role-team — replace them with the people or teams named in ROLES.md.
+# Later entries win, so order from general to specific.
+
+# Default owner: the project manager catches anything not matched below.
+*                       @org/project-manager
+
+# Data lives with the data engineer: source data, schema, identifiers, quality.
+/data/                  @org/data-engineer
+/DATA-DICTIONARY.md     @org/subject-matter-expert
+
+# Pipelines and reusable code are the developer's and engineer's shared ground:
+# the engineer owns the data flow, the developer owns the tooling around it.
+/pipelines/             @org/data-engineer @org/developer-team
+/src/                   @org/developer-team
+
+# Documentation carries meaning, so the subject-matter expert reviews it.
+# (The data dictionary above is the one exception they own outright.)
+/docs/                  @org/subject-matter-expert
+
+# Governance and the charter set the project's terms: the project manager owns
+# them, with legal as a second reviewer on the terms that bind partners.
+/GOVERNANCE.md          @org/project-manager @org/legal
+/CHARTER.md             @org/project-manager
+/ROLES.md               @org/project-manager
+
+# Environment and CI affect reproducibility for everyone — the developer owns
+# them so the pinned environment and pipeline stay in sync.
+/environment.yml        @org/developer-team
+/.github/               @org/developer-team

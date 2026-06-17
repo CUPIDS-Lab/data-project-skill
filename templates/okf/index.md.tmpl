@@ -1,0 +1,19 @@
+---
+okf_version: "0.1"
+title: {{PROJECT_NAME}} — Knowledge Bundle
+description: {{DESCRIPTION}}
+---
+
+<!-- This is the bundle-root index for the project's knowledge/ directory: an Open Knowledge Format (OKF) bundle, which is just a directory tree of Markdown "concept" files. This index is the only place in the bundle that may declare the format version (okf_version above); index.md and log.md are reserved filenames and are not themselves concepts. This file can be auto-generated from the concept docs (walk knowledge/, read each concept's frontmatter title/description, and regenerate the lists below) — regenerate it rather than hand-editing so it never drifts from the catalog. -->
+
+# {{PROJECT_NAME}} — Knowledge Bundle
+
+This is the open-knowledge catalog for {{PROJECT_NAME}}, derived from `DATA-DICTIONARY.md` so the schema and the catalog stay in sync. Each entry below links to a concept document — a dataset or one of its constituent tables — described in plain language so a newcomer can decide what to (re)use before opening the data itself. Cross-links throughout the bundle are bundle-relative (they begin with `/`, rooted at this directory), which keeps them stable wherever the bundle is published or mirrored.
+
+# Datasets
+
+- [{{PROJECT_SLUG}}](/datasets/{{PROJECT_SLUG}}.md) — one-line description of what this dataset is and who it serves.
+
+# Tables
+
+- [<table-name>](/tables/<table-name>.md) — one-line description of this table and its grain.

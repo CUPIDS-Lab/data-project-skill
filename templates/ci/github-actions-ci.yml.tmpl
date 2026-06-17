@@ -1,0 +1,49 @@
+# Lightweight CI for a scaffolded data project.
+# Runs on every pull request and push so problems are caught before review, per the collaborative-data-science workflow.
+# The project may be Python or R, so the language-specific build steps below are commented out — uncomment the block that matches this repo.
+# The template-token guard always runs regardless of language, because no scaffolded repo should ever ship unfilled placeholders.
+
+name: ci
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Guard: fail if any unfilled template token remains in the repo.
+      # We search for the literal double-open-brace marker; the pattern is written with bracket
+      # expressions so this workflow file itself contains no such marker and stays placeholder-free.
+      # `grep -r` exits 0 when it finds a match, so we invert: any match means the scaffold is incomplete.
+      - name: Check for unfilled template tokens
+        run: |
+          if grep -rIn --exclude-dir=.git '[{][{]' .; then
+            echo "::error::Unfilled template tokens found (see matches above). Fill or remove them before merging."
+            exit 1
+          fi
+          echo "No unfilled template tokens found."
+
+      # --- Python projects: uncomment if this repo uses the Python toolchain ---
+      # - name: Set up environment (micromamba)
+      #   uses: mamba-org/setup-micromamba@v1
+      #   with:
+      #     environment-file: environment.yml
+      # - name: Lint
+      #   shell: bash -l {0}
+      #   run: ruff check .
+      # - name: Pipeline dry-run
+      #   shell: bash -l {0}
+      #   run: snakemake -n
+
+      # --- R projects: uncomment if this repo uses the R toolchain ---
+      # - name: Set up R
+      #   uses: r-lib/actions/setup-r@v2
+      # - name: Restore renv environment
+      #   run: Rscript -e "renv::restore()"
+      # - name: Pipeline dry-run
+      #   run: Rscript -e "targets::tar_manifest()"

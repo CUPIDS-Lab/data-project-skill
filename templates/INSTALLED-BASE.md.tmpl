@@ -1,0 +1,26 @@
+# Installed base — {{PROJECT_NAME}}
+
+This file renders the {{LAB_NAME}} values spine as concrete requirements for **this** repository. Public-interest data infrastructure sits under three chronic pressures; we answer each with a counter-value the scaffold has to operationalize, and we hold six installed-base elements as things the repo must contain — not aspirations. Read `responsible-data-checklist.md` and `GOVERNANCE.md` alongside this; the point of the spine is to keep affordances coupled to the duties that make them contestable.
+
+## Three pressures, three counter-values
+
+- **Enclosure → Openness.** Public evidence keeps getting locked into formats and platforms that are technically open but practically closed. This repo must keep its data and pipeline in durable, legible, version-controllable formats, make everything exportable, and avoid taking on any vendor-locked artifact as a required dependency — because lock-in is itself a form of enclosure.
+- **Exemption → Oversight.** Powerful actors carve out exemptions from scrutiny. This repo must make oversight routinized and testable: change logs and version history that are reviewable, a reporting cadence where one is warranted, and a named role with recognized authority to interpret and contest the evidence it holds.
+- **Erosion → Ownership.** These projects quietly erode when grants, pilots, semesters, or administrations end. This repo must carry stewardship obligations that survive turnover — named custodians, a retention schedule, and a migration plan — so that the default trajectory is continuity rather than abandonment.
+
+## Six installed-base elements, as repo requirements
+
+1. **Jurisdictional linkability** — this repo must use stable, persistent identifiers and document the crosswalks that let records join across sources, decisions, and time, and must name who owns the reference data. (Lives in `DATA-DICTIONARY.md`<!-- IF:OKF -->, and at L5 in the OKF concept `resource` URIs under `knowledge/`<!-- /IF -->.)
+2. **Provenance-in-practice** — this repo must keep provenance, change logs, and version history that are expected and reviewable, and legible to affected parties rather than only to builders. (Provenance fields in `DATA-DICTIONARY.md`, plus `decision-log.md` and `CHANGELOG.md`.)
+3. **Stewardship continuity** — this repo must record retention schedules, redundancy/mirroring, a migration plan, and named custodians who outlast budget cycles. (`CHARTER.md` "what survives the pilot"; the retention section of `GOVERNANCE.md` and `data-management-plan.md`.)
+4. **Legitimate visibility / tiered access** — this repo must state documented decision rules for what is public, what is restricted, and which accountable intermediaries may touch sensitive traces. (Access tiers in `GOVERNANCE.md`.)
+5. **Contestable oversight** — this repo must define logging and audit rights, a reporting cadence, and a role authorized to interpret and contest the evidence. (`ROLES.md` plus `GOVERNANCE.md`.)
+6. **Remedy / escalation** — this repo must provide an accessible, protective, consequential pathway that turns a documented problem into review and correction, with transparency about the outcome. (The escalation section of `GOVERNANCE.md`.)
+
+## How this scales
+
+This spine is not a license to over-build. For a public, non-sensitive dataset most of these elements collapse to a sentence in the `README.md` and a line or two in `ROADMAP.md`; the weight scales with sensitivity and with the kind of collaboration this is. The one place sensitivity overrides leanness is the coupling below, where the duty ships with the affordance no matter how small the project.
+
+<!-- IF:SENSITIVE -->## Minimum viable safeguards (the load-bearing coupling)
+
+This project handles **{{SENSITIVITY_TIER}}** data, so this section is non-negotiable. Identifiers and retention are not neutral goods. Wherever vulnerable populations are implicated, every linkability and retention affordance must be paired with access tiers and contestable governance over what is linkable, what is preserved, who can reach sensitive traces, and how those decisions are challenged. Concretely: this repo must not introduce an identifier scheme, a retention policy, or an audit log without also landing the matching access-tier and remedy/escalation language in `GOVERNANCE.md` — or, until that document exists, writing the coupling obligation into `ROADMAP.md` as a blocking item. Affordances without duties are theater, and this repo refuses to ship the theater.<!-- /IF -->

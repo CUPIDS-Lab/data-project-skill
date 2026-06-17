@@ -1,0 +1,19 @@
+# Convenience targets for {{PROJECT_NAME}}. Thin wrappers so the common commands are one word and self-documenting.
+
+.PHONY: pipeline dryrun restore clean
+
+# Build the full targets pipeline, re-running only the stages whose inputs changed.
+pipeline:
+	Rscript -e "targets::tar_make()"
+
+# Preview the pipeline plan (the stages and their dependencies) without executing anything.
+dryrun:
+	Rscript -e "targets::tar_manifest()"
+
+# Reproduce the pinned package environment from renv.lock on this machine.
+restore:
+	Rscript -e "renv::restore()"
+
+# Remove the targets store so the next run rebuilds every stage from scratch.
+clean:
+	Rscript -e "targets::tar_destroy(ask = FALSE)"

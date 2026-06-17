@@ -1,0 +1,20 @@
+---
+name: release-and-share
+description: >-
+  Read before packaging, publishing, or sharing any output from {{PROJECT_NAME}}. Covers exporting processed data
+  in open, version-stamped formats with a defined export, applying the access tier from GOVERNANCE.md, routing
+  anything touching sensitive traces through the escalation rules, and completing the bulletproofing and
+  data-quality checks first. Trigger on "publish," "release," "share data," "export," or "send this out."
+---
+
+# Release and share
+
+Package and publish outputs so others can find, trust, and reuse them — and so nothing sensitive or unverified leaves by accident. Get the checks done before anything goes out the door.
+
+Verify before you publish. Complete the `data-bulletproofing-checklist` so the numbers reconcile against the source's own totals and surprising results have been double-checked, and run the `data-quality-checklist` where the data warrants it. Reconciliation against originals is what makes a dataset defensible; shipping unverified figures is how a project loses its credibility in one release.
+
+Package in open, version-stamped formats with a defined export. Release processed outputs in plain-text, version-controllable formats (CSV/Parquet, Markdown, text-based pipeline definitions), stamp each release with a version and date, and provide a defined, scriptable export rather than a hand-assembled snapshot. The shared artifact is the re-runnable pipeline, not a one-off cleaned file: anything a hosted tool produces must be exportable, and no vendor-locked artifact should be a required dependency. Ship the `DATA-DICTIONARY.md` (and the Data Card, where you maintain one) alongside the data so a reader can interpret it.
+
+Apply the access tier and respect the escalation rules. Before publishing, apply the access tier from `GOVERNANCE.md` — decide what is public, what is restricted, and who may touch which traces — and confirm the openness and license you are releasing under (`{{OPENNESS}}`, `{{LICENSE}}`).
+
+<!-- IF:SENSITIVE -->This project handles **{{SENSITIVITY_TIER}}** data. Nothing touching sensitive traces is published on your own authority: route it through the access tiers and the remedy/escalation rules in `GOVERNANCE.md` first, desensitize before anything leaves the controlled tier, and complete the `responsible-data-checklist`. Identifiers and retained data carry duties — releasing an affordance without its governance is exactly the theater this project refuses to ship.<!-- /IF -->

@@ -1,0 +1,45 @@
+# Pipeline-as-code for {{PROJECT_NAME}}, expressed with the `targets` package.
+# Pipelines, not cleaned snapshots, are the shared artifact: when raw data is re-released, re-running this re-applies every transformation.
+# `targets` tracks each stage's inputs and only re-runs what actually changed, so the pipeline stays cheap to iterate on and always reproducible.
+# Preview the plan without executing with `targets::tar_manifest()`; run it with `targets::tar_make()`.
+
+library(targets)
+library(tarchetypes)
+
+# Declare the packages each target's code needs; `targets` loads them in the worker that builds the target.
+tar_option_set(packages = c("dplyr", "readr", "arrow", "checkmate"))
+
+# Reusable, testable stage functions live in R/ — one file per concern, sourced here so targets stay declarative.
+tar_source("R/")
+
+list(
+  # Raw input, tracked as a file so any change to the bytes on disk invalidates everything downstream.
+  # Raw is immutable — read it, never edit it in place.
+  tar_target(
+    raw_file,
+    "data/raw/{{RAW_FILE}}",
+    format = "file"
+  ),
+
+  # Ingest: read the raw file and apply light validation (types/keys present) before anything depends on it.
+  # Fail fast here so a malformed drop never silently propagates into the analysis.
+  tar_target(
+    ingested,
+    ingest(raw_file)
+  ),
+
+  # Clean / tidy: reshape to one variable per column and one observation per row.
+  # This is the analysis-ready table the rest of the project builds on.
+  tar_target(
+    cleaned,
+    clean(ingested)
+  ),
+
+  # Analyze: derive the summary table and write it to results/tables for sharing/reporting.
+  # Returns the output path so `targets` tracks the written artifact.
+  tar_target(
+    analyzed,
+    analyze(cleaned),
+    format = "file"
+  )
+)

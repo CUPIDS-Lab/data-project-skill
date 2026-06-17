@@ -1,0 +1,20 @@
+---
+name: documentation
+description: >-
+  Read before writing or updating documentation in {{PROJECT_NAME}}. Covers keeping the data dictionary, schema,
+  and derived-variable definitions current and co-located with the data, writing for a reader who has none of the
+  project's context, and updating docs in the same change as the data or code they describe. Trigger on "document,"
+  "data dictionary," "schema," "what does this field mean," or "update the docs."
+---
+
+# Documentation
+
+Documentation is half the work: a dataset without it is a private spreadsheet. Write it for reuse, keep it next to what it describes, and never let it drift behind the data.
+
+Keep the schema and definitions current and co-located. `DATA-DICTIONARY.md` holds the grain, fields, types, units, allowed values, and missingness for each table, plus the formula and source columns for every derived variable; keep it living next to the data rather than in a separate, forgotten place. Publish derived/computed variables centrally with their definitions so analysts reuse one agreed definition instead of each re-deriving their own and quietly disagreeing.
+
+Write for someone with none of the project's context. The reader you are writing for is a future maintainer, an outside collaborator, or a downstream agent who knows nothing about how the data was made. Explain not just what each field is but why it exists and how it should and should not be used, and record the data problems you found and how you handled them — missing versus zero, suspicious sentinels, inconsistent encodings, totals that do not reconcile — so the next reader is not surprised by them.
+
+Update docs in the same change as the data or code. Documentation that has fallen behind the code is a bug, not a chore for later. When a field, a transformation, or a definition changes, change `DATA-DICTIONARY.md` in the same commit, add a dated entry to `decision-log.md` for any non-obvious choice, and note user-visible changes in `CHANGELOG.md`. Coupling the doc edit to the code edit is the only reliable way to keep them honest.
+
+<!-- IF:OKF -->At L5 each dataset is also mirrored as an Open-Knowledge-Format concept under `knowledge/`; when you change the schema, update the matching OKF concept and its `# Schema` section so the bundle and the dictionary stay in sync.<!-- /IF -->

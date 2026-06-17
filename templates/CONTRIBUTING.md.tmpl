@@ -1,0 +1,52 @@
+# Contributing to {{PROJECT_NAME}}
+
+Thanks for working on {{PROJECT_NAME}}. This guide explains how to make changes here in a way that keeps the project reproducible, legible, and safe for the data it holds. Read `AGENTS.md` for the non-negotiables and `CODE_OF_CONDUCT.md` for community norms before you start.
+
+## Environment setup
+
+Reproducibility starts with a pinned environment so that another person — or another agent — gets the same results from the same inputs. Set it up once and recreate it whenever the lockfile changes.
+
+```bash
+git clone {{REPO_URL}}
+cd {{PROJECT_SLUG}}
+conda env create -f environment.yml
+conda activate {{PROJECT_SLUG}}
+```
+
+If you add or upgrade a dependency, update the environment file in the same change so the lock and the code never drift apart. Do not rely on packages that only exist on your machine.
+
+## Branch, PR, and review workflow
+
+Work on a branch named for the change (e.g. `fix/reconcile-totals` or `data/2026-intake`), never directly on the default branch. Open a pull request early, even as a draft, so others can see where the work is going and weigh in before it hardens. Every PR needs a review from someone other than the author; `CODEOWNERS` routes each path to the role responsible for it, so request the owner of the files you touched. Keep PRs small and focused on one concern — a reviewer can reason about a tight change but not a sprawling one.
+
+## Commit messages explain WHY
+
+Write commit messages that explain the reasoning behind a change, not just the mechanics of it — the diff already shows *what* changed, so the message should capture *why* it changed and what tradeoff was accepted. A future maintainer reading `git log` should understand a filtering rule or a definition choice without having to reconstruct it. For non-obvious design or data decisions, also add a dated entry to `decision-log.md`; the commit explains the change, the decision log explains the project's choices over time.
+
+## The pipeline is the shared artifact
+
+The thing this project shares is the **re-runnable, text-based pipeline**, not a cleaned snapshot of the data. When a source is re-released, sharing only the cleaned output guarantees redoing the work every vintage; sharing the pipeline means the next person regenerates the result. Keep pipeline definitions legible to the subject-matter experts who need to read them, not only to developers, and treat any derived data under `data/interim/` or `data/processed/` as reproducible output rather than a source of truth.
+
+## Notebooks stay in `exploratory/`
+
+Notebooks are playgrounds, not products. Explore freely in `exploratory/`, then package the reusable parts into scripts or modules under `src/` at the exploration boundary, so the project's logic lives in code that can be tested and re-run. Clear notebook outputs before committing — committed outputs bloat diffs, leak data, and quietly go stale; the repository's `.gitattributes`/`.gitignore` should strip them, but check before you push.
+
+## Keep secrets and sensitive data out of the repo
+
+Credentials, tokens, and raw sensitive data never belong in version control, including inside notebook cells and their outputs. Read configuration and secrets from the environment or an ignored local file, and keep the example/template config free of real values. <!-- IF:SENSITIVE -->This project handles **{{SENSITIVITY_TIER}}** data: desensitize before anything leaves the controlled tier, follow the access tiers in `GOVERNANCE.md`, and complete the `responsible-data-checklist` before ingesting or sharing data.<!-- /IF -->
+
+## Discoverability is a feature
+
+A data portal is poor at connecting people, so the burden of making this project and its contributors findable falls on its documentation. When you add a capability, update the `README.md`, the relevant role in `ROLES.md`, and the schema in `DATA-DICTIONARY.md` so the next person can find and reuse what you built. Treat documentation that has fallen behind the code as a bug.
+
+## PR checklist
+
+Before requesting review, confirm:
+
+- [ ] Branched from the default branch; the PR describes the change and *why* it was made.
+- [ ] Derived data is regenerable from `data/raw/` via the pipeline; nothing under `data/raw/` was edited in place.
+- [ ] Reusable logic lives in `src/`; notebooks stay in `exploratory/` with outputs cleared.
+- [ ] No secrets or sensitive data in the diff (code, config, or notebook outputs).
+- [ ] Environment/lockfile updated if dependencies changed; results reproduce in a clean environment.
+- [ ] Docs updated (`README.md`, `DATA-DICTIONARY.md`, `decision-log.md`) for any user-visible or non-obvious change.
+- [ ] The right `CODEOWNERS` reviewer is requested.

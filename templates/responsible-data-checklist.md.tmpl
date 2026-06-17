@@ -1,0 +1,39 @@
+# Responsible data checklist — {{PROJECT_NAME}}
+
+Work through the rights and risks of the people this data is about, at each stage of its life rather than once at the start. The checklist is organized by lifecycle stage — design, getting, understanding, sharing, closure — because a harm introduced at intake is cheapest to prevent there and most expensive to undo at release. Right-size it to what this project holds, but treat two things as hard gates that cannot be waived: **privacy and data-protection law** (GDPR, CCPA, FERPA/HIPAA where relevant) and the **CARE Principles for Indigenous Data Governance** (collective benefit, authority to control, responsibility, ethics). Everything else is advisory; those two redirect what may be collected, linked, retained, or published.
+
+<!-- IF:SENSITIVE -->This project handles **{{SENSITIVITY_TIER}}** data, so this checklist is load-bearing rather than optional. Every identifier and retention affordance must be paired with the access tiers and remedy/escalation process in `GOVERNANCE.md` — affordances without duties are theater. Center the people whose data this is, not an abstract public, and record whose risks are being carried.<!-- /IF -->
+
+## Design
+
+- [ ] Stated the project's purpose and the specific questions the data is meant to answer, narrowly enough to test collection against them.
+- [ ] Named the design partners (who does the work) separately from the beneficiaries (who it is for), and recorded whose risks are centered.
+- [ ] Identified the applicable legal/ethical regimes up front — privacy law, IRB/ethics approval, CARE where Indigenous data is implicated — and confirmed the project can satisfy them.
+- [ ] Made the transparency-versus-privacy tradeoff legible rather than leaving it to defaults.
+
+## Getting
+
+- [ ] **Consent is real:** freely given, specific, informed, and revocable; the purpose, retention, sharing, and people's rights are stated in terms they can understand, and consent is tracked over time.
+- [ ] **Data minimization & purpose limitation:** collected and kept only what the stated purpose needs; nothing gathered "just in case."
+- [ ] Confirmed the authority and license to use, transform, and share each source before ingesting it.
+- [ ] Recorded provenance and chain of custody on ingestion (see `DATA-DICTIONARY.md`), and kept raw sensitive data and credentials out of the repository.
+
+## Understanding
+
+- [ ] **Harms assessment by stage:** enumerated the foreseeable harms — re-identification, profiling, discrimination, misuse — for this stage and the next, rated each for likelihood and severity, and recorded a mitigation and monitoring plan for the ones that matter.
+- [ ] Checked re-identification risk specifically: assessed whether individuals could be singled out by combining quasi-identifiers or by linking to outside data.
+- [ ] Brought in the subject-matter knowledge needed to interpret the data so categories and patterns are not misread in ways that harm the people behind them.
+- [ ] Documented known limitations and biases so downstream users are not surprised (mirror `DATA-DICTIONARY.md` and `data-quality-checklist.md`).
+
+## Sharing
+
+- [ ] **Security & least-privilege access:** data encrypted at rest and in transit as warranted, access scoped to the narrowest role that needs it, access and changes audited, and a breach-response path defined.
+- [ ] Applied the access tier from `GOVERNANCE.md`, deciding what is public, what is restricted, and who may touch sensitive traces.
+- [ ] Desensitized or aggregated before release, and named the out-of-scope uses and foreseeable misuses explicitly.
+- [ ] Routed anything touching sensitive traces through the escalation rules in `GOVERNANCE.md` before publishing.
+
+## Closure
+
+- [ ] **Retention & disposal:** a retention schedule is set and tied to the stated purpose, and data past its life is securely disposed of / wiped out by a named custodian.
+- [ ] Communicated the project's wind-down to the people the data is about and to partners, as the consent and relationship require.
+- [ ] Stated what survives the pilot — named custodians and ongoing duties — so the project ends deliberately rather than eroding.

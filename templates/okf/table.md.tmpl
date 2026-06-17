@@ -1,0 +1,26 @@
+---
+type: Table
+title: <table-name>
+description: <One sentence on what this table holds and its grain.>
+resource: <canonical URI for this table, if it has one>
+tags: [documented, transparent]
+timestamp: {{YEAR}}-01-01T00:00:00Z
+---
+
+<!-- OKF concept for a single table within the dataset, derived from DATA-DICTIONARY.md. `type: Table` is the only required frontmatter field. Place this file in tables/ and link related tables and the parent dataset with bundle-relative paths beginning with `/`. The Schema section is the heart of a table concept; keep it aligned with the data dictionary, which remains the authority on field meanings. -->
+
+A short prose description of this table: the unit each row represents (its grain), roughly how many rows, and how it fits into [the {{PROJECT_SLUG}} dataset](/datasets/{{PROJECT_SLUG}}.md). Explain why the table exists rather than only what it contains.
+
+# Schema
+
+One row per column. Keep types and descriptions consistent with `DATA-DICTIONARY.md`; use the Description cell to record foreign-key relationships to other tables as bundle-relative links.
+
+| Column | Type | Description |
+| --- | --- | --- |
+| `id` | string | Primary key — uniquely identifies one row. |
+| `<name>` | `<string/int/float/bool/date>` | What it means and why it exists. |
+| `<other_id>` | string | Foreign key into [<other-table>](/tables/<other-table>.md). |
+
+# Citations
+
+How to cite this table and its upstream source. {{PI_NAME}} et al., *{{PROJECT_NAME}}*, {{LAB_NAME}}, {{YEAR}}.

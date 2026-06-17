@@ -1,0 +1,31 @@
+# Contributed data intake — {{PROJECT_NAME}}
+
+**Applicability:** this file is only needed when {{PROJECT_NAME}} accepts contributed or crowdsourced data — submissions from contributors, participants, or the public rather than data the team collects or licenses itself. If the project does not take contributed data, this protocol does not apply and can be left as a stub; delete it rather than maintain an empty process. The guidance below assumes people outside the team are handing you data about themselves or others, which raises duties that internally sourced data does not.
+
+## Intake methods
+
+State how contributions reach the project and keep the set deliberately small, because every intake channel is a surface you must secure, deduplicate, and document. Record each method (a form, an upload, an API, a forwarded record), who can submit through it, and where submissions land before they are reviewed. Contributions arrive in a quarantine area, not directly into `data/raw/`, so that nothing is treated as source data until it has been checked and redacted.
+
+## Deduplication
+
+Contributed data arrives messy and repetitive — the same person submits twice, two people report the same event, near-duplicates differ only in formatting. Decide up front what counts as a duplicate for this project, what key or combination of fields identifies a unique submission, and how duplicates are merged or dropped. Do the deduplication as a documented, re-runnable step in the pipeline so the rule is legible and the same input always produces the same result, rather than as a manual cleanup nobody can reproduce.
+
+## Role-based access
+
+Raw contributions can contain identifying or sensitive detail, so they sit in the **sensitive** access tier from `GOVERNANCE.md` until they have been redacted, and only the minimal set of accountable people may touch them at that stage. State which role reviews incoming submissions, who may see the un-redacted material, and at what point the redacted data moves to a less restricted tier. Least privilege is the default: most of the team works with the cleaned data, not the raw submissions.
+
+## PII redaction at import
+
+Redact personally identifying information at the moment of import, before contributed data is stored as something the wider team can read, because PII that is never written to a broadly readable store cannot leak from one. Decide which fields are identifying for this project, how each is removed or masked or coarsened, and where (if anywhere) a tightly restricted mapping back to identities is kept and under what governance. Make redaction part of the intake pipeline so it happens automatically and consistently rather than depending on someone remembering.
+
+## Verify before you cite
+
+A contribution is a claim, not a fact, so treat it as unverified until it has been checked, and never publish or act on a single uncorroborated submission. State how contributions are verified — corroboration against other sources, follow-up with the contributor, or independent confirmation — and record the verification status alongside each record so downstream users know what has been checked and what has not. "Someone submitted it" is not the same as "it is true," and conflating the two is how crowdsourced projects publish errors.
+
+## Minimal form design
+
+If contributions come through a form, design it to capture only what the project actually needs, because every field is data you then have to protect, redact, and justify holding. Prefer categorical fields with fixed options over free text where you can, since they are easier to analyze and leak far less incidental personal detail than an open box. State the project's purpose and privacy handling **before** the form, in plain language, so contributors know what they are giving and to whom before they fill anything in — transparency up front is part of informed contribution, not fine print after the fact.
+
+## Protecting contributors, participants, and sources
+
+The people who contribute data, and the people that data is about, are exposed by the act of contribution, and protecting them is a duty of the project rather than a favor. State how contributor identities are protected (anonymity or confidentiality, and which), how their data is stored and for how long (cross-referenced to the retention schedule in `GOVERNANCE.md`), and how a contributor can withdraw or request correction through the remedy pathway. Where a contribution could expose a vulnerable source, weigh that risk before any publication and resolve it in favor of the person at risk; the affordance to collect is coupled to the duty to protect.
