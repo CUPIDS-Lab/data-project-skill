@@ -1,0 +1,43 @@
+# Data Card — {{PROJECT_NAME}}
+
+A people-centered transparency summary of this project's dataset, in the spirit of the [Data Cards Playbook](https://sites.research.google/datacardsplaybook/) — a right-sized subset of its 15 documentation dimensions. It documents the facts a reader needs to decide whether and how to (re)use the data. This complements — it does not replace — the field-level schema in `DATA-DICTIONARY.md`. Right-size it: fill the themes that matter for this dataset and leave the rest. Where useful, answer at more than one depth — a short overview, a concrete example, then a fuller explanation.
+
+## Overview
+
+- **Dataset:** `<dataset name>` · version `<version>` · last updated {{YEAR}}.
+- **Summary:** one or two sentences on what this dataset is and who it serves.
+- **Sensitivity:** {{SENSITIVITY_TIER}}. **Openness:** {{OPENNESS}}. **License:** {{LICENSE}}.
+- **Maintainer:** {{PI_NAME}} · {{CONTACT_EMAIL}} · {{LAB_NAME}}.
+- **Authorship:** who created and who owns the dataset; funding sources.
+
+## Motivation & intended use
+
+Why this dataset exists, who it is for (design partners and beneficiaries), and the questions it is meant to support. State what the data can plausibly support — description and comparison far more readily than prediction.
+
+## Provenance & collection
+
+Upstream sources and their licenses; how and when the data was collected or annotated, and by whom; the chain of custody. Note whether the source is reachable and re-released. (Detailed field provenance lives in `DATA-DICTIONARY.md`.)
+
+## Composition
+
+What the dataset contains: the unit of observation (grain), approximate size, the tables/files, and how they relate. Note major transformations applied, how any labels or annotations were produced, the sampling method, and how the data was validated. Point to `DATA-DICTIONARY.md` for the field-level schema rather than duplicating it here.
+
+## Recommended & out-of-scope uses
+
+The uses this dataset is suitable for, and — just as important — the uses it is **not** suitable for. Naming foreseeable misuses up front is part of responsible release.
+
+<!-- IF:SENSITIVE -->## Sensitive attributes & fairness
+
+This dataset is **{{SENSITIVITY_TIER}}**. Identify PII and protected/sensitive attributes; representation and sampling gaps; known or suspected biases; and the populations who could be harmed by misuse or re-identification. Pair any identifier/retention affordance with the access tiers and remedy process recorded in `GOVERNANCE.md` (or, until that exists, in `ROADMAP.md`) — affordances without duties are theater. Complete the `responsible-data-checklist` before ingesting or sharing.<!-- /IF -->
+
+## Known limitations & caveats
+
+The data problems found and how they were handled (missing values, inconsistent encodings, suspicious sentinels, truncation, totals that don't reconcile), and the limitations that constrain use. Mirror the entries in `DATA-DICTIONARY.md`'s "Known issues" and any `data-quality-checklist`.
+
+## Maintenance & governance
+
+Who maintains the dataset, the update cadence, how to report a problem, access conditions, the retention schedule, the disposal/wipeout plan, and what survives the pilot (named custodians). Link `GOVERNANCE.md` and `decision-log.md` where present.
+
+## Citation
+
+{{PI_NAME}} et al., *{{PROJECT_NAME}}* dataset, {{LAB_NAME}}, {{YEAR}}.

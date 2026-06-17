@@ -16,9 +16,9 @@ Build status legend: **⭐ built (MVP)** — a template/digest that exists now; 
 | Goal | Practices (source file) |
 | --- | --- |
 | **Accessible** | plain-language summary, multiple formats (`turing-way`); FAIR/open access (`turing-way`); colorblind-safe viz & alt text (`turing-way`, accessibility-checklist ○); OKF concept catalog at L5 (`okf-open-knowledge-format` ○) |
-| **Documented** | data dictionary w/ grain, provenance, units, missingness, known-issues (`ouhsc-bbmc-practices`, `data-collaboratives-canvas`); decision log & changelog (`ouhsc-bbmc-practices`); README front door (`cookiecutter-data-science`); comments explain *why* (`git-github-collaboration`) |
-| **Transparent** | immutable raw data & DAG provenance (`cookiecutter-data-science`); decision/change logs (`ouhsc-bbmc-practices`); data bulletproofing/QA (`propublica-data-bulletproofing` ○, `quartz-bad-data-guide` ○); licensing (`turing-way`); access tiers & oversight (`installed-base`) |
-| **Inclusive** | code of conduct & contributor recognition (`turing-way`); design partners vs. beneficiaries, mediator, gap-check (`collaboration-architecture`); responsible data & consent (`responsible-data-handbook`); accessible comms (`turing-way`) |
+| **Documented** | data dictionary w/ grain, provenance, units, missingness, known-issues (`ouhsc-bbmc-practices`, `data-collaboratives-canvas`); decision log & changelog (`ouhsc-bbmc-practices`); README front door (`cookiecutter-data-science`); comments explain *why* (`git-github-collaboration`); dataset transparency Data Card (`datacards-playbook`) |
+| **Transparent** | immutable raw data & DAG provenance (`cookiecutter-data-science`); decision/change logs (`ouhsc-bbmc-practices`); data bulletproofing/QA (`propublica-data-bulletproofing` ○, `quartz-bad-data-guide` ○); Data Card — provenance, uses, sensitive attributes (`datacards-playbook`); licensing (`turing-way`); access tiers & oversight (`installed-base`) |
+| **Inclusive** | code of conduct & contributor recognition (`turing-way`); design partners vs. beneficiaries, mediator, gap-check (`collaboration-architecture`); responsible data & consent (`responsible-data-handbook`); sensitive-attributes & fairness documentation (`datacards-playbook`); accessible comms (`turing-way`) |
 | **Collaborative** | feature-branch + PR workflow, CI (`git-github-collaboration`); roles + CODEOWNERS (`collaboration-architecture`); collaboration canvas & governance (`data-collaboratives-canvas`); partner lifecycle & contributed-data intake (`propublica-collaborative` ○, `propublica-collaborate-manual` ○) |
 | **Reproducible** | standard tree & immutable raw (`cookiecutter-data-science`, `ouhsc-bbmc-practices`); pinned env + pipeline-as-code + dry-run (`snakemake`); seeds, linear scripts, validation (`ouhsc-bbmc-practices`); version control & testing (`turing-way`) |
 
@@ -30,6 +30,7 @@ Build status legend: **⭐ built (MVP)** — a template/digest that exists now; 
 | multi-organization / cross-sector | `data-collaboratives-canvas`, `propublica-collaborative` ○, `collaboration-architecture` | `collaboration-protocol` ○, `GOVERNANCE` ○, `CHARTER` ○ |
 | contributed / crowdsourced data | `propublica-collaborate-manual` ○, `responsible-data-handbook` | `contributed-data-intake` ○ |
 | publishing / communicating findings | `propublica-data-bulletproofing` ○, `quartz-bad-data-guide` | `data-bulletproofing-checklist` ○, `data-quality-checklist` ○ |
+| publishing or sharing a dataset; sensitive attributes / fairness | `datacards-playbook` | `data-card` ⭐ |
 | publish as open knowledge / FAIR | `okf-open-knowledge-format` ○, `turing-way` | `knowledge/` OKF bundle ○, `LICENSE-NOTE` ○ |
 | tooling = R | `ouhsc-bbmc-practices` | `r/` variant ○ (default Python ⭐) |
 | accessibility flagged | `turing-way` | `accessibility-checklist` ○ |
@@ -58,6 +59,7 @@ Build status legend: **⭐ built (MVP)** — a template/digest that exists now; 
 | L4 | DMP / responsible data | `templates/data-management-plan.md.tmpl`, `templates/responsible-data-checklist.md.tmpl` | ○ |
 | L4 | QA | `templates/data-bulletproofing-checklist.md.tmpl`, `templates/data-quality-checklist.md.tmpl` | ○ |
 | L4 | accessibility | `templates/accessibility-checklist.md.tmpl` | ○ |
+| L4 | dataset transparency card | `templates/data-card.md.tmpl` | ⭐ |
 | L5 | knowledge bundle | `templates/okf/{index,log,concept,dataset,table}.md.tmpl` | ○ |
 | L5 | licensing / canvases | `templates/LICENSE-NOTE.md.tmpl`, `templates/data-collaborative-canvas.md.tmpl`, `templates/project-design-canvas.md.tmpl` | ○ |
 

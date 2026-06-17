@@ -72,7 +72,7 @@ Write only into the user's working directory, never the skill's. Keep L0/L1 genu
 
 ## What's built vs. roadmap
 
-This skill is built out for **L0–L2** (structure, documentation, the Python reproducible stack) plus full interview/sample/synthesize/audit. **L3–L5** artifacts (governance, roles, charter, nested skills, responsible-data and data-quality checklists, accessibility, the R variant, CI, and the OKF bundle templates) are on the corpus roadmap: `references/INDEX.md` marks each template ⭐ built or ○ roadmap. For ○ items, route the concern into the project's `ROADMAP.md` rather than generating a file — and surface the same to the user. As those templates land, they become available with no change to this workflow.
+This skill is built out for **L0–L2** (structure, documentation, the Python reproducible stack) plus full interview/sample/synthesize/audit. **L3–L5** artifacts (governance, roles, charter, nested skills, responsible-data and data-quality checklists, accessibility, the R variant, CI, and the OKF bundle templates) are on the corpus roadmap: `references/INDEX.md` marks each template ⭐ built or ○ roadmap. For ○ items, route the concern into the project's `ROADMAP.md` rather than generating a file — and surface the same to the user. As those templates land, they become available with no change to this workflow. One L4 artifact is already built and available: the **Data Card** (`templates/data-card.md.tmpl`), a dataset-level transparency document (Google PAIR's Data Cards Playbook) that complements the L1 data dictionary — offer it when publishing or sharing a dataset, or when data is sensitive.
 
 ## Reference map
 
@@ -81,6 +81,6 @@ This skill is built out for **L0–L2** (structure, documentation, the Python re
 - `references/installed-base.md` — the values spine and the affordance↔duty coupling.
 - `references/collaboration-architecture.md` — typology, roles, team-data-science practices, charter, anti-patterns.
 - `references/INDEX.md` — the crosswalk the indexer samples (goal/level/signal → practice → template, with build status).
-- `references/*.md` — per-framework digests (Cookiecutter, OUHSC, Snakemake, Git/GitHub, Turing Way, Responsible Data, Data Collaboratives; OKF and others on the roadmap).
+- `references/*.md` — per-framework digests (Cookiecutter, OUHSC, Snakemake, Git/GitHub, Turing Way, Responsible Data, Data Collaboratives, Data Cards Playbook; OKF and others on the roadmap).
 - `agents/*.md` — the interviewer, indexer, and synthesizer role definitions.
 - `templates/` — the scaffolding artifacts; `templates/directory-tree.md` is the structural source of truth.

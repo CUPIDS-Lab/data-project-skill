@@ -25,7 +25,11 @@ The corpus and templates are a menu, not a default output. Two dials, set in a s
 
 The skill runs a short workflow: **Interview → Sample → Synthesize → Approve → Scaffold (now) + Roadmap (later) → Verify → Offer next rung.** Three bundled agents do the first three phases — `data-project-interviewer` (asks what's needed), `data-project-indexer` (samples the reference corpus), and `data-project-synthesizer` (proposes a right-sized blueprint). In a harness with sub-agents they run as agents; otherwise the skill performs each role inline.
 
-## Install
+## Getting started
+
+New here? Install the skill for your agent, then point it at an empty repository and describe the project — the skill interviews you briefly, proposes a right-sized plan, and scaffolds the files once you approve. The two steps below cover installation and a first run on a brand-new repo.
+
+### 1. Install it
 
 This is plain Markdown that follows the open [Agent Skills](https://agentskills.io) standard (a root `SKILL.md`) and ships an [`AGENTS.md`](https://agents.md) (the cross-tool agent-instructions convention). Any agent that can read files and write to your working directory can use it: point the agent at `SKILL.md` and ask it to start — or audit — a data project. The three agents in `agents/` run as real sub-agents where the harness supports them, and inline everywhere else. Per-harness directions follow; everywhere, first clone it somewhere stable with `git clone https://github.com/cupids-lab/data-project-skill`.
 
@@ -45,11 +49,37 @@ Then run `/data-project`, or just describe starting a data project — the descr
 
 **Cursor, GitHub Copilot, Windsurf, Cline, and other file-aware agents** — most read an `AGENTS.md` (or a rules file such as `.cursor/rules`). Drop this repo into your workspace so its `AGENTS.md` is discovered, or reference `SKILL.md` from your tool's rules/context mechanism. Because the whole skill is plain Markdown, any agent that can read and write files can follow it.
 
+### 2. Start a project in a brand-new repo
+
+Once it's installed, here is a first run starting from an empty repository.
+
+1. **Create or clone an empty repo and enter it.**
+
+```bash
+mkdir my-data-project && cd my-data-project   # or clone an empty repo and cd into it
+```
+
+2. **Invoke the skill.** In Claude Code, run `/data-project` — or just describe the work, e.g. *"set up a data project for a CSV of city eviction filings."* The description is written to trigger the skill even when you don't name it. In another harness, tell the agent: *"Follow the data-project SKILL.md and start a project here."*
+
+3. **Answer the short interview.** The skill infers the lowest level that fits and states its assumption (*"this reads like L1 — a documented repo"*). It asks only what changes the output — maturity level, data sensitivity, tooling, openness — with sensible defaults you can accept as-is. For anything beyond the chosen level it asks *build now / document for later / skip*, so the run stays small.
+
+4. **Review and approve the plan.** You get a concise plan: the directory tree, the exact files it will create now, and the roadmap of deferred items. Nothing is written until you approve, so edit freely.
+
+5. **Let it scaffold.** The skill writes files into your working directory (never its own), creates the data directories with `.gitkeep`, marks `data/raw` immutable, and writes a `ROADMAP.md` listing what was deferred and how to add it later. Then commit:
+
+```bash
+git add -A && git commit -m "Scaffold data project"
+```
+
+6. **Climb when you're ready.** Re-run the skill in the same repo and ask to *"climb to L2"* (add a reproducible pipeline) or *"L3"* (collaboration and governance); it adds only the new level's artifacts and updates `ROADMAP.md`. To assess an existing repo instead, run `/data-project audit <path>` for a prioritized gap report.
+
+A first run at L0–L1 gives you a small, documented repo — not a pile of governance boilerplate. That leanness is intentional; complexity is opt-in.
+
 ## What it draws on
 
 The corpus distills the following frameworks into concise, citable digests under `references/`, sampled by the indexer via `references/INDEX.md`:
 
-[The Turing Way](https://book.the-turing-way.org/) · [Cookiecutter Data Science](https://cookiecutter-data-science.drivendata.org/) · [Snakemake](https://snakemake.readthedocs.io/) · [OUHSC BBMC Data-Science Practices](https://ouhscbbmc.github.io/data-science-practices-1/) · [Git/GitHub for collaborative data science](https://arounddatascience.com/blog/coding/how-to-use-github-and-git-for-collaborative-data-science-projects-a-complete-guide-for-algerian-data-scientists/) · [Data Collaboratives Canvas](https://datacollaboratives.org/canvas.html) · [USDS Playbook](https://playbook.usds.gov/) · [Responsible Data Handbook](https://responsibledata.io/resources/handbook/) · [ProPublica — Bulletproofing your data analysis](https://github.com/propublica/guides/blob/master/data-bulletproofing.md) · [ProPublica Collaborative](https://propublica.gitbook.io/collaborative) · [ProPublica Collaborate](https://propublica.gitbook.io/collaborate-user-manual) · [Quartz Bad Data Guide](https://github.com/Quartz/bad-data-guide) · [Google Open Knowledge Format (OKF)](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf).
+[The Turing Way](https://book.the-turing-way.org/) · [Cookiecutter Data Science](https://cookiecutter-data-science.drivendata.org/) · [Snakemake](https://snakemake.readthedocs.io/) · [OUHSC BBMC Data-Science Practices](https://ouhscbbmc.github.io/data-science-practices-1/) · [Git/GitHub for collaborative data science](https://arounddatascience.com/blog/coding/how-to-use-github-and-git-for-collaborative-data-science-projects-a-complete-guide-for-algerian-data-scientists/) · [Data Collaboratives Canvas](https://datacollaboratives.org/canvas.html) · [USDS Playbook](https://playbook.usds.gov/) · [Responsible Data Handbook](https://responsibledata.io/resources/handbook/) · [ProPublica — Bulletproofing your data analysis](https://github.com/propublica/guides/blob/master/data-bulletproofing.md) · [ProPublica Collaborative](https://propublica.gitbook.io/collaborative) · [ProPublica Collaborate](https://propublica.gitbook.io/collaborate-user-manual) · [Quartz Bad Data Guide](https://github.com/Quartz/bad-data-guide) · [Google Open Knowledge Format (OKF)](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf) · [Data Cards Playbook (Google PAIR)](https://sites.research.google/datacardsplaybook/).
 
 ## Relationship to `data-liberation`
 
