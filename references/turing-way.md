@@ -26,7 +26,7 @@ The Turing Way is a broad, community-built guide whose five guides map almost on
 
 ## Artifacts it implies
 
-- DMP → `templates/data-management-plan.md.tmpl` (roadmap); code of conduct → `templates/CODE_OF_CONDUCT.md.tmpl` (roadmap); accessibility → `templates/accessibility-checklist.md.tmpl` (roadmap); licensing → `templates/LICENSE-NOTE.md.tmpl` (roadmap); FAIR/openness → the L5 OKF bundle.
+- DMP → `templates/data-management-plan.md.tmpl`; code of conduct → `templates/CODE_OF_CONDUCT.md.tmpl`; accessibility → `templates/accessibility-checklist.md.tmpl`; licensing → `templates/LICENSE-NOTE.md.tmpl`; FAIR/openness → the L5 OKF bundle.
 
 ## When most relevant
 

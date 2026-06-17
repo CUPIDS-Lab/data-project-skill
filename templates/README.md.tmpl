@@ -2,7 +2,7 @@
 
 {{DESCRIPTION}}
 
-A {{LAB_NAME}} data project. Maturity level: **{{LEVEL}}**. Sensitivity: **{{SENSITIVITY_TIER}}**. Openness: **{{OPENNESS}}**.
+A {{LAB_NAME}} data project. Maturity level: **{{LEVEL}}**. Toolchain: **{{TOOLING}}**. Sensitivity: **{{SENSITIVITY_TIER}}**. Openness: **{{OPENNESS}}**.
 
 ## What & why
 
@@ -24,14 +24,15 @@ cd {{PROJECT_SLUG}}
 ```bash
 conda env create -f environment.yml
 conda activate {{PROJECT_SLUG}}
-snakemake -n          # dry-run: preview the steps
+pip install -e .      # install the project so pipeline modules import
+snakemake -n          # dry-run: preview the steps (run from the repo root)
 snakemake --cores 4   # run the pipeline
 ```
 <!-- /IF -->
 
 ## Data access
 
-<!-- IF:SENSITIVE -->This project handles **{{SENSITIVITY_TIER}}** data. Sensitive data is **not** in this repository. See `GOVERNANCE.md` for access tiers and the process to request access; see `responsible-data-checklist.md` before ingesting or sharing data.<!-- /IF -->
+<!-- IF:SENSITIVE -->This project handles **{{SENSITIVITY_TIER}}** data. Sensitive data is **not** in this repository. See `GOVERNANCE.md` for access tiers and the process to request access, and `responsible-data-checklist.md` before ingesting or sharing data (until those exist, see `ROADMAP.md`).<!-- /IF -->
 <!-- IF:OPEN -->Processed, non-sensitive data is shared in open formats. See `DATA-DICTIONARY.md` for the schema and `knowledge/` for the open-knowledge catalog (if present).<!-- /IF -->
 
 ## Documentation
@@ -39,7 +40,7 @@ snakemake --cores 4   # run the pipeline
 - `DATA-DICTIONARY.md` — variables, grain, provenance, units, missingness, known issues.
 - `decision-log.md` — why key choices were made.
 - `CHANGELOG.md` — what changed and when.
-<!-- IF:COLLAB -->- `CONTRIBUTING.md`, `GOVERNANCE.md`, `ROLES.md` — how to collaborate here.<!-- /IF -->
+<!-- IF:COLLAB -->- `CONTRIBUTING.md`, `GOVERNANCE.md`, `ROLES.md` — how to collaborate here (any not yet present are tracked in `ROADMAP.md`).<!-- /IF -->
 
 ## Citation
 

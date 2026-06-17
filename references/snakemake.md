@@ -24,7 +24,7 @@ Snakemake defines a pipeline as a set of rules, each declaring inputs, outputs, 
 
 ## Artifacts it implies
 
-- Pipeline skeleton → `templates/python/Snakefile.tmpl`; parameters → `templates/python/config.yaml.tmpl`; environment → `templates/python/environment.yml.tmpl`. R analogue is `_targets.R` (roadmap).
+- Pipeline skeleton → `templates/python/Snakefile.tmpl`; parameters → `templates/python/config.yaml.tmpl`; environment → `templates/python/environment.yml.tmpl`. R analogue is `_targets.R`.
 
 ## When most relevant
 

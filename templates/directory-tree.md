@@ -19,10 +19,11 @@ This file is read by the skill, not copied into the project. It defines the dire
 ├── decision-log.md           # L1  dated design/data decisions with rationale
 ├── CHANGELOG.md              # L1  human-readable change history
 ├── exploratory/    .gitkeep  # L2  notebooks live here only — never shipped to production
-├── src/<pkg>/                # L2  reusable, importable, tested source code (pkg = PKG_NAME: the slug with underscores, a valid Python module name)
-├── pipelines/                # L2  pipeline-as-code (Snakefile / _targets.R) + config
-│   ├── Snakefile             #     (Python default)
-│   └── config.yaml
+├── Snakefile                 # L2  pipeline-as-code at the repo root (Python default); run `snakemake -n` from here
+├── config.yaml               # L2  pipeline parameters & paths, resolved relative to the repo root
+├── _targets.R                # L2  pipeline-as-code for the R variant (run via `targets::tar_make()`)
+├── src/<pkg>/                # L2  Python source: reusable, importable, tested code (pkg = PKG_NAME, the slug with underscores)
+├── R/                        # L2  R source: stage functions sourced by _targets.R (R projects use this instead of src/<pkg>/)
 ├── results/
 │   ├── figures/    .gitkeep  # L2  generated charts
 │   └── tables/     .gitkeep  # L2  generated tables

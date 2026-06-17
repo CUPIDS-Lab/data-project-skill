@@ -20,7 +20,7 @@ rule ingest:
     output:
         "data/interim/ingested.parquet",
     shell:
-        "python -m src.{{PKG_NAME}}.ingest {input} {output}"
+        "python -m {{PKG_NAME}}.ingest {input} {output}"
 
 
 # Clean / tidy: one variable per column, one observation per row.
@@ -30,7 +30,7 @@ rule clean:
     output:
         "data/processed/analysis_ready.parquet",
     shell:
-        "python -m src.{{PKG_NAME}}.clean {input} {output}"
+        "python -m {{PKG_NAME}}.clean {input} {output}"
 
 
 # Analyze: produce a summary table from the analysis-ready data.
@@ -40,4 +40,4 @@ rule analyze:
     output:
         "results/tables/summary.csv",
     shell:
-        "python -m src.{{PKG_NAME}}.analyze {input} {output}"
+        "python -m {{PKG_NAME}}.analyze {input} {output}"

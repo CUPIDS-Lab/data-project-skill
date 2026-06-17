@@ -1,0 +1,22 @@
+name: validate
+
+# Guard the skill's internal consistency on every change: OKF `type` frontmatter
+# on references, balanced/documented template conditionals, well-formed/documented
+# placeholder tokens, and INDEX template paths that resolve. This is the repo
+# practicing the reproducibility and verification it preaches.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate skill structure
+        run: python scripts/validate.py

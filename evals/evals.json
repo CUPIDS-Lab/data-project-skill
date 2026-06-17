@@ -16,7 +16,7 @@
     {
       "id": 3,
       "prompt": "We're starting a multi-partner project with sensitive tenant records across three housing nonprofits. Help me set up the repository.",
-      "expected_output": "Infers L3+ and marks sensitivity = sensitive-human and multi-org. Fires the affordance-duty coupling: any identifier/retention/audit affordance is paired with access-tier and governance language, or — because L3+ governance templates are on the roadmap in this MVP — written into ROADMAP.md as BLOCKING items. Names design partners vs. beneficiaries, flags role gaps, routes governance/charter/collaboration-protocol/contributed-data-intake to ROADMAP, and recommends the responsible-data checklist before any data ingestion.",
+      "expected_output": "Infers L3+ and marks sensitivity = sensitive-human and multi-org. Generates the built L3 collaboration/governance set (GOVERNANCE with access tiers + retention + remedy/escalation, CHARTER, collaboration-protocol, ROLES + CODEOWNERS, CONTRIBUTING, CODE_OF_CONDUCT). Fires the affordance-duty coupling: identifier/retention/audit affordances ship with the matching access-tier and contestable-governance language in GOVERNANCE.md. Names design partners vs. beneficiaries separately and flags role gaps. ROADMAP.md holds only genuinely deferred concerns (above L3, or ones the user chose to defer); the responsible-data checklist is recommended before any data ingestion.",
       "files": []
     },
     {

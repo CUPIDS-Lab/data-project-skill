@@ -2,7 +2,7 @@
 type: Reference
 title: Open Knowledge Format (OKF)
 description: A vendor-neutral format for representing knowledge as plain Markdown files with YAML frontmatter, organized into "bundles" of linked concepts — the project's L5 knowledge/publish layer.
-resource: https://sites.research.google/datacardsplaybook/
+resource: https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf
 tags: [accessible, transparent, documented, fair, knowledge]
 ---
 
