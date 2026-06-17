@@ -1,0 +1,28 @@
+---
+type: Dataset
+title: {{PROJECT_NAME}}
+description: {{DESCRIPTION}}
+resource: {{REPO_URL}}
+tags: [documented, transparent, fair]
+timestamp: {{YEAR}}-01-01T00:00:00Z
+---
+
+<!-- OKF concept for the dataset as a whole, derived from DATA-DICTIONARY.md. `type: Dataset` is the only required frontmatter field; the rest is optional. This concept lives in datasets/ and links to its constituent tables in tables/ via bundle-relative paths. Keep it in sync with the data dictionary and the data card rather than restating their detail. -->
+
+A one- or two-sentence summary of what this dataset is and who it serves, written for someone with none of the project's context. This concept is the open-knowledge mirror of `DATA-DICTIONARY.md` and complements the people-centered `data-card.md`; consult those for field-level schema and transparency detail rather than duplicating them here.
+
+**Grain (unit of observation):** state the unit one row represents in the primary table (e.g. one row per patient-visit), and note where the constituent tables differ in grain.
+
+**Provenance:** where the data came from, the collection or release method, the date obtained, and the chain of custody — enough that a reader can judge how far to trust it. Record the upstream license alongside the source.
+
+**Composition:** what the dataset contains — its approximate size, the tables it comprises and how they relate, and any major transformations applied between raw and published form.
+
+# Tables
+
+The constituent tables of this dataset, each its own concept; follow the link for that table's schema.
+
+- [<table-name>](/tables/<table-name>.md) — what this table holds and its grain.
+
+# Citations
+
+How to cite this dataset and the upstream sources it derives from. {{PI_NAME}} et al., *{{PROJECT_NAME}}* dataset, {{LAB_NAME}}, {{YEAR}}. Released under {{LICENSE}}.

@@ -1,0 +1,23 @@
+# Data bulletproofing checklist — {{PROJECT_NAME}}
+
+Run this before any number leaves the building. Bulletproofing is the pre-publication QA that makes a dataset defensible: you reconcile the data against the source's own published totals, recompute the key figures a second way, and have someone else replicate the result. Surprising findings get double-checked *before* they get shipped, not after a correction. Keep a data notebook recording every procedure you run here, so the analysis can be reproduced and defended later (this complements `decision-log.md` and the pipeline).
+
+## Integrity
+
+- [ ] Verified record counts against expected totals, and watched for silent software row limits (e.g. a spreadsheet truncating at 65,536 rows) that drop data without warning.
+- [ ] Ran `GROUP BY` on key fields to catch inconsistent spelling, stray whitespace, and duplicate records hiding behind near-identical values.
+- [ ] Validated that numeric ranges and dates are plausible — no impossible values, out-of-range entries, or dates outside the period the data should cover.
+- [ ] Distinguished genuinely missing values from zeros and from sentinel codes (e.g. `-1`, `9999`, `65535`) so "no data" is never silently averaged in as a number.
+
+## Recomputation
+
+- [ ] Recomputed each key figure with an alternate query or method and confirmed the two agree.
+- [ ] Pulled a random sample of records and checked each one against the raw source by hand.
+- [ ] Gut-checked surprising or convenient results — a number that is exactly what you hoped for gets more scrutiny, not less — and traced any anomaly back to its cause before reporting it.
+
+## Independent review
+
+- [ ] Had a colleague independently replicate the key results from the raw data, without copying your queries.
+- [ ] Kept a data notebook documenting every procedure — sources, transformations, queries, and decisions — so the work can be reproduced and defended.
+
+<!-- IF:SENSITIVE -->This project handles **{{SENSITIVITY_TIER}}** data: do the verification inside the controlled tier, share only desensitized samples for review, and confirm the release respects the access tiers and escalation rules in `GOVERNANCE.md` before anything is published. Complete the `responsible-data-checklist` as well.<!-- /IF -->

@@ -87,7 +87,7 @@ This is the companion to the lab's [`data-liberation`](https://github.com/cupids
 
 ## Build status
 
-This is an MVP. **L0–L2** (structure, documentation, the Python reproducible stack) plus the full interview/sample/synthesize/audit workflow are built. **L3–L5** templates (governance, roles, charter, nested skills, responsible-data and data-quality checklists, accessibility, the R variant, CI, and the OKF bundle) are on the roadmap: `references/INDEX.md` marks each template ⭐ built or ○ roadmap, and the skill routes ○ concerns into each project's `ROADMAP.md` until they land.
+All six levels (L0–L5) are built: structure and documentation; the Python and R reproducible stacks plus CI; collaboration and governance (contributing, code of conduct, roles + CODEOWNERS, governance, charter, collaboration protocol, contributed-data intake, nested `.skills/`); the responsible-data, data-management, bulletproofing, data-quality, and accessibility artifacts plus the installed-base values spine and a Data Card; and the L5 licensing, canvases, and OKF knowledge bundle. `references/INDEX.md` tracks each template's status. Having the full menu doesn't change the lean-by-default behavior: the interview still right-sizes every run and defers anything above the chosen level into the project's `ROADMAP.md`.
 
 ## License
 

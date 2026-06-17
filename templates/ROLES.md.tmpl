@@ -1,0 +1,38 @@
+# Roles — {{PROJECT_NAME}}
+
+This file names who does what on {{PROJECT_NAME}} so that responsibility is legible and nothing important is owned by nobody. A data collaboration runs on five core roles embedded in a wider community and supported by auxiliary specialists; a small project may have one person wearing several hats, which is fine as long as the hats are named. Keep this current as people join and leave, and read it alongside `CODEOWNERS`, which maps these roles to the repository paths they review.
+
+## The five core roles
+
+The core roles are **data engineer, software developer, subject-matter expert, mediator, and project manager**. Each is a responsibility, not necessarily a separate person — but each must be claimed by someone for the work to hold together.
+
+## The thinker/doer split
+
+These teams are small, interdisciplinary, and low-turnover, and the work divides into framing and building. Subject-matter experts are the **thinkers**: they frame the questions, define the terms, and interpret the results, because they hold the context that prevents misreadings. The data engineer and software developer are the **doers**: they implement the pipeline and tools. Design for tight, high-bandwidth, often synchronous feedback between the two rather than for crowd scale — the value comes from the loop being short, not from the team being large.
+
+## The mediator function
+
+Someone has to translate between the technical view and the subject-matter view, and that person is the **mediator**. This is where collaborations succeed or stall: an unmediated team produces technically correct work that answers the wrong question, or domain-correct intentions that never become working code. Name the mediator explicitly below even if it is a hat someone else also wears, because a function nobody owns is a function that quietly fails.
+
+## Roles table
+
+| Role | Who | Responsibilities |
+| --- | --- | --- |
+| Data engineer | `<name / handle>` | Acquires and models data; owns the pipeline, schema, identifiers, and quality checks; keeps derived data reproducible from raw. |
+| Software developer | `<name / handle>` | Builds and maintains the tooling and reusable code in `src/`; packaging, tests, and interfaces. |
+| Subject-matter expert | `<name / handle>` | Frames the questions; defines terms and joint indicators; interprets results; owns `DATA-DICTIONARY.md` meaning. |
+| Mediator | `<name / handle>` | Translates between technical and domain views; keeps the feedback loop tight; surfaces mismatches early. |
+| Project manager | `<name / handle>` | Coordinates the work and the cadence; owns the charter and governance; tracks decisions and what survives the pilot. |
+| Community — publishers | `<name / org>` | Release and steward outputs and data for the beneficiaries. |
+| Community — consumers | `<name / org>` | Use the data and outputs; their needs shape scope. |
+| Community — connectors | `<name / org>` | Link the project to people, partners, and reference data. |
+| Community — communicators | `<name / org>` | Make the project and its findings findable and understandable. |
+| Auxiliary — infrastructure | `<name / handle>` | Hosting, compute, storage, backups, and access controls. |
+| Auxiliary — statistics | `<name / handle>` | Methodology, sampling, and held-out/cross-validated checks against overfitting. |
+| Auxiliary — legal | `<name / handle>` | Licensing, data-sharing terms, privacy, and liability. |
+
+## GAP-CHECK — unfilled roles
+
+If any core role above is unfilled, name it here rather than papering over it with an empty cell, and make filling it the first priority before the project takes on work that role guards. List each gap, why it is open, the interim coverage (who is holding the hat for now), and the plan to fill it. An unowned core role — especially the mediator — is the most likely point of failure, so treat closing these gaps as blocking, not aspirational.
+
+- `<role>` — open because `<reason>`; interim coverage `<who>`; plan to fill `<how / when>`.

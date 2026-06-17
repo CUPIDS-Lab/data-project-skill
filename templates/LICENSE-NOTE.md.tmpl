@@ -1,0 +1,25 @@
+# Licensing — {{PROJECT_NAME}}
+
+A short guide to licensing this project's three layers — code, data, and documentation — so that {{LAB_NAME}}'s work can actually be reused. An open project without explicit licenses is not open in practice: in most jurisdictions, "no license" defaults to "all rights reserved," so omitting a license quietly forbids the reuse the project intends to invite. State the licenses, and state them per layer.
+
+## License each layer separately
+
+Code, data, and documentation are different kinds of work that the law treats differently, so a single repository-wide license rarely fits all three. Software licenses (MIT, Apache-2.0) are written around copyright in source code and patent grants, and they read awkwardly when applied to a dataset. Datasets are often governed by database and sui generis rights rather than ordinary copyright, so they want a data-specific license. Prose, figures, and docs are creative works best served by a Creative Commons license. Licensing each layer with the instrument designed for it keeps every part unambiguously reusable and avoids the trap of, say, an MIT-licensed CSV whose actual terms of reuse are unclear.
+
+Record the choice for each layer using its SPDX identifier (https://spdx.org/licenses/), the short machine-readable name that tooling and humans both recognize:
+
+| Layer | What it covers | Sensible default (SPDX) | Why |
+| --- | --- | --- | --- |
+| Code | Source, scripts, pipelines, notebooks | `MIT` (or `Apache-2.0`) | OSI-approved, permissive, widely understood; Apache-2.0 adds an explicit patent grant if that matters. |
+| Data | Datasets in `data/processed`, released tables | `CC-BY-4.0` (or `CC0-1.0`) | CC BY 4.0 requires attribution; CC0 dedicates to the public domain for maximal reuse. Choose by how much you need to be credited vs. how frictionless you want reuse. |
+| Docs | README, data dictionary, docs, this knowledge bundle | `CC-BY-4.0` | Creative-work license fit for prose and figures; attribution keeps provenance legible. |
+
+These are defaults to confirm, not mandates. Prefer an OSI-approved license for code so reuse rights are settled and recognized, and a CC license for data and docs. If upstream source data carries its own license, that license can constrain what you may re-release — reconcile your data license with it (and with the input license recorded in `DATA-DICTIONARY.md`) before publishing.
+
+## How this sets {{LICENSE}}
+
+`{{LICENSE}}` is the project's headline license — the one named in `README.md`, the `LICENSE` file, and the citation — and it should be the **code** license (e.g. `MIT`), since the `LICENSE` file conventionally governs the repository's source. Name the data and documentation licenses explicitly alongside it (in this note, in `README.md`, and in the dataset's OKF concept and data card) so each layer's terms are unambiguous rather than assumed to inherit the code license.
+
+## FAIR and open access
+
+Clear, layered licensing is what makes the "Reusable" in FAIR (Findable, Accessible, Interoperable, Reusable) real: a dataset is only reusable if its license says, in machine-readable terms, that it may be reused and under what conditions. Pairing an open data license with the persistent identifiers and rich metadata in the OKF bundle (`knowledge/`) and the data dictionary is what turns "we put it online" into genuine open access — discoverable, citable, and legally reusable by people the project will never meet.

@@ -1,0 +1,37 @@
+# Governance — {{PROJECT_NAME}}
+
+This file says who may touch what, how long we keep things, how decisions get made, and how a documented problem becomes a correction. It exists because public-interest data infrastructure sits under chronic pressure to be enclosed, exempted from scrutiny, and quietly eroded; the answers below are how {{PROJECT_NAME}} resists each. Read it with `ROLES.md` (who holds these responsibilities) and `CHARTER.md` (what survives the pilot). This project's sensitivity is **{{SENSITIVITY_TIER}}** and its openness posture is **{{OPENNESS}}**.
+
+## Access tiers
+
+Access is documented and tiered so that visibility is legitimate rather than ambient — what is open is deliberately open, and what is restricted is reachable only by accountable people. State for each tier what data it covers and who may touch it, and keep least-privilege as the default.
+
+| Tier | What it covers | Who may access | How access is granted |
+| --- | --- | --- | --- |
+| Public | Processed, non-sensitive outputs and documentation released in open formats. | Anyone. | No request needed. |
+| Restricted | Interim data, partner-shared data, or anything not cleared for public release. | Named project members and approved collaborators. | Request to the project manager; logged. |
+| Sensitive | Identifiable, regulated, or otherwise sensitive traces. | A named, minimal set of accountable intermediaries only. | Documented approval; access logged and time-bound. |
+
+## Retention schedule
+
+State how long each class of data is kept and what happens at the end of its life, because data held without a reason becomes a liability rather than an asset. Record the retention period for raw, interim, and sensitive data; the disposal or wipeout method; and who is responsible for carrying it out. Review the schedule on a stated cadence so it does not drift into indefinite retention by default.
+
+## Decision-making
+
+Describe how decisions get made and recorded so that authority is legible rather than improvised. State who decides routine matters (typically the role owning the affected path in `CODEOWNERS`), how larger decisions are made (consensus among core roles, with the project manager breaking ties), and how disagreements are resolved. Record non-obvious decisions in `decision-log.md` so the project's reasoning is reviewable by people who join later.
+
+## Contestable oversight
+
+Oversight here is testable, not nominal: the project keeps logs and change histories that affected parties can inspect, and at least one role — named in `ROLES.md` — is authorized to interpret and contest the evidence rather than merely receive it. Record what is logged (access to restricted/sensitive tiers, changes to data and schema, releases), who holds audit rights, and the cadence on which logs are reviewed. The point is that a powerful actor cannot quietly carve out an exemption from scrutiny; the watching is routine and the records are reviewable.
+
+## Remedy and escalation
+
+A documented problem must have a path to becoming a correction, or oversight is theater. Anyone — a contributor, a participant, a collaborating organization, or a member of the public — can raise a concern by contacting {{CONTACT_EMAIL}}. State how a raised concern is acknowledged and within what timeframe, who reviews it, how it is escalated if unresolved, and how the outcome is communicated back. Make the pathway accessible, protective of the person raising it, and consequential, and be transparent about outcomes so the process is trusted enough to be used.
+
+## Transparency vs. privacy
+
+This project publishes in the public interest and protects the people in its data at the same time, and those goals pull against each other. State the project's standing posture: default to openness for non-sensitive aggregate findings, default to protection for anything identifiable, and resolve specific tradeoffs deliberately rather than by reflex — recording the reasoning in `decision-log.md`. When the two genuinely conflict, the duty to the people in the data takes precedence over the convenience of disclosure.
+
+<!-- IF:SENSITIVE -->## Sensitive data — affordances ship with duties
+
+This project handles **{{SENSITIVITY_TIER}}** data, where the coupling above is load-bearing and not optional. Every linkability and retention affordance — a stable identifier, a crosswalk, a preserved record, an audit log — must ship together with the access tier that limits who can reach it and the remedy pathway that lets its use be contested. Affordances without duties are surveillance dressed as service, so do not add an identifier scheme, a retention extension, or new logging without simultaneously updating the access tiers and escalation process here. Where Indigenous data is implicated, apply CARE principles alongside these tiers.<!-- /IF -->

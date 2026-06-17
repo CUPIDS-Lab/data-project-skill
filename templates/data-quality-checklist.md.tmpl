@@ -1,0 +1,39 @@
+# Data quality checklist — {{PROJECT_NAME}}
+
+Scan a new or updated dataset for the common "bad data" problems before you build on it, using this adaptation of the Quartz bad-data taxonomy. The checks are grouped by who is best placed to fix each problem — your source, you, a subject-matter expert, or a programmer — because knowing whose problem it is determines what to do next. Record what you find and how you handled it in `DATA-DICTIONARY.md`'s known-issues section so downstream users are not surprised. This is about whether the data can be trusted at all; `data-bulletproofing-checklist.md` is the pre-publication reconciliation that follows.
+
+## Issues your SOURCE should fix
+
+- [ ] Values are missing where you expected data, and the gaps are unexplained.
+- [ ] Zeros are standing in for missing values (or vice versa), so absence is silently counted as a real measurement.
+- [ ] Suspicious sentinel values appear (e.g. `65535`, `-1`, `9999`, `1900-01-01`) that actually mean "unknown."
+- [ ] Spelling or capitalization is inconsistent across records, fragmenting what should be one category.
+- [ ] Date and number formats are inconsistent (e.g. `MM/DD` mixed with `DD/MM`, or thousands separators in some rows).
+- [ ] Units or essential metadata are missing, so a column of numbers has no defined meaning.
+- [ ] The data looks truncated — for example cut off at exactly 65,536 rows by the tool that exported it.
+
+## Issues YOU should fix
+
+- [ ] Text is garbled by an encoding or line-ending mismatch (mojibake, stray characters, broken rows).
+- [ ] The data only exists inside PDFs or scanned images and has to be extracted before use.
+- [ ] The data is at the wrong aggregation level for the question — too coarse, or aggregated when you need the units.
+- [ ] Human data entry is inconsistent (free-text where codes were expected, ad hoc abbreviations).
+- [ ] Figures are not adjusted for inflation, or a seasonal series is compared without accounting for seasonality.
+- [ ] The sample is non-random or otherwise biased in a way that does not support the claim you want to make.
+- [ ] The margin of error is large or unknown, so apparent differences may be noise.
+
+## Issues an EXPERT should weigh in on
+
+- [ ] The author or collecting body is of uncertain trustworthiness or has an interest in the result.
+- [ ] The collection methodology is opaque, so you cannot tell what the numbers actually measure.
+- [ ] Figures show false precision — more decimal places or specificity than the method could support.
+- [ ] There are inexplicable outliers that no one can account for.
+- [ ] The analysis shows signs of p-hacking — results that survive only under one of many possible specifications.
+- [ ] An index or composite masks the underlying variation that matters for interpretation.
+
+## Issues a PROGRAMMER should help with
+
+- [ ] The data needs to be re-aggregated or reshaped programmatically (e.g. rolled up from records, or pivoted).
+- [ ] OCR or text extraction needs tuning to recover the data reliably from scans or PDFs.
+
+<!-- IF:SENSITIVE -->This project handles **{{SENSITIVITY_TIER}}** data: run these checks inside the controlled tier and treat any field that could re-identify someone as a quality *and* a privacy concern — pair it with the access tiers in `GOVERNANCE.md` and the `responsible-data-checklist`.<!-- /IF -->

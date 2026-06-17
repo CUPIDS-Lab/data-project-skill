@@ -1,0 +1,13 @@
+# Reproducible R environments with renv ({{PROJECT_NAME}})
+
+renv gives this project a private, per-project R library so its package versions can never drift with whatever is installed globally on a given machine.
+
+Run `renv::init()` once to start: it scans the code, creates the project library, and writes the initial `renv.lock` recording every package and its exact version.
+
+As you add or update dependencies, run `renv::snapshot()` to pin the current state into `renv.lock` — this is the file that makes the environment shareable.
+
+On another machine (a collaborator's laptop, CI, or a fresh clone), run `renv::restore()` to install exactly the versions in `renv.lock`, reproducing your environment bit-for-bit.
+
+Always commit `renv.lock` (and the small `renv/` activation files); never commit the `renv/library/` itself, since it is large and machine-specific.
+
+Pinning matters because analyses are only reproducible if the code AND its dependencies are fixed: an un-pinned package can change a default, a join, or a model fit between versions, silently altering results months later when no one remembers what changed.
