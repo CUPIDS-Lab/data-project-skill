@@ -1,17 +1,29 @@
-# ROADMAP — what's deferred and how to add it
+# ROADMAP — this level's work and what's deferred
 
-This project was scaffolded at level **{{LEVEL}}**, deliberately right-sized. This file records concerns that are real but not built yet, so nothing important is lost and the next maintainer (or agent) knows exactly what to add and when. Building less now and documenting the rest here is the intended workflow, not a shortcut.
+This project was scaffolded at level **{{LEVEL}}**, deliberately right-sized. It records both the work the current level created (assignable, below) and the concerns deferred to future levels, so nothing important is lost and the next maintainer — or agent — knows what to do now and what to add later. Building less now and documenting the rest here is the intended workflow, not a shortcut.
 
-## How to climb a level
+## This level's work (assignable)
 
-Re-run the `data-project` skill in this directory and ask to climb to the next level (e.g. "take this to L2"). The skill will add only the new level's artifacts and update this roadmap. Items marked **blocking** below should be resolved before the project does the thing they guard (e.g. before ingesting sensitive data or publishing).
+The tasks the current level created. Each row is a checkbox you can assign and track; check it when its definition-of-done is met.
+
+| ✓ | Task | Owner | Priority | Size | Definition of done | Blocking? | Level | Links |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+{{TRACKING_ROWS}}
+
+**Tracking:** this checklist is the source of truth for the current level's work.<!-- IF:GH --> It is mirrored as GitHub Issues (and, where available, a Project board) — see `PROJECT-MANAGEMENT.md`. Edit this checklist and re-run `data-project track` (or `.github/seed-github.sh`) to create-or-update the issues idempotently; the checklist stays canonical.<!-- /IF -->
 
 ## Deferred items
+
+Concerns that are real but above the current level — added when you climb.
 
 | Concern | Why deferred | Adds it (template / level) | Blocking? |
 | --- | --- | --- | --- |
 {{ROADMAP_ROWS}}
 
+## How to climb a level
+
+Re-run the `data-project` skill in this directory and ask to climb to the next level (e.g. "take this to L2"). The skill adds only the new level's artifacts, refreshes this roadmap, and (if the project is on GitHub) files the new level's tasks as issues. Items marked **blocking** must be resolved — or explicitly acknowledged — before the project does the thing they guard (e.g. before ingesting sensitive data or publishing), and before climbing.
+
 <!-- IF:SENSITIVE -->## Safeguards coupling (do not skip)
 
-This project handles **{{SENSITIVITY_TIER}}** data. Any identifier scheme, retention policy, or audit log added later **must** ship with the matching access tiers and contestable-governance/remedy process (see `installed-base` values: affordances without duties are theater). Treat the governance items above as blocking for those affordances.<!-- /IF -->
+This project handles **{{SENSITIVITY_TIER}}** data. Any identifier scheme, retention policy, or audit log added later **must** ship with the matching access tiers and contestable-governance/remedy process (see `installed-base` values: affordances without duties are theater). Treat the governance items above as blocking for those affordances, and file them as `blocking` issues so they gate the next level.<!-- /IF -->

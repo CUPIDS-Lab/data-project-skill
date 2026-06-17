@@ -29,9 +29,10 @@ Return one markdown block titled **Synthesis Plan** with:
 
 1. **Target tree** — annotated directory layout for the new project.
 2. **File manifest (now)** — a table `template → output path` for the *now* set, with the chosen tooling variant and a **placeholder fill-map** (`{{PROJECT_NAME}} = …`, `{{SENSITIVITY_TIER}} = …`, etc.). Only list ⭐ templates that exist.
-3. **Roadmap (later)** — `deferred concern → why deferred → template/level to add it`. Mark any coupling-forced item as **blocking**.
+3. **Roadmap (later)** — `deferred concern → why deferred → template/level to add it`. Mark any coupling-forced item as **blocking**, and ensure each such item also appears as a blocking Engagement TODO (item 7).
 4. **Governance & ethics inclusions** — which gated artifacts are in/out, each with a one-line cited rationale.
 5. **Pipeline approach** — Snakemake / targets / none, and which stages to stub.
 6. **Open questions / risks** for the user.
+7. **Engagement TODOs (assignable)** — a table of *this level's* work, one row per task, columns **Title · Owner/role · Priority (high/med/low) · Size (S/M/L) · Definition-of-done · Level · Blocking? · Links**. Default Owner to the matching `ROLES.md` role (pipeline tasks → data engineer, docs → subject-matter expert, etc.) so ownership is legible before real handles exist. These map **1:1** to GitHub issues, to `ROADMAP.md`'s `{{TRACKING_ROWS}}`, and to `{{ISSUE_SEED_ROWS}}` (the seed script / paste-able list). Model every **blocking** item as an issue dependency / sub-issue plus a `blocking` label. When sensitivity fires the affordance↔duty coupling at a level too shallow for `GOVERNANCE.md`, emit the coupling obligation as a **blocking** Engagement TODO so it is tracked, not just narrated.
 
 Keep the plan reviewable at a glance: a human approves it before any file is written. State explicitly what you chose *not* to build and why.

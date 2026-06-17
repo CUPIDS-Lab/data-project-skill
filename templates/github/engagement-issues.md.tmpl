@@ -1,0 +1,9 @@
+# Engagement issues — paste-able fallback (Tier C)
+
+This is the no-`gh` fallback for filing this level's work as GitHub issues. Use it when the CLI is missing, you are not authenticated, or a scope/permission is unavailable, so that being unable to automate never blocks getting the work tracked. Open each block below as a new issue (New issue -> "Open a blank issue" or the matching form), set the suggested labels, and assign it. The Markdown checklist in `ROADMAP.md` stays the source of truth; these issues are a manual projection of it.
+
+When you can run `seed-github.sh` instead, it does the same thing but idempotently: it creates-or-updates one issue per task, applies the labels and milestone, assigns the default owner, and — where the access is available — adds each issue to the `{{PROJECT_TITLE}}` Project board and posts a status update. It matches existing issues by a hidden marker before creating, so re-running after you edit the roadmap updates rather than duplicates. Read `ACCESS.md` for the scopes the script needs and how to grant them; until then, paste the blocks below.
+
+---
+
+{{ISSUE_SEED_ROWS}}

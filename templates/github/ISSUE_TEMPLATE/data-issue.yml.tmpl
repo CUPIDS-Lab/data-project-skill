@@ -1,0 +1,61 @@
+name: Data issue / known issue
+description: Report a data-quality problem — a value that looks wrong, a mismatch against the source, or a documented limitation of a dataset.
+labels: [type:data]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form when the data itself is suspect, not the code that processes it. Capturing data problems as issues makes them as trackable as any other work and builds a shared record of a dataset's known limitations, so the next person does not rediscover the same gap. Reconcile against the publisher's own totals before assuming a bug is yours — the discrepancy is often in our reading of the source, and the source-of-truth check below is where you prove which side is wrong.
+  - type: input
+    id: dataset
+    attributes:
+      label: Dataset
+      description: Which dataset, file, or table the problem is in, specific enough that a teammate can open the same data you saw.
+      placeholder: data/raw/2026-intake.csv (column "total_population")
+    validations:
+      required: true
+  - type: textarea
+    id: expected-vs-observed
+    attributes:
+      label: Expected vs. observed
+      description: State what you expected the value or distribution to be and what you actually observed, with enough detail (rows, counts, a small example) that someone can reproduce the discrepancy.
+      placeholder: |
+        Expected: county totals sum to the statewide figure.
+        Observed: the sum is short by ~4,000 across 3 counties.
+    validations:
+      required: true
+  - type: textarea
+    id: source-of-truth
+    attributes:
+      label: Source-of-truth check
+      description: Reconcile the suspect value against the publisher's own published totals or documentation. Cite the authoritative figure and link it, so we can tell whether the data is wrong or our handling of it is.
+      placeholder: |
+        Publisher's release table B-2 reports 1,204,331 statewide.
+        Our pipeline output reports 1,200,118 — link: <url to the source table>.
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How much this distorts analysis or decisions built on the data — used to triage which data problems to fix first.
+      options:
+        - Low
+        - Med
+        - High
+    validations:
+      required: false
+  - type: dropdown
+    id: level
+    attributes:
+      label: Level
+      description: The escalation level (L0-L5) this belongs to, so it can be grouped under the matching milestone and Project field.
+      options:
+        - L0
+        - L1
+        - L2
+        - L3
+        - L4
+        - L5
+    validations:
+      required: false

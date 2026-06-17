@@ -1,0 +1,36 @@
+# Project management — how we track work on {{PROJECT_NAME}}
+
+This document explains how {{PROJECT_NAME}} tracks its work so that anyone joining can see what is planned, what is in flight, and who owns it. The short answer that always holds: we keep the assignable checklist in `ROADMAP.md` and the human handoff memo in `NEXT-STEPS.md`, and those two files are enough to run the project on their own. Everything below describes the optional GitHub layer that mirrors them for teams.
+
+<!-- IF:GH -->## The flow: issue → milestone → board
+
+Each task is one GitHub Issue, because an issue is the smallest unit a person can be assigned and held accountable for, and a single task per issue keeps that accountability legible. Issues for a given maturity level are grouped under a per-level **milestone** (here, **{{MILESTONE_TITLE}}**), so "what does this level still owe" is one click away and closing the milestone marks the level done. <!-- IF:PROJECT -->Issues then surface on the **{{PROJECT_TITLE}}** Project board, which is where the team plans and tracks across views — board, table, and roadmap — rather than reading raw issue lists.<!-- /IF -->
+
+## Label taxonomy
+
+Labels exist so you can slice the work the way a question demands — by level, by urgency, by effort, by kind, or by what is stuck — without reading every issue. Apply them consistently; a label nobody trusts is worse than no label, because it invites filtering on stale data.
+
+- `level:*` (for example `level:L0` … `level:L5`) — which maturity rung the task belongs to, mirroring the level milestone so you can filter the ladder.
+- `priority:*` (`priority:high`, `priority:med`, `priority:low`) — how soon it matters, so the team pulls the right work next rather than the most recently filed.
+- `size:*` (`size:s`, `size:m`, `size:l`) — rough effort, so a sprint or week can be planned against real capacity instead of issue count.
+- `type:*` (for example `type:data`, `type:docs`, `type:pipeline`, `type:governance`) — the kind of work, so a specialist can find the issues that need their skills.
+- `blocking` — this task gates a real action (ingesting sensitive data, publishing, or climbing a level); a `blocking` issue must be closed, or its risk explicitly accepted, before the project does the thing it guards, and before climbing.
+
+## Source of truth and idempotent sync
+
+The `ROADMAP.md` checklist is the source of truth, and GitHub is a projection of it, so that the project's plan survives even when the board does not and never lives in only one place. Edit the checklist first, then re-run `data-project track` (or `.github/seed-github.sh`) to create-or-update the labels, milestone, issues<!-- IF:PROJECT -->, and Project items<!-- /IF --> from it. The sync is **idempotent** — it matches existing issues and updates them rather than filing duplicates — so it is safe to run again after every roadmap edit; let Projects auto-sync assignees, labels, and milestones rather than maintaining the same value in two places.
+
+## Power-user tips
+
+These shortcuts pay off once the board has more than a handful of items, so reach for them when manual editing turns tedious. Drive the board from the terminal with the `gh project` CLI (list, item-add, item-edit) to script repetitive changes and keep your hands on the keyboard. On the **table view**, set one cell and then copy and paste it across a selection to bulk-edit a field — for example, set `Priority` or `Iteration` for a whole batch in one motion. Add issues from any repository or org by pasting their issue links or searching with `#` in the board, so cross-team dependencies live on one board instead of being retyped. <!-- IF:PROJECT -->Once **{{PROJECT_TITLE}}** has the views, fields, and workflows you want, save it as an **org template** ("Make template" → "Use this template") so the next engagement starts standardized instead of rebuilt from scratch.<!-- /IF -->
+
+## Access and scopes
+
+Automating any of the above needs the right token scopes, and the most common failure is that Projects v2 lives at org/user scope, not repo scope — so a token that can file issues still cannot touch the board. See `.github/ACCESS.md` for the exact scopes each path needs (`gh` refresh, classic PAT, fine-grained PAT, or GitHub App) and the preflight that downgrades gracefully rather than failing when a scope is missing. When a CI workflow needs to reach a Project or the wiki, supply a PAT or App token as a repository secret and reference it by its secrets name (for example secrets.PROJECTS_TOKEN); the default Actions token cannot modify org Projects or push the wiki.
+<!-- /IF -->
+
+<!-- IF:WIKI -->## Long-form docs live in the wiki
+
+Narrative and how-to documentation that outgrows the README lives in this repository's wiki, a separate git repo with its own `Home` and `_Sidebar`, so the front-door docs stay short while deeper material has room. By default only repository collaborators can edit the wiki, which is why it stays opt-in; point readers there for context, and keep the plan itself in `ROADMAP.md`.<!-- /IF -->
+
+We track work in `ROADMAP.md` and `NEXT-STEPS.md`. Those two files are always present and always current, and they are sufficient on their own; the GitHub layer above is a convenience for shared, assignable tracking, not a replacement for the Markdown record.

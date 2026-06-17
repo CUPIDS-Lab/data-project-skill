@@ -1,0 +1,59 @@
+# Access & scopes for tracking `{{REPO_SLUG}}` on GitHub
+
+This is the bulletproof checklist for giving the tracker (and `seed-github.sh`) enough access to project this project's roadmap onto GitHub. Read it before the first sync, because the most common failure — Projects living at org scope, not repo scope — is invisible until a step silently can't run. The rule the script follows is: confirm access first, and on any gap print exactly what is missing and how to grant it, then **downgrade a tier** rather than abort. Nothing here is destructive; granting more access only unlocks more of the chain (issues -> issues+Project -> wiki).
+
+## Repo settings (do these in the `{{REPO_SLUG}}` UI)
+
+Enable **Issues** under Settings -> Features, because without it no issue or milestone can be created and the tracker drops straight to the paste-able Tier-C list. <!-- IF:WIKI -->Enable the **Wiki** under Settings -> Features **and create its first page in the browser** before any `git push`, because `<repo>.wiki.git` does not exist as a pushable repo until that first page initializes it.<!-- /IF --> For CI automation, set Settings -> Actions -> General -> Workflow permissions to **Read and write** and tick **Allow GitHub Actions to create and approve pull requests**, so a workflow-driven sync can open issues and PRs.
+
+## `gh` CLI scopes (the simplest path)
+
+Authenticate once, then add the Projects scope, because a fresh `gh auth login` does not include it and the Project steps will be skipped without it:
+
+```bash
+gh auth login
+gh auth refresh -s project,read:project,repo
+gh auth status   # verify: the line "Token scopes:" should list project, read:project, repo
+```
+
+A `repo`-scoped classic token created through `gh` can also push the wiki, which matters because not every token type can (see below).
+
+## The Projects-v2 gotcha (most common failure)
+
+Projects v2 live at **organization or user scope, not repository scope**. That single fact is why a token that can create issues all day still cannot touch a board. Whatever credential you use, the Project steps need an explicit org/user Projects grant on top of repo access; when it is absent the script notices it during preflight, prints the fix, and continues at the issues-only tier.
+
+## Choosing a credential
+
+Pick the credential that matches how the sync runs — locally by a person, or in CI:
+
+- **Classic PAT** — needs `repo` (covers issues and wiki) **plus `project`** for Projects, and add `workflow` if it must edit files under `.github/workflows/`. A classic PAT *can* push the wiki.
+- **Fine-grained PAT** — needs repository permissions **Issues: Read and write**, **Contents: Read and write**, **Pull requests: Read and write**, and **Metadata: Read**, **plus the organization permission "Projects: Read and write"** for org Projects. Note the sharp edge: **fine-grained PATs cannot push wikis** — use a classic PAT or your `gh` credentials for wiki edits.
+- **GitHub App** — needs **Issues / Contents / Pull requests: Read and write** and **Organization Projects: Read and write**, installed on `{{REPO_SLUG}}` (or its org). Best for shared automation that should not be tied to one person.
+
+## Running the sync inside GitHub Actions
+
+The Actions default token can open issues and PRs when the workflow declares a `permissions:` block, but it **cannot modify org Projects v2 and cannot push the wiki**. For those steps, store a classic PAT or GitHub App token as the `PROJECTS_TOKEN` repository secret (Settings -> Secrets and variables -> Actions) and pass it to the relevant step's environment using the standard `secrets.` Actions reference — written in the workflow's `env:` as a reference to that secret, not inlined here, so this document is never mistaken for an unfilled template token. Use the default token for issue/PR steps and `PROJECTS_TOKEN` only for the Project/wiki steps.
+
+## Preflight you can run now
+
+Run this before the first sync; it is the same shape the script runs, and it tells you which tier you will land at:
+
+```bash
+gh auth status                                                   # is the 'project' scope present?
+gh repo view {{REPO_SLUG}} --json hasIssuesEnabled,hasWikiEnabled # are the features on?
+gh project list --owner "$(echo {{REPO_SLUG}} | cut -d/ -f1)"     # can you see/create Projects?
+```
+
+If any line fails, the message above tells you the exact grant to add. Re-run after granting; the sync is idempotent, so re-running never duplicates work.
+
+<!-- IF:WIKI -->
+## Wiki-specific notes
+
+The wiki is a **separate git repo** at `https://github.com/{{REPO_SLUG}}.wiki.git`, editable by repo collaborators only. It must be enabled **and** have its first page created in the UI before a push works, and the pushing credential must be a classic PAT or `gh` (fine-grained PATs cannot push wikis). If `seed-github.sh` reports it cannot clone the wiki, create that first page and re-run.
+<!-- /IF -->
+
+<!-- IF:PROJECT -->
+## Project-specific notes
+
+The `{{PROJECT_TITLE}}` Project is created at the owner `$(echo {{REPO_SLUG}} | cut -d/ -f1)` scope, so the credential needs the org/user Projects grant described above even though the issues live in the repo. The script locates the Project by title before creating it, adds each issue as an item, sets the Status/Priority/Size/Level fields from the issue's labels, and posts an "On track" status update — each of those steps is best-effort and skipped with a notice if the Projects grant is missing. See `project-template.md` for the standardized fields, views, and built-in workflows it expects.
+<!-- /IF -->

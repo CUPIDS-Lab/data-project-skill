@@ -1,0 +1,37 @@
+# The `{{PROJECT_TITLE}}` Project — standardized setup
+
+This documents the GitHub Project that `seed-github.sh` creates and maintains for this project, and how to promote it to a reusable org template. Standardizing the board this way means every level's issues land in the same fields and views, so the team reads progress the same way across projects and a new contributor does not have to learn a bespoke layout. The board is a *projection* of the `ROADMAP.md` checklist; it never becomes the only copy of the work.
+
+## Fields
+
+The pipeline configures these custom fields, because tracking each value in exactly one place — and letting the Project sync the rest from the issues — is what stops metadata drift:
+
+- **Status** (single-select: Todo / In progress / Done) — where an item is in the workflow; the source of the Board columns.
+- **Priority** (single-select: High / Medium / Low) — set from each issue's `priority:*` label, so urgency is sortable.
+- **Size** (single-select: S / M / L) — set from the `size:*` label; a rough capacity estimate, not a commitment.
+- **Level** (single-select: L0-L5) — set from the `level:*` label; lets the board be grouped by escalation level.
+- **Iteration** (iteration field) — a week-by-week cadence with built-in support for breaks and velocity, used for planning when the team works in iterations.
+
+Assignees, labels, milestone, and linked PRs are **not** duplicated as custom fields — Projects syncs those from the underlying issue automatically, and re-stating them would only invite drift.
+
+## Views
+
+Three saved views cover the common ways the team needs to read the same items:
+
+- **Board by Status** — the kanban view grouped by the Status field, column-limited, for day-to-day flow.
+- **Table by Level** — the spreadsheet view grouped by Level, for planning a level's scope and bulk-editing fields (set one cell, copy, paste down a selection).
+- **Roadmap** — the timeline view over the Iteration/target dates, for seeing what ships when.
+
+## Built-in workflows
+
+Enable these built-in (no-code) workflows so the board maintains itself rather than relying on people to keep it tidy:
+
+- **Auto-add** items — newly created repo issues that match the filter are added to the Project automatically.
+- **Item closed -> Status: Done** — closing an issue moves its item to Done, so the board reflects reality without a second manual step.
+- **Auto-archive** — items meeting the archive criteria (for example, Done for a set period) are archived to keep active views uncluttered.
+
+GitHub Actions or the GraphQL API can extend these for anything the built-ins do not cover; `seed-github.sh` posts the periodic **status update** ("On track" / "At risk" with start and target dates and context) that the built-ins do not.
+
+## Save it as an org template (for cross-team reuse)
+
+Once this board's fields, views, and workflows are set the way the team wants, promote it so other projects start identical rather than reinventing the layout. In the Project's settings choose **"Make template"**; other teams then create their board with **"Use this template"**, inheriting the preconfigured views, fields, and workflows. Standardize the field *definitions* across the org while still allowing per-team tweaks, so the shared vocabulary holds without forcing every team into an identical process.

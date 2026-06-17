@@ -1,0 +1,69 @@
+# Declarative label set consumed by seed-github.sh (create-or-update; never deletes).
+# Each entry: name (the label, which carries the meaning on its own — never rely on color alone),
+# color (6-digit hex, no leading '#'), description (what the label asserts).
+# Edit here and re-run the seed script to reconcile labels in the repo.
+
+- name: priority:high
+  color: b60205
+  description: Pick this up before lower-priority work.
+- name: priority:med
+  color: d93f0b
+  description: Normal priority; schedule after high-priority items.
+- name: priority:low
+  color: fbca04
+  description: Nice to have; do when capacity allows.
+
+- name: size:s
+  color: c2e0c6
+  description: Small effort estimate (hours).
+- name: size:m
+  color: 7ac142
+  description: Medium effort estimate (a day or a few).
+- name: size:l
+  color: 1d7637
+  description: Large effort estimate (multiple days); consider breaking into sub-issues.
+
+- name: level:L0
+  color: ededed
+  description: Belongs to escalation level L0 (sane repo skeleton).
+- name: level:L1
+  color: d4d4f5
+  description: Belongs to escalation level L1.
+- name: level:L2
+  color: b8b8ef
+  description: Belongs to escalation level L2 (reproducible pipeline).
+- name: level:L3
+  color: 9c9ce8
+  description: Belongs to escalation level L3 (collaboration and governance).
+- name: level:L4
+  color: 7e7ee0
+  description: Belongs to escalation level L4.
+- name: level:L5
+  color: 5a5ad6
+  description: Belongs to escalation level L5 (governed, FAIR, published OKF bundle).
+
+- name: type:data
+  color: 0e8a16
+  description: A data-quality problem or known dataset limitation.
+- name: type:docs
+  color: 1d76db
+  description: Documentation, data dictionary, or narrative work.
+- name: type:pipeline
+  color: 5319e7
+  description: The reproducible pipeline, scripts, or modules under src/.
+- name: type:governance
+  color: b60205
+  description: Roles, access tiers, charter, responsible-data, or ethics work.
+- name: type:infra
+  color: 333333
+  description: Environment, CI, tooling, or repository plumbing.
+
+- name: blocking
+  color: e11d21
+  description: Gates other work or a guarded action; resolve before that action or before climbing a level.
+- name: good-first-issue
+  color: 7057ff
+  description: Well-scoped and approachable for a new contributor.
+- name: help-wanted
+  color: 008672
+  description: Maintainers are actively seeking help on this.

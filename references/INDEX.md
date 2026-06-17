@@ -16,10 +16,10 @@ Build status legend: **⭐ built** — the template/digest exists now and can be
 | Goal | Practices (source file) |
 | --- | --- |
 | **Accessible** | plain-language summary, multiple formats (`turing-way`); FAIR/open access (`turing-way`); colorblind-safe viz & alt text (`turing-way`, accessibility-checklist ⭐); OKF concept catalog at L5 (`okf-open-knowledge-format` ⭐); user-centered design & default-to-open (`usds-playbook`) |
-| **Documented** | data dictionary w/ grain, provenance, units, missingness, known-issues (`ouhsc-bbmc-practices`, `data-collaboratives-canvas`); decision log & changelog (`ouhsc-bbmc-practices`); README front door (`cookiecutter-data-science`); comments explain *why* (`git-github-collaboration`); dataset transparency Data Card (`datacards-playbook`) |
+| **Documented** | data dictionary w/ grain, provenance, units, missingness, known-issues (`ouhsc-bbmc-practices`, `data-collaboratives-canvas`); decision log & changelog (`ouhsc-bbmc-practices`); README front door (`cookiecutter-data-science`); comments explain *why* (`git-github-collaboration`); dataset transparency Data Card (`datacards-playbook`); engagement memo & assignable to-do checklist (`github-project-management`) |
 | **Transparent** | immutable raw data & DAG provenance (`cookiecutter-data-science`); decision/change logs (`ouhsc-bbmc-practices`); data bulletproofing/QA (`propublica-data-bulletproofing` ⭐, `quartz-bad-data-guide` ⭐); Data Card — provenance, uses, sensitive attributes (`datacards-playbook`); licensing (`turing-way`); access tiers & oversight (`installed-base`) |
 | **Inclusive** | code of conduct & contributor recognition (`turing-way`); design partners vs. beneficiaries, mediator, gap-check (`collaboration-architecture`); responsible data & consent (`responsible-data-handbook`); sensitive-attributes & fairness documentation (`datacards-playbook`); accessible comms (`turing-way`) |
-| **Collaborative** | feature-branch + PR workflow, CI (`git-github-collaboration`); roles + CODEOWNERS (`collaboration-architecture`); collaboration canvas & governance (`data-collaboratives-canvas`); partner lifecycle & contributed-data intake (`propublica-collaborative` ⭐, `propublica-collaborate-manual` ⭐) |
+| **Collaborative** | feature-branch + PR workflow, CI (`git-github-collaboration`); roles + CODEOWNERS (`collaboration-architecture`); collaboration canvas & governance (`data-collaboratives-canvas`); partner lifecycle & contributed-data intake (`propublica-collaborative` ⭐, `propublica-collaborate-manual` ⭐); issue/project/milestone tracking (`github-project-management`) |
 | **Reproducible** | standard tree & immutable raw (`cookiecutter-data-science`, `ouhsc-bbmc-practices`); pinned env + pipeline-as-code + dry-run (`snakemake`); seeds, linear scripts, validation (`ouhsc-bbmc-practices`); version control & testing (`turing-way`) |
 
 ## §B — Profile-signal → emphasis rules
@@ -35,6 +35,7 @@ Build status legend: **⭐ built** — the template/digest exists now and can be
 | tooling = R | `ouhsc-bbmc-practices` | `r/` variant ⭐ (default Python ⭐) |
 | accessibility flagged | `turing-way` | `accessibility-checklist` ⭐ |
 | user-facing / civic service; openness or iterative delivery | `usds-playbook` | `project-design-canvas` ⭐, `accessibility-checklist` ⭐, `LICENSE-NOTE` ⭐ |
+| collaborators / "how do we track work" / wants issues, a board, or a wiki | `github-project-management` | issue forms + `seed-github.sh` + Project at **L3** ⭐ (wiki seeds at L4 ⭐); below L3 keep to `NEXT-STEPS` + the `ROADMAP` checklist |
 | small synchronous team, low sensitivity | `cookiecutter-data-science`, `collaboration-architecture` (typology) | keep light — prefer L0–L1 ⭐ and `ROADMAP.md` over governance bloat |
 
 ## §C — Level → artifact → template (with build status)
@@ -44,10 +45,11 @@ Build status legend: **⭐ built** — the template/digest exists now and can be
 | L0 | structure | `templates/directory-tree.md` | ⭐ |
 | L0 | front door | `templates/README.md.tmpl` | ⭐ |
 | L0 | agent guidance | `templates/AGENTS.md.tmpl` | ⭐ |
-| L0 | deferred-work record | `templates/ROADMAP.md.tmpl` | ⭐ |
+| L0 | assignable checklist + deferred work | `templates/ROADMAP.md.tmpl` | ⭐ |
 | L0 | ignore / attributes | `templates/gitignore.tmpl`, `templates/gitattributes.tmpl` | ⭐ |
 | L1 | data dictionary | `templates/data-dictionary.md.tmpl` | ⭐ |
 | L1 | decision log / changelog | `templates/decision-log.md.tmpl`, `templates/CHANGELOG.md.tmpl` | ⭐ |
+| L1 | handoff memo | `templates/NEXT-STEPS.md.tmpl` | ⭐ |
 | L2 | env / pipeline / config (Python) | `templates/python/{environment.yml,Snakefile,config.yaml,pyproject.toml,pre-commit-config.yaml}.tmpl` | ⭐ |
 | L2 | env / pipeline (R) | `templates/r/{DESCRIPTION,_targets.R,renv-note.md,Makefile}.tmpl` | ⭐ |
 | L2 | CI | `templates/ci/github-actions-ci.yml.tmpl` | ⭐ |
@@ -56,11 +58,15 @@ Build status legend: **⭐ built** — the template/digest exists now and can be
 | L3 | governance / charter | `templates/GOVERNANCE.md.tmpl`, `templates/CHARTER.md.tmpl` | ⭐ |
 | L3 | collaboration / intake | `templates/collaboration-protocol.md.tmpl`, `templates/contributed-data-intake.md.tmpl` | ⭐ |
 | L3 | nested guidance skills | `templates/nested-skills/{data-intake,documentation,release-and-share}.SKILL.md.tmpl` | ⭐ |
+| L3 | how-we-track-work | `templates/PROJECT-MANAGEMENT.md.tmpl` | ⭐ |
+| L3 | issue forms / PR / labels | `templates/github/ISSUE_TEMPLATE/{task,data-issue,config}.yml.tmpl`, `templates/github/PULL_REQUEST_TEMPLATE.md.tmpl`, `templates/github/labels.yml.tmpl` | ⭐ |
+| L3 | issue seeding + access + project template | `templates/github/{seed-github.sh,engagement-issues.md,ACCESS.md,project-template.md}.tmpl` | ⭐ |
 | L4 | values spine | `templates/INSTALLED-BASE.md.tmpl` | ⭐ |
 | L4 | DMP / responsible data | `templates/data-management-plan.md.tmpl`, `templates/responsible-data-checklist.md.tmpl` | ⭐ |
 | L4 | QA | `templates/data-bulletproofing-checklist.md.tmpl`, `templates/data-quality-checklist.md.tmpl` | ⭐ |
 | L4 | accessibility | `templates/accessibility-checklist.md.tmpl` | ⭐ |
 | L4 | dataset transparency card | `templates/data-card.md.tmpl` | ⭐ |
+| L4 | wiki seeds | `templates/github/wiki-seeds/{Home,_Sidebar}.md.tmpl` | ⭐ |
 | L5 | knowledge bundle | `templates/okf/{index,log,concept,dataset,table}.md.tmpl` | ⭐ |
 | L5 | licensing / canvases | `templates/LICENSE-NOTE.md.tmpl`, `templates/data-collaborative-canvas.md.tmpl`, `templates/project-design-canvas.md.tmpl` | ⭐ |
 
