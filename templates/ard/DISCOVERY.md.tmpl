@@ -1,0 +1,45 @@
+# Agent discovery — {{PROJECT_NAME}}
+
+This project ships an **`ai-catalog.json`** so AI agents can *discover* its resources without
+loading them up front. It follows the [Agentic Resource Discovery](https://agenticresourcediscovery.org/spec/)
+(ARD) spec — the agent-facing companion to the project's open-knowledge (`knowledge/`) layer:
+ARD advertises *what* is here and how to reach it; agents invoke each resource through its own
+protocol (a skill runner, MCP, A2A, an API).
+
+## What this project advertises
+
+`ai-catalog.json` lists this project's discoverable resources as typed `entries`. By default it
+advertises the project's **Markdown skills** (`application/ai-skill+md`). Add an entry for each
+further resource you expose, using its IANA media type:
+
+| Resource | `type` | `url` points at |
+| --- | --- | --- |
+| Markdown skill(s) (`.skills/`) | `application/ai-skill+md` | the skill / repo |
+| Published dataset | e.g. `application/parquet`, `text/csv` | the data file or its landing page |
+| MCP server | `application/mcp-server+json` | the server's MCP descriptor |
+| A2A agent | `application/a2a-agent-card+json` | the agent card JSON |
+| Nested catalog | `application/ai-catalog+json` | another `ai-catalog.json` |
+
+Each entry needs a domain-anchored URN `identifier` (`urn:ai:{{ARD_HOST_DOMAIN}}:<namespace>:<name>`),
+a `displayName`, the `type`, and either a `url` or embedded `data`. `capabilities` and
+`representativeQueries` (2–5) make the resource findable by semantic search. Keep `updatedAt` current.
+
+## Deploy across levels
+
+- **Repo (now).** `ai-catalog.json` lives at the repository root and is version-controlled. This is
+  the lowest discovery scope and needs no infrastructure.
+- **Host / domain (later).** Serve the manifest at `https://{{ARD_HOST_DOMAIN}}/.well-known/ai-catalog.json`
+  with `Content-Type: application/json` and `Access-Control-Allow-Origin: *`, over HTTPS. Add a
+  discovery pointer per the spec (a `robots.txt` `Agentmap:` directive or an HTML
+  `<link rel="ai-catalog">`). Copy the repo file as the starting point.
+- **Org / ecosystem registry (later).** Register the catalog with an enterprise or public registry
+  (e.g. Hugging Face Discover, a Google Agent Registry), or run your own searchable endpoint
+  (`POST /search` + federation) advertised as an `application/ai-registry+json` entry.
+
+The host and registry steps are deployment work and are tracked in `ROADMAP.md` until you take them on.
+
+## Trust & identity
+
+URNs are anchored to `{{ARD_HOST_DOMAIN}}`, so publish only from a domain you control — the domain is
+the trust anchor. `host.identifier` is set to `{{ARD_HOST_IDENTIFIER}}` (a `did:web` is conventional).
+For stronger guarantees, add a `trustManifest` (verifiable identity / signatures) to entries per the spec.

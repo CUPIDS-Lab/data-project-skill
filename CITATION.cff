@@ -8,8 +8,8 @@ authors:
     website: "https://github.com/cupids-lab"
 repository-code: "https://github.com/cupids-lab/data-project-skill"
 license: MIT
-version: "0.2.1"
-date-released: "2026-06-17"
+version: "0.3.0"
+date-released: "2026-06-18"
 keywords:
   - data science
   - reproducibility
@@ -19,3 +19,4 @@ keywords:
   - agent skill
   - FAIR
   - open knowledge format
+  - agentic resource discovery

@@ -19,7 +19,7 @@ The corpus and templates are a menu, not a default output. Two dials, set in a s
 | **L2 Reproduce** | pinned environment, pipeline-as-code, config, CI dry-run | Reproducible |
 | **L3 Collaborate** | contributing, code of conduct, roles, governance, charter, nested skills | Collaborative, Inclusive |
 | **L4 Responsible & accessible** | data-management plan, responsible-data & data-quality checklists, accessibility | Transparent, Accessible, Inclusive |
-| **L5 Publish as open knowledge** | OKF knowledge bundle, FAIR/CARE, licensing, publication | Accessible, Transparent |
+| **L5 Publish as open knowledge** | OKF knowledge bundle, ARD agent-discovery catalog, FAIR/CARE, licensing, publication | Accessible, Transparent |
 
 ## How it works
 
@@ -79,7 +79,7 @@ A first run at L0–L1 gives you a small, documented repo — not a pile of gove
 
 The corpus distills the following frameworks into concise, citable digests under `references/`, sampled by the indexer via `references/INDEX.md`:
 
-[The Turing Way](https://book.the-turing-way.org/) · [Cookiecutter Data Science](https://cookiecutter-data-science.drivendata.org/) · [Snakemake](https://snakemake.readthedocs.io/) · [OUHSC BBMC Data-Science Practices](https://ouhscbbmc.github.io/data-science-practices-1/) · [Git/GitHub for collaborative data science](https://arounddatascience.com/blog/coding/how-to-use-github-and-git-for-collaborative-data-science-projects-a-complete-guide-for-algerian-data-scientists/) · [Data Collaboratives Canvas](https://datacollaboratives.org/canvas.html) · [USDS Playbook](https://playbook.usds.gov/) · [Responsible Data Handbook](https://responsibledata.io/resources/handbook/) · [ProPublica — Bulletproofing your data analysis](https://github.com/propublica/guides/blob/master/data-bulletproofing.md) · [ProPublica Collaborative](https://propublica.gitbook.io/collaborative) · [ProPublica Collaborate](https://propublica.gitbook.io/collaborate-user-manual) · [Quartz Bad Data Guide](https://github.com/Quartz/bad-data-guide) · [Google Open Knowledge Format (OKF)](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf) · [Data Cards Playbook (Google PAIR)](https://sites.research.google/datacardsplaybook/).
+[The Turing Way](https://book.the-turing-way.org/) · [Cookiecutter Data Science](https://cookiecutter-data-science.drivendata.org/) · [Snakemake](https://snakemake.readthedocs.io/) · [OUHSC BBMC Data-Science Practices](https://ouhscbbmc.github.io/data-science-practices-1/) · [Git/GitHub for collaborative data science](https://arounddatascience.com/blog/coding/how-to-use-github-and-git-for-collaborative-data-science-projects-a-complete-guide-for-algerian-data-scientists/) · [Data Collaboratives Canvas](https://datacollaboratives.org/canvas.html) · [USDS Playbook](https://playbook.usds.gov/) · [Responsible Data Handbook](https://responsibledata.io/resources/handbook/) · [ProPublica — Bulletproofing your data analysis](https://github.com/propublica/guides/blob/master/data-bulletproofing.md) · [ProPublica Collaborative](https://propublica.gitbook.io/collaborative) · [ProPublica Collaborate](https://propublica.gitbook.io/collaborate-user-manual) · [Quartz Bad Data Guide](https://github.com/Quartz/bad-data-guide) · [Google Open Knowledge Format (OKF)](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf) · [Data Cards Playbook (Google PAIR)](https://sites.research.google/datacardsplaybook/) · [Agentic Resource Discovery (ARD)](https://agenticresourcediscovery.org/spec/).
 
 ## Relationship to `data-liberation`
 
@@ -87,7 +87,7 @@ This is the companion to the lab's [`data-liberation`](https://github.com/cupids
 
 ## Build status
 
-All six levels (L0–L5) are built: structure and documentation; the Python and R reproducible stacks plus CI; collaboration and governance (contributing, code of conduct, roles + CODEOWNERS, governance, charter, collaboration protocol, contributed-data intake, nested `.skills/`); the responsible-data, data-management, bulletproofing, data-quality, and accessibility artifacts plus the installed-base values spine and a Data Card; and the L5 licensing, canvases, and OKF knowledge bundle. `references/INDEX.md` tracks each template's status. Having the full menu doesn't change the lean-by-default behavior: the interview still right-sizes every run and defers anything above the chosen level into the project's `ROADMAP.md`.
+All six levels (L0–L5) are built: structure and documentation; the Python and R reproducible stacks plus CI; collaboration and governance (contributing, code of conduct, roles + CODEOWNERS, governance, charter, collaboration protocol, contributed-data intake, nested `.skills/`); the responsible-data, data-management, bulletproofing, data-quality, and accessibility artifacts plus the installed-base values spine and a Data Card; and the L5 licensing, canvases, OKF knowledge bundle, and the ARD agent-discovery catalog. `references/INDEX.md` tracks each template's status. Having the full menu doesn't change the lean-by-default behavior: the interview still right-sizes every run and defers anything above the chosen level into the project's `ROADMAP.md`.
 
 ## License
 

@@ -2,6 +2,12 @@
 
 All notable changes to the `data-project` skill are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/); the skill aims at semantic versioning.
 
+## [0.3.0] — 2026-06-18
+
+### Added
+- **L5 agent discovery (Agentic Resource Discovery / ARD).** New `references/agentic-resource-discovery.md` digest and `templates/ard/{ai-catalog.json,DISCOVERY.md}.tmpl`: at L5, when a project exposes agentic resources (nested `.skills/`, a published dataset, an MCP/A2A service), the skill emits a repo-scope `ai-catalog.json` manifest advertising them, plus a `DISCOVERY.md` companion documenting the entries and the checklist to promote the catalog to the host `.well-known/` path and an org/ecosystem registry (those higher deployment scopes are deferred to `ROADMAP.md`). Pairs with the OKF bundle as the publish layer.
+- New `ARD` flag and `ARD_SPEC_VERSION` / `ARD_HOST_DOMAIN` / `ARD_HOST_IDENTIFIER` tokens, documented in `SKILL.md` and guarded by `scripts/validate.py` — which now also checks that the ARD JSON template stays valid JSON when rendered with conditionals on and off. Wired into `references/INDEX.md` (§A/§B/§C), `references/escalation-levels.md`, `templates/directory-tree.md`, `templates/README.md.tmpl`, and the synthesizer.
+
 ## [0.2.1] — 2026-06-17
 
 ### Fixed
