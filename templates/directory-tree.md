@@ -45,6 +45,8 @@ This file is read by the skill, not copied into the project. It defines the dire
 ├── data-bulletproofing-checklist.md # L4  pre-publication QA
 ├── data-quality-checklist.md # L4  known-issues checks (bad-data taxonomy)
 ├── accessibility-checklist.md# L4  alt text, plain language, colorblind-safe viz
+├── ai-catalog.json           # L5  ARD manifest: agent-discoverable resources (repo scope; see DISCOVERY.md)
+├── DISCOVERY.md              # L5  what the catalog advertises + how to deploy it to host/registry (deferred)
 └── knowledge/                # L5  OKF bundle (concept catalog) generated from the data dictionary
     ├── index.md              #     bundle root; declares okf_version: "0.1"
     ├── datasets/<name>.md

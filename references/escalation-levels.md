@@ -20,7 +20,7 @@ Each level *adds* to the levels below it. A run instantiates only the "now" set 
 | **L2** | Reproduce | pinned environment, pipeline-as-code (`Snakefile` / `_targets.R`), `config`, `exploratory/` (notebooks live here only), CI dry-run | Reproducible |
 | **L3** | Collaborate | `CONTRIBUTING` (anti-pattern guardrails), `CODE_OF_CONDUCT`, `ROLES`+`CODEOWNERS`, `GOVERNANCE`, `CHARTER`, `collaboration-protocol`, `contributed-data-intake`, nested `.skills/` | Collaborative, Inclusive |
 | **L4** | Responsible & accessible | `INSTALLED-BASE`, `data-management-plan`, `responsible-data-checklist`, `data-bulletproofing-checklist`, `data-quality-checklist`, `accessibility-checklist` | Transparent, Accessible, Inclusive |
-| **L5** | Publish as open knowledge | `knowledge/` OKF bundle (from the data dictionary), FAIR/CARE, `LICENSE-NOTE`, `data-collaborative-canvas`, optional publish surfaces | Accessible, Transparent |
+| **L5** | Publish as open knowledge | `knowledge/` OKF bundle (from the data dictionary), FAIR/CARE, `LICENSE-NOTE`, `data-collaborative-canvas`, `ai-catalog.json` + `DISCOVERY.md` (ARD agent-discovery; host `.well-known/` + registry deferred to `ROADMAP`), optional publish surfaces | Accessible, Transparent |
 
 Levels describe *depth*. They are orthogonal to *which* concerns matter, which is set by the collaboratory type and the data-sensitivity tier (see `collaboration-architecture.md` and `installed-base.md`). A sensitive L1 project, for example, still triggers the affordance↔duty coupling even though it is shallow.
 

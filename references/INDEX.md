@@ -15,9 +15,9 @@ Build status legend: **⭐ built** — the template/digest exists now and can be
 
 | Goal | Practices (source file) |
 | --- | --- |
-| **Accessible** | plain-language summary, multiple formats (`turing-way`); FAIR/open access (`turing-way`); colorblind-safe viz & alt text (`turing-way`, accessibility-checklist ⭐); OKF concept catalog at L5 (`okf-open-knowledge-format` ⭐); user-centered design & default-to-open (`usds-playbook`) |
+| **Accessible** | plain-language summary, multiple formats (`turing-way`); FAIR/open access (`turing-way`); colorblind-safe viz & alt text (`turing-way`, accessibility-checklist ⭐); OKF concept catalog at L5 (`okf-open-knowledge-format` ⭐); user-centered design & default-to-open (`usds-playbook`); agent-discovery catalog at L5 (`agentic-resource-discovery` ⭐) |
 | **Documented** | data dictionary w/ grain, provenance, units, missingness, known-issues (`ouhsc-bbmc-practices`, `data-collaboratives-canvas`); decision log & changelog (`ouhsc-bbmc-practices`); README front door (`cookiecutter-data-science`); comments explain *why* (`git-github-collaboration`); dataset transparency Data Card (`datacards-playbook`); engagement memo & assignable to-do checklist (`github-project-management`) |
-| **Transparent** | immutable raw data & DAG provenance (`cookiecutter-data-science`); decision/change logs (`ouhsc-bbmc-practices`); data bulletproofing/QA (`propublica-data-bulletproofing` ⭐, `quartz-bad-data-guide` ⭐); Data Card — provenance, uses, sensitive attributes (`datacards-playbook`); licensing (`turing-way`); access tiers & oversight (`installed-base`) |
+| **Transparent** | immutable raw data & DAG provenance (`cookiecutter-data-science`); decision/change logs (`ouhsc-bbmc-practices`); data bulletproofing/QA (`propublica-data-bulletproofing` ⭐, `quartz-bad-data-guide` ⭐); Data Card — provenance, uses, sensitive attributes (`datacards-playbook`); licensing (`turing-way`); access tiers & oversight (`installed-base`); published capability catalog (`agentic-resource-discovery` ⭐) |
 | **Inclusive** | code of conduct & contributor recognition (`turing-way`); design partners vs. beneficiaries, mediator, gap-check (`collaboration-architecture`); responsible data & consent (`responsible-data-handbook`); sensitive-attributes & fairness documentation (`datacards-playbook`); accessible comms (`turing-way`) |
 | **Collaborative** | feature-branch + PR workflow, CI (`git-github-collaboration`); roles + CODEOWNERS (`collaboration-architecture`); collaboration canvas & governance (`data-collaboratives-canvas`); partner lifecycle & contributed-data intake (`propublica-collaborative` ⭐, `propublica-collaborate-manual` ⭐); issue/project/milestone tracking (`github-project-management`) |
 | **Reproducible** | standard tree & immutable raw (`cookiecutter-data-science`, `ouhsc-bbmc-practices`); pinned env + pipeline-as-code + dry-run (`snakemake`); seeds, linear scripts, validation (`ouhsc-bbmc-practices`); version control & testing (`turing-way`) |
@@ -32,6 +32,7 @@ Build status legend: **⭐ built** — the template/digest exists now and can be
 | publishing / communicating findings | `propublica-data-bulletproofing` ⭐, `quartz-bad-data-guide` | `data-bulletproofing-checklist` ⭐, `data-quality-checklist` ⭐ |
 | publishing or sharing a dataset; sensitive attributes / fairness | `datacards-playbook` | `data-card` ⭐ |
 | publish as open knowledge / FAIR | `okf-open-knowledge-format` ⭐, `turing-way` | `knowledge/` OKF bundle ⭐, `LICENSE-NOTE` ⭐ |
+| make the project discoverable by agents; exposes skills, a dataset, MCP, or an API | `agentic-resource-discovery` ⭐ | `ai-catalog.json` (ARD) + `DISCOVERY.md` at **L5** ⭐; host `.well-known/` + registry deployment → `ROADMAP.md` |
 | tooling = R | `ouhsc-bbmc-practices` | `r/` variant ⭐ (default Python ⭐) |
 | accessibility flagged | `turing-way` | `accessibility-checklist` ⭐ |
 | user-facing / civic service; openness or iterative delivery | `usds-playbook` | `project-design-canvas` ⭐, `accessibility-checklist` ⭐, `LICENSE-NOTE` ⭐ |
@@ -69,6 +70,7 @@ Build status legend: **⭐ built** — the template/digest exists now and can be
 | L4 | wiki seeds | `templates/github/wiki-seeds/{Home,_Sidebar}.md.tmpl` | ⭐ |
 | L5 | knowledge bundle | `templates/okf/{index,log,concept,dataset,table}.md.tmpl` | ⭐ |
 | L5 | licensing / canvases | `templates/LICENSE-NOTE.md.tmpl`, `templates/data-collaborative-canvas.md.tmpl`, `templates/project-design-canvas.md.tmpl` | ⭐ |
+| L5 | agent-discovery catalog | `templates/ard/ai-catalog.json.tmpl`, `templates/ard/DISCOVERY.md.tmpl` | ⭐ |
 
 ## Sampling guidance
 

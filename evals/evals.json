@@ -24,6 +24,12 @@
       "prompt": "Audit this repository against open, reproducible, and inclusive data standards and tell me what's missing.",
       "expected_output": "Enters Audit mode (read-only). Scores the repo against levels L0-L5 and the six goals, prints a prioritized gap table (Goal/Level -> Found? -> Recommended template/practice -> Source), checks OKF conformance if a knowledge/ bundle exists, and offers to scaffold the missing rungs without modifying the repo until approved.",
       "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "We're publishing this eviction dataset and its helper skills so other agents can find and use them. Set up agent discovery.",
+      "expected_output": "Infers L5 (publish) and sets the ARD flag because the project exposes agentic resources (nested .skills/ and a published dataset). Generates a repo-scope ai-catalog.json advertising the project's resources (Markdown skills as application/ai-skill+md, the dataset) with domain-anchored URNs (urn:ai:<domain>:skills:<slug>), a host block, capabilities and 2-5 representativeQueries, plus a DISCOVERY.md companion. Pairs it with the OKF knowledge bundle. Defers serving the manifest at the host /.well-known/ai-catalog.json path and registering with an org/ecosystem registry into ROADMAP.md. specVersion is \"1.0\"; ai-catalog.json is valid JSON and no unfilled {{ }} tokens remain.",
+      "files": []
     }
   ]
 }

@@ -7,6 +7,7 @@ This guards exactly the classes of drift a manual audit found: missing OKF
 conditionals, and malformed or undocumented placeholder tokens. Keep the two
 documented sets below in sync with SKILL.md's "Placeholders & conditionals".
 """
+import json
 import re
 import sys
 import pathlib
@@ -21,9 +22,11 @@ DOCUMENTED_TOKENS = {
     # GitHub project-management layer (Step 6.5 Handoff / Track mode)
     "REPO_SLUG", "DEFAULT_BRANCH", "MILESTONE_TITLE", "PROJECT_TITLE",
     "TRACKING_ROWS", "ISSUE_SEED_ROWS", "OWNER_DEFAULT",
+    # Agentic Resource Discovery layer (L5 ai-catalog.json)
+    "ARD_SPEC_VERSION", "ARD_HOST_DOMAIN", "ARD_HOST_IDENTIFIER",
 }
 DOCUMENTED_FLAGS = {"WHY", "PIPELINE", "SENSITIVE", "OPEN", "COLLAB", "NESTED_SKILLS", "OKF",
-                    "GH", "PROJECT", "WIKI"}
+                    "GH", "PROJECT", "WIKI", "ARD"}
 
 
 def rel(p: pathlib.Path) -> str:
@@ -71,6 +74,20 @@ for path in set(re.findall(r"`(templates/[^`]+)`", index)):
     for v in variants:
         if not (ROOT / v.strip()).exists():
             errors.append(f"INDEX.md cites missing template: {v.strip()}")
+
+# 5. ARD JSON templates stay valid JSON once conditionals resolve and tokens are filled.
+#    Check both extremes — all flags on (strip only the IF markers) and all off (drop the
+#    whole IF blocks) — so neither rendering can ship malformed JSON.
+for f in sorted((ROOT / "templates" / "ard").glob("*.json.tmpl")):
+    text = f.read_text(encoding="utf-8")
+    all_on = re.sub(r"<!-- /?IF(?::[A-Z_]+)? -->", "", text)
+    all_off = re.sub(r"<!-- IF:[A-Z_]+ -->.*?<!-- /IF -->", "", text, flags=re.S)
+    for label, rendered in (("all flags on", all_on), ("all flags off", all_off)):
+        filled = re.sub(r"\{\{[A-Z0-9_]+\}\}", "x", rendered)
+        try:
+            json.loads(filled)
+        except json.JSONDecodeError as e:
+            errors.append(f"{rel(f)}: invalid JSON when rendered with {label}: {e}")
 
 if errors:
     print("VALIDATION FAILED:")

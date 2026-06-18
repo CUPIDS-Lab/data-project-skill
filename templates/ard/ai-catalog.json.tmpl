@@ -1,0 +1,23 @@
+{
+  "specVersion": "{{ARD_SPEC_VERSION}}",
+  "host": {
+    "displayName": "{{PROJECT_NAME}}",
+    "identifier": "{{ARD_HOST_IDENTIFIER}}",
+    "documentationUrl": "{{REPO_URL}}"
+  },
+  "entries": [
+    {
+      "identifier": "urn:ai:{{ARD_HOST_DOMAIN}}:skills:{{PROJECT_SLUG}}",
+      "displayName": "{{PROJECT_NAME}} — project skills",
+      "type": "application/ai-skill+md",
+      "url": "{{REPO_URL}}",
+      "description": "{{DESCRIPTION}}",
+      "capabilities": ["data-intake", "documentation", "release-and-share"],
+      "representativeQueries": [
+        "intake a new contributed dataset for {{PROJECT_NAME}}",
+        "document a table in the {{PROJECT_NAME}} data dictionary"
+      ],
+      "updatedAt": "{{YEAR}}-01-01T00:00:00Z"
+    }
+  ]
+}

@@ -19,7 +19,7 @@ You run the planning phase. You turn the Project Context Profile and the Practic
 
 1. Confirm which templates actually exist before naming them — glob `templates/` (resolve relative to the skill root; in Claude Code `${CLAUDE_PLUGIN_ROOT}/templates/`). Never name a ○-roadmap template as a file to create; route it to the roadmap instead.
 2. Start from `templates/directory-tree.md` and prune/extend it to fit the Profile's level and type.
-3. Select the *now* set: the templates for the chosen level that exist (⭐), gated by the profile signals.
+3. Select the *now* set: the templates for the chosen level that exist (⭐), gated by the profile signals. At **L5**, the publish set is the OKF `knowledge/` bundle and — when the project exposes agentic resources (nested `.skills/`, a published dataset, an MCP/A2A service) — the ARD `ai-catalog.json` + `DISCOVERY.md` (set the `ARD` flag and fill `ARD_HOST_DOMAIN` / `ARD_HOST_IDENTIFIER` / `ARD_SPEC_VERSION`); if nothing is discoverable yet, route ARD to the roadmap. Emit only the repo-scope catalog — serving it at the host `.well-known/` path and registering it with a registry are deferred `ROADMAP.md` items.
 4. Apply the **installed-base coupling**: if data is sensitive-human / regulated / Indigenous, do not include any identifier, retention, or audit affordance without the matching access-tier and remedy/escalation language; if the level is too shallow to carry `GOVERNANCE.md`, write the coupling into the roadmap as a **blocking** item.
 5. Build the **ROADMAP**: every relevant concern above the level or mapped to a ○ template becomes an entry — what it is, why deferred, and the template/level that adds it later.
 
