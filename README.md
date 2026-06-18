@@ -27,7 +27,7 @@ The skill runs a short workflow: **Interview → Sample → Synthesize → Appro
 
 ## Getting started
 
-New here? Install the skill for your agent, then point it at an empty repository and describe the project — the skill interviews you briefly, proposes a right-sized plan, and scaffolds the files once you approve. The two steps below cover installation and a first run on a brand-new repo.
+New here? Install the skill for your agent, then point it at a repo — brand-new or existing — and describe the project. The skill interviews you briefly, proposes a right-sized plan, and scaffolds the files once you approve. The sections below cover installation, a first run on a **new** repo, using it on an **existing** repo (scaffold-in, climb, audit, track), and a quick-reference of example prompts for common scenarios.
 
 ### 1. Install it
 
@@ -71,9 +71,60 @@ mkdir my-data-project && cd my-data-project   # or clone an empty repo and cd in
 git add -A && git commit -m "Scaffold data project"
 ```
 
-6. **Climb when you're ready.** Re-run the skill in the same repo and ask to *"climb to L2"* (add a reproducible pipeline) or *"L3"* (collaboration and governance); it adds only the new level's artifacts and updates `ROADMAP.md`. To assess an existing repo instead, run `/data-project audit <path>` for a prioritized gap report.
+6. **Climb when you're ready.** Re-run the skill in the same repo and ask to *"climb to L2"* (add a reproducible pipeline) or *"take this to L3"* (collaboration and governance); it adds only the new level's artifacts and refreshes `ROADMAP.md`. Running it on a repo you *didn't* scaffold — scaffolding in, auditing, or syncing to GitHub — is covered next.
 
 A first run at L0–L1 gives you a small, documented repo — not a pile of governance boilerplate. That leanness is intentional; complexity is opt-in.
+
+### 3. Use it on an existing repo
+
+The skill is just as useful on a repo that already has data and code. It defaults to creating a new `./<project-slug>/`, so when you want it to work **in place**, say so — and it never overwrites an existing file without asking. Run it from inside the repo:
+
+**Scaffold into an existing repo.** Add the missing structure and docs without disturbing your code:
+
+> *"Set up data-project structure in this existing repo — I already have `analysis.py` and a `data/` folder. Work in place and don't move my code."*
+
+It first globs what's already there, plans **only the missing pieces** (e.g. `README`, `DATA-DICTIONARY.md`, `.gitignore`/`.gitattributes`, `ROADMAP.md`), shows you that plan, and writes only after approval — leaving files you already have untouched unless you ask it to change them.
+
+**Climb a level.** Re-run it in any project — one it scaffolded or not — and ask for the next rung:
+
+> *"Take this project to L2: add a pinned environment and a pipeline that re-runs on new data."*
+>
+> *"We're onboarding two partner orgs and the data is sensitive — add L3 governance."*
+
+It adds only that level's artifacts and refreshes `ROADMAP.md`. Sensitive data automatically couples every identifier/retention/audit affordance with access tiers and contestable governance, regardless of level.
+
+**Audit an existing repo (read-only).** Get a prioritized gap report before changing anything:
+
+```bash
+/data-project audit .
+```
+
+> *"Audit this repo against open, reproducible, and inclusive data standards and tell me what's missing."*
+
+It scores the repo across L0–L5 and the six goals, prints a gap table (*Goal/Level → Found? → Recommended template → Source*), checks OKF-bundle conformance if a `knowledge/` bundle exists, and **makes no changes** until you approve remediation.
+
+**Track the roadmap on GitHub.** Turn the assignable checklist into issues and a project board — idempotently, so re-running after edits updates items instead of duplicating them:
+
+```bash
+/data-project track
+```
+
+> *"Turn my ROADMAP into GitHub issues and put them on a board."*
+
+### 4. More example prompts
+
+Each of these triggers the skill (you don't have to name it), and each still lands at a right-sized level you approve before anything is written.
+
+| Say something like… | The skill… |
+| --- | --- |
+| *"Get me a clean repo for this eviction-filings CSV."* | L0/L1 — structure + data dictionary; no pipeline or governance |
+| *"Make this reproducible in **R** with `targets`."* | L2 on the R stack (`DESCRIPTION`, `_targets.R`, `renv`, `Makefile`) instead of the Python default |
+| *"Set up a reproducible **Python** project with a Snakemake pipeline."* | L2 on the Python stack (`environment.yml`, `Snakefile`, `config.yaml`, CI dry-run) |
+| *"Multi-partner project with sensitive tenant records across three nonprofits."* | L3+ with the affordance↔duty coupling — `GOVERNANCE` (access tiers, retention, remedy), `CHARTER`, roles, contributed-data intake |
+| *"We're publishing this dataset as open knowledge / FAIR."* | L5 — OKF `knowledge/` bundle from the data dictionary, layered licensing, Data Card |
+| *"Publish it so other agents can discover and use it."* / *"set up agent discovery."* | L5 — an ARD `ai-catalog.json` + `DISCOVERY.md` advertising the project's skills/dataset (host `.well-known/` + registry deployment deferred to `ROADMAP.md`) |
+| *"Audit `<path>` and tell me what's missing."* | Audit mode — read-only gap report across L0–L5 |
+| *"Turn my roadmap into issues / update the board."* | Track mode — idempotent sync to GitHub Issues / Project / Wiki |
 
 ## What it draws on
 
