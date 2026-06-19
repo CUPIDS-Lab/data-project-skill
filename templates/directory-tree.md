@@ -24,6 +24,11 @@ This file is read by the skill, not copied into the project. It defines the dire
 ├── _targets.R                # L2  pipeline-as-code for the R variant (run via `targets::tar_make()`)
 ├── src/<pkg>/                # L2  Python source: reusable, importable, tested code (pkg = PKG_NAME, the slug with underscores)
 ├── R/                        # L2  R source: stage functions sourced by _targets.R (R projects use this instead of src/<pkg>/)
+├── pipelines/                # L2+ MULTI-pipeline monorepo (the data-liberation hand-off): one self-contained
+│   └── <name>/               #     pipeline per liberated source; each maps 1:1 to a tracked issue/sub-issue
+│       ├── Snakefile         #     this pipeline's own DAG (single-pipeline projects keep the root Snakefile above)
+│       ├── config.yaml       #     this pipeline's parameters & paths
+│       └── README.md         #     what it liberates, its sources, and its tidy output
 ├── results/
 │   ├── figures/    .gitkeep  # L2  generated charts
 │   └── tables/     .gitkeep  # L2  generated tables
@@ -53,4 +58,4 @@ This file is read by the skill, not copied into the project. It defines the dire
     └── tables/<name>.md
 ```
 
-Notes: keep `data/raw` read-only and out of version control (see `.gitignore`); the package directory under `src/` is named for the project. At L0–L1 most of this collapses to the top-level docs plus `data/`. Everything above the chosen level belongs in `ROADMAP.md`, not on disk.
+Notes: `data/raw` is immutable (never edited in place); keep **bulk/external** raw out of version control (see `.gitignore`), but **track a small curated source-of-record** via a `.gitignore` carve-out and document it as immutable. The package directory under `src/<pkg>/` is named for the project and is the **repo-wide** location for reusable, importable, tested code (`R/` for the R variant); a nested `data-liberation` pipeline's own `scripts/` may stay local to its `pipelines/<name>/`. A **single-pipeline** project keeps `Snakefile`/`config.yaml` at the repo root (above); a repo hosting **several** liberated pipelines gives each its own `pipelines/<name>/` and maps each to a tracked issue/sub-issue — promote a root pipeline into `pipelines/<name>/` when a second one arrives. At L0–L1 most of this collapses to the top-level docs plus `data/`. Everything above the chosen level belongs in `ROADMAP.md`, not on disk.

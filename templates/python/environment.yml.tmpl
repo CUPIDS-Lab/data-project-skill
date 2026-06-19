@@ -7,6 +7,7 @@ dependencies:
   - pyarrow            # Parquet/Arrow I/O (open, columnar)
   - snakemake-minimal  # pipeline-as-code
   - jupyterlab         # exploration only (notebooks live in exploratory/)
+  - nbstripout         # strip notebook outputs (git filter + pre-commit) so they stay out of history
   - pytest             # data/code validation
   - pandera            # schema-as-contract validation
   - ruff               # lint + format

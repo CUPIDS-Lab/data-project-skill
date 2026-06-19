@@ -22,7 +22,7 @@ Each level *adds* to the levels below it. A run instantiates only the "now" set 
 | **L4** | Responsible & accessible | `INSTALLED-BASE`, `data-management-plan`, `responsible-data-checklist`, `data-bulletproofing-checklist`, `data-quality-checklist`, `accessibility-checklist` | Transparent, Accessible, Inclusive |
 | **L5** | Publish as open knowledge | `knowledge/` OKF bundle (from the data dictionary), FAIR/CARE, `LICENSE-NOTE`, `data-collaborative-canvas`, `ai-catalog.json` + `DISCOVERY.md` (ARD agent-discovery; host `.well-known/` + registry deferred to `ROADMAP`), optional publish surfaces | Accessible, Transparent |
 
-Levels describe *depth*. They are orthogonal to *which* concerns matter, which is set by the collaboratory type and the data-sensitivity tier (see `collaboration-architecture.md` and `installed-base.md`). A sensitive L1 project, for example, still triggers the affordance↔duty coupling even though it is shallow.
+Levels describe *depth*. They are orthogonal to *which* concerns matter, which is set by the collaboratory type and the data-sensitivity tier (see `collaboration-architecture.md` and `installed-base.md`). A sensitive L1 project, for example, still triggers the affordance↔duty coupling even though it is shallow. Note that automated checks (CI) first appear at **L2**: at L0/L1 there is no pipeline or CI, so there is nothing to "verify/watch after merge" at those rungs — verification there is the scaffold check itself (no unfilled tokens, links resolve).
 
 ## Entry protocol: Infer → State → Execute → Offer
 
@@ -35,7 +35,7 @@ When signals span levels, start at the lowest prerequisite and climb, confirming
 
 ## The now / later / skip mechanism
 
-For every concern that sits *above* the chosen level, the interview offers three dispositions: **implement now** (pull it down into this run), **document for future** (record it in `ROADMAP.md` with what it is, why it's deferred, and which template/level adds it later), or **skip** (out of scope; not recorded). This is what keeps any single run small while still making the full menu discoverable. Defaulting a concern to "later" is usually the right call — a named, deferred concern beats an unmaintained file. The synthesizer is expected to prefer `ROADMAP.md` entries over generated files whenever it is unsure.
+For every concern that sits *above* the chosen level, the interview offers three dispositions: **implement now** (pull it down into this run), **document for future** (record it in `ROADMAP.md` with what it is, why it's deferred, and which template/level adds it later), or **skip** (out of scope; not recorded). This is what keeps any single run small while still making the full menu discoverable. Defaulting a concern to "later" is usually the right call — a named, deferred concern beats an unmaintained file. The synthesizer is expected to prefer `ROADMAP.md` entries over generated files whenever it is unsure. A fourth shade applies to sensitivity specifically: **conditional** — a concern that is irrelevant now but *becomes blocking when* a named event occurs (e.g. "becomes sensitive once the corpus ingests PII"). Record it as a **blocking** `ROADMAP.md` row that names the trigger, so it gates the future build without firing governance today (see the deferred-but-enforced coupling in `installed-base.md`).
 
 ## Audit (the second entry point)
 

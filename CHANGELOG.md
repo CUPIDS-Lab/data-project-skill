@@ -2,6 +2,21 @@
 
 All notable changes to the `data-project` skill are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/); the skill aims at semantic versioning.
 
+## [0.4.0] — 2026-06-19
+
+Revisions from the first real build's after-action report (Colorado Environmental Data Hub). GitHub "Track mode" and the external-prerequisite preflight/degradation chain were already in place (`SKILL.md` Track mode + Step 6.5, the `data-project-tracker` agent, `references/github-project-management.md`); this release closes the remaining gaps that build had to improvise, keeping every addition opt-in and lean-by-default.
+
+### Added
+- **Notebook hygiene (`NOTEBOOKS` flag).** When a project uses notebooks, the scaffold wires up output-stripping as a git filter: `*.ipynb filter=nbstripout diff=ipynb` in `.gitattributes`, a one-time `nbstripout --install` note in `AGENTS.md`, and `nbstripout` in the conda environment — complementing the existing pre-commit hook so outputs never land in history. Clones without the filter degrade gracefully. Documented in `SKILL.md` and guarded by `scripts/validate.py`.
+- **Multi-pipeline monorepo shape.** `templates/directory-tree.md` and `references/context.md` now specify the `data-liberation` hand-off: a `data-project` repo hosts *N* pipelines under `pipelines/<name>/`, each mapped 1:1 to a tracked issue/sub-issue under the umbrella `ROADMAP.md`/board.
+- **Conditional ("becomes-sensitive-when") sensitivity.** A first-class disposition for data that is public now but becomes sensitive when a named event occurs: the interviewer captures the trigger, the synthesizer emits it as a **blocking** ROADMAP item gating the sensitive build, and `installed-base.md` / `escalation-levels.md` / `ROADMAP.md.tmpl` document the deferred-but-enforced coupling.
+- **Context-rich fast path.** `SKILL.md` and the interviewer now infer the full Project Context Profile from supplied design docs (a `/context/` dump) and present it for confirmation instead of running a cold-start questionnaire; the single human approval gate is unchanged.
+
+### Changed
+- **Curated vs. bulk raw data.** The "raw is immutable + git-ignored" convention now distinguishes **bulk/external/re-downloadable** raw (git-ignored) from a small **curated source-of-record** (tracked via a `.gitignore` carve-out, documented immutable). Updated `gitignore.tmpl` (carve-out idiom), `context.md`, `AGENTS.md.tmpl`, `README.md.tmpl`, `directory-tree.md`, the interviewer, and `SKILL.md` Step 6.
+- **Resolved `src/` vs `scripts/` divergence.** `src/<pkg>/` is stated as the repo-wide package location; a nested `data-liberation` pipeline's own `scripts/` may stay local to its `pipelines/<name>/`. Aligned `collaboration-architecture.md` and `directory-tree.md`, and corrected the stale `pipelines/Snakefile` reference in `evals.json` to the root single-pipeline default.
+- **Guardrails.** `SKILL.md` now recommends branch → PR → merge when scaffolding into a shared repo, and adds a template-authoring rule (instructions written for the newcomer who executes them). `escalation-levels.md` notes that CI first appears at L2+.
+
 ## [0.3.0] — 2026-06-18
 
 ### Added

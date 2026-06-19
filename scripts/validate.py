@@ -26,7 +26,7 @@ DOCUMENTED_TOKENS = {
     "ARD_SPEC_VERSION", "ARD_HOST_DOMAIN", "ARD_HOST_IDENTIFIER",
 }
 DOCUMENTED_FLAGS = {"WHY", "PIPELINE", "SENSITIVE", "OPEN", "COLLAB", "NESTED_SKILLS", "OKF",
-                    "GH", "PROJECT", "WIKI", "ARD"}
+                    "GH", "PROJECT", "WIKI", "ARD", "NOTEBOOKS"}
 
 
 def rel(p: pathlib.Path) -> str:

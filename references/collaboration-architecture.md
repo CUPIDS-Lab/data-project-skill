@@ -58,7 +58,7 @@ Draw the charter (silently) from three interacting levels — organizational, po
 ## Workflow anti-patterns (frame as what to do)
 
 - **Pipeline-as-code is the shared artifact, not the cleaned snapshot.** When sources are re-released, share a text-based, re-runnable pipeline; sharing only the cleaned data guarantees redoing the work every vintage. Keep it legible to subject-matter experts, not only developers.
-- **Notebooks stay in `exploratory/`.** They are playgrounds, not products; package code into scripts/modules at the exploration boundary.
+- **Notebooks stay in `exploratory/`.** They are playgrounds, not products; package code into importable modules under `src/<pkg>/` (the repo-wide package location) at the exploration boundary, and keep notebook outputs out of version control (`nbstripout`).
 - **Reproducibility means pinned environments.** Capture dependencies so another person — or another agent — can re-run results; avoid binary blobs version control can't diff.
 - **Secrets and sensitive data never land in the repo.** Keep credentials out of code and notebooks; desensitize before anything leaves the controlled tier.
 - **Discoverability is a feature.** Data portals are poor at connecting people, so the README, roles, and charter carry the weight of making the project and its contributors findable.

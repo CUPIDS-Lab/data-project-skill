@@ -10,7 +10,7 @@
     {
       "id": 2,
       "prompt": "Set up a reproducible Python project for analyzing eviction data, with a pipeline that re-runs when the data is refreshed.",
-      "expected_output": "Infers L2. Scaffolds the L0/L1 set plus the Python reproducible stack: environment.yml, pipelines/Snakefile, config.yaml, pyproject.toml, pre-commit config, exploratory/ for notebooks. README includes the conda + snakemake run instructions (PIPELINE block kept). Offers to climb to L3 (collaboration) on completion.",
+      "expected_output": "Infers L2. Scaffolds the L0/L1 set plus the Python reproducible stack: environment.yml, Snakefile + config.yaml at the repo root (the single-pipeline default; a repo hosting several liberated pipelines would instead give each its own pipelines/<name>/), pyproject.toml, pre-commit config, exploratory/ for notebooks (NOTEBOOKS flag on → nbstripout git filter + AGENTS note). README includes the conda + snakemake run instructions (PIPELINE block kept). Offers to climb to L3 (collaboration) on completion.",
       "files": []
     },
     {

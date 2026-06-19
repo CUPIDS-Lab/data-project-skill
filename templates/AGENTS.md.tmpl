@@ -4,7 +4,7 @@ Read this first. It states the non-negotiables and points you at the right place
 
 ## Non-negotiables
 
-- **Raw data is immutable.** Never edit anything under `data/raw/` in place. Read it, write derived data to `data/interim/` or `data/processed/`. Anything derived must be reproducible from raw.
+- **Raw data is immutable.** Never edit anything under `data/raw/` in place. Read it, write derived data to `data/interim/` or `data/processed/`. Anything derived must be reproducible from raw. **Bulk or re-downloadable** raw stays git-ignored; a small **curated source-of-record** (the project's own catalog or seed file) is tracked via a `.gitignore` carve-out and documented here and in `DATA-DICTIONARY.md` as immutable.
 - **Open, version-controllable formats.** Prefer plain text, CSV/Parquet, Markdown, and text-based pipeline definitions. Do not introduce a vendor-locked artifact as a required dependency; anything a hosted tool produces must be exportable.
 - **Provenance lives with the data.** Record where data came from, its license, and any transformations in `DATA-DICTIONARY.md` and `decision-log.md`.
 - **Secrets and sensitive data never land in the repo.** Keep credentials out of code and notebooks. <!-- IF:SENSITIVE -->This project handles **{{SENSITIVITY_TIER}}** data — desensitize before anything leaves the controlled tier, and follow the access tiers in `GOVERNANCE.md` (or `ROADMAP.md` until it exists).<!-- /IF -->
@@ -26,4 +26,4 @@ For specific work, read the matching nested skill before you start:
 
 ## How we work
 
-Explore in `exploratory/`, then package code into `src/` at the exploration boundary. Pipelines are code (re-runnable), not cleaned snapshots. Pin environments so others — and other agents — can reproduce results. <!-- IF:COLLAB -->Follow `CONTRIBUTING.md` for the branch/PR/review workflow and `CODE_OF_CONDUCT.md` for community norms.<!-- /IF -->
+Explore in `exploratory/`, then package code into `src/` at the exploration boundary. Pipelines are code (re-runnable), not cleaned snapshots. Pin environments so others — and other agents — can reproduce results. <!-- IF:NOTEBOOKS -->Notebooks are kept **output-free** in version control: run `nbstripout --install` once per clone to activate the git filter that `.gitattributes` declares (the `nbstripout` pre-commit hook is a backstop). Clones that skip this still work — they just won't auto-strip outputs.<!-- /IF --> <!-- IF:COLLAB -->Follow `CONTRIBUTING.md` for the branch/PR/review workflow and `CODE_OF_CONDUCT.md` for community norms.<!-- /IF -->
