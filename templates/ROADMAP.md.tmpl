@@ -22,7 +22,7 @@ Concerns that are real but above the current level — added when you climb.
 
 ## How to climb a level
 
-Re-run the `data-project` skill in this directory and ask to climb to the next level (e.g. "take this to L2"). The skill adds only the new level's artifacts, refreshes this roadmap, and (if the project is on GitHub) files the new level's tasks as issues. Items marked **blocking** must be resolved — or explicitly acknowledged — before the project does the thing they guard (e.g. before ingesting sensitive data or publishing), and before climbing.
+Re-run the `data-project` skill in this directory and ask to climb to the next level (e.g. "take this to L2"). The skill adds only the new level's artifacts, refreshes this roadmap, and (if the project is on GitHub) files the new level's tasks as issues. Items marked **blocking** must be resolved — or explicitly acknowledged — before the project does the thing they guard, and before climbing. Some blocking items are **conditional**: they come due only when a named event occurs (e.g. *before the corpus ingests PII or copyrighted text*, *before publishing*) — treat the trigger as the gate.
 
 <!-- IF:SENSITIVE -->## Safeguards coupling (do not skip)
 

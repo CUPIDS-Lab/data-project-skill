@@ -28,7 +28,7 @@ DOCUMENTED_TOKENS = {
     "DATAVERSE_URL", "DATAVERSE_COLLECTION", "DATASET_SUBJECT",
 }
 DOCUMENTED_FLAGS = {"WHY", "PIPELINE", "SENSITIVE", "OPEN", "COLLAB", "NESTED_SKILLS", "OKF",
-                    "GH", "PROJECT", "WIKI", "ARD", "DATAVERSE"}
+                    "GH", "PROJECT", "WIKI", "ARD", "DATAVERSE", "NOTEBOOKS"}
 
 
 def rel(p: pathlib.Path) -> str:

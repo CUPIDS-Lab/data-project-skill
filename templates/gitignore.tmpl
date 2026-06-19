@@ -1,9 +1,18 @@
-# Data — raw is immutable and lives outside version control; keep directory structure via .gitkeep
+# Data — derived layers are regenerable, so keep them out of version control;
+# preserve the directory structure with .gitkeep. Raw is immutable either way
+# (never edited in place), but whether raw is *tracked* depends on which kind it is:
+#   (a) Bulk / external / re-downloadable raw  -> git-ignored (the default below).
+#   (b) Curated source-of-record (small, hand-made — the project's actual asset,
+#       e.g. a hand-built catalog) -> TRACK it with a carve-out and document it as
+#       immutable in DATA-DICTIONARY.md + decision-log.md. Don't ignore your only data.
 data/raw/*
 data/interim/*
 data/processed/*
 data/external/*
 !data/**/.gitkeep
+# Curated source-of-record carve-out (case (b) above): uncomment and point at the
+# real file to keep it tracked and immutable, e.g.
+# !data/raw/catalog.json
 
 # Large / binary artifacts (use object storage or Git LFS instead)
 *.parquet

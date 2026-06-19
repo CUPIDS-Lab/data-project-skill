@@ -10,7 +10,7 @@ A {{LAB_NAME}} data project. Maturity level: **{{LEVEL}}**. Toolchain: **{{TOOLI
 
 ## Repository layout
 
-This repo follows the {{LAB_NAME}} data-project conventions. Key locations: `data/raw` holds original, **immutable** source data (never edited in place); `data/interim` and `data/processed` hold derived data that can always be regenerated from raw; `DATA-DICTIONARY.md` documents the schema. See `ROADMAP.md` for what is planned but not yet built.
+This repo follows the {{LAB_NAME}} data-project conventions. Key locations: `data/raw` holds original, **immutable** source data (never edited in place — bulk or re-downloadable inputs are git-ignored, while a small curated source-of-record is tracked via a `.gitignore` carve-out); `data/interim` and `data/processed` hold derived data that can always be regenerated from raw; `DATA-DICTIONARY.md` documents the schema. See `ROADMAP.md` for what is planned but not yet built.
 
 ## Getting started
 
