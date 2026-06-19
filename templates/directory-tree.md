@@ -47,6 +47,10 @@ This file is read by the skill, not copied into the project. It defines the dire
 ├── accessibility-checklist.md# L4  alt text, plain language, colorblind-safe viz
 ├── ai-catalog.json           # L5  ARD manifest: agent-discoverable resources (repo scope; see DISCOVERY.md)
 ├── DISCOVERY.md              # L5  what the catalog advertises + how to deploy it to host/registry (deferred)
+├── dataverse/                # L5  Dataverse deposit kit (archive data/code/docs → citable DOI)
+│   ├── dataset.json          #     citation metadata manifest (Native API format)
+│   ├── deposit-dataverse.sh  #     curl deposit (zero-dep); deposit_dataverse.py is the pyDataverse path
+│   └── DEPOSIT.md            #     what's deposited + how to run it (draft → confirm → publish)
 └── knowledge/                # L5  OKF bundle (concept catalog) generated from the data dictionary
     ├── index.md              #     bundle root; declares okf_version: "0.1"
     ├── datasets/<name>.md
