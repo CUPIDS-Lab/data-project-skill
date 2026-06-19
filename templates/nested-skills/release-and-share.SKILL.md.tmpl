@@ -17,4 +17,6 @@ Package in open, version-stamped formats with a defined export. Release processe
 
 Apply the access tier and respect the escalation rules. Before publishing, apply the access tier from `GOVERNANCE.md` — decide what is public, what is restricted, and who may touch which traces — and confirm the openness and license you are releasing under (`{{OPENNESS}}`, `{{LICENSE}}`).
 
+<!-- IF:DATAVERSE -->Deposit for a citable archive. To make the release findable and citable, deposit the processed data, code, and documentation in a Dataverse repository for a DOI — see `dataverse/DEPOSIT.md`. Try a `DRY_RUN=1` deposit against `demo.dataverse.org` first; the deposit creates a reviewable draft and only publishes (mints the DOI) on explicit confirmation, after the bulletproofing and — where data is sensitive — responsible-data checks pass.<!-- /IF -->
+
 <!-- IF:SENSITIVE -->This project handles **{{SENSITIVITY_TIER}}** data. Nothing touching sensitive traces is published on your own authority: route it through the access tiers and the remedy/escalation rules in `GOVERNANCE.md` first, desensitize before anything leaves the controlled tier, and complete the `responsible-data-checklist`. Identifiers and retained data carry duties — releasing an affordance without its governance is exactly the theater this project refuses to ship.<!-- /IF -->

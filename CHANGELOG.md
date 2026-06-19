@@ -2,6 +2,12 @@
 
 All notable changes to the `data-project` skill are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/); the skill aims at semantic versioning.
 
+## [0.4.0] — 2026-06-19
+
+### Added
+- **L5 Harvard Dataverse deposit.** New `references/dataverse-deposit.md` digest, a `templates/dataverse/` kit (`dataset.json` citation manifest, `deposit-dataverse.sh` curl + `deposit_dataverse.py` pyDataverse deposit scripts, `DEPOSIT.md` guide), and a `data-project-depositor` agent. At L5 the skill can archive a project's processed data (category **Data**), code (**Code**), and documentation (**Documentation**) to a Dataverse repository for a citable DOI, mapping project metadata to the Native API citation block. A new **Deposit mode** (`/data-project deposit`) runs the capability chain (pyDataverse → curl → emit-and-hand-off), is idempotent via `.dataverse-deposit.json`, gates sensitive data through `GOVERNANCE.md` access tiers, and stops at a reviewable draft — publishing (which mints the DOI) only on explicit confirmation.
+- New `DATAVERSE` flag and `DATAVERSE_URL` / `DATAVERSE_COLLECTION` / `DATASET_SUBJECT` tokens, documented in `SKILL.md` and guarded by `scripts/validate.py` (the JSON-template check now also covers `templates/dataverse/`). Wired into `references/INDEX.md` (§A/§B/§C), `references/escalation-levels.md`, `templates/directory-tree.md`, the L4 `data-management-plan`, and the L3 `release-and-share` nested skill.
+
 ## [0.3.0] — 2026-06-18
 
 ### Added

@@ -30,6 +30,12 @@
       "prompt": "We're publishing this eviction dataset and its helper skills so other agents can find and use them. Set up agent discovery.",
       "expected_output": "Infers L5 (publish) and sets the ARD flag because the project exposes agentic resources (nested .skills/ and a published dataset). Generates a repo-scope ai-catalog.json advertising the project's resources (Markdown skills as application/ai-skill+md, the dataset) with domain-anchored URNs (urn:ai:<domain>:skills:<slug>), a host block, capabilities and 2-5 representativeQueries, plus a DISCOVERY.md companion. Pairs it with the OKF knowledge bundle. Defers serving the manifest at the host /.well-known/ai-catalog.json path and registering with an org/ecosystem registry into ROADMAP.md. specVersion is \"1.0\"; ai-catalog.json is valid JSON and no unfilled {{ }} tokens remain.",
       "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We've finished the analysis. Deposit the processed data, code, and documentation to Harvard Dataverse so we get a DOI.",
+      "expected_output": "Enters Deposit mode at L5 via data-project-depositor. Builds dataverse/dataset.json (citation block: title, author, datasetContact with email, dsDescription, subject from the controlled vocabulary). Runs the capability chain: pyDataverse if importable, else the curl deposit-dataverse.sh, else emits the kit (dataset.json + both scripts + DEPOSIT.md) and reports the one command plus the DATAVERSE_API_TOKEN and collection to set. Maps data/processed -> category Data, src/+pipeline -> Code, README/DATA-DICTIONARY/data-card/knowledge -> Documentation (categories + directoryLabel). Recommends a DRY_RUN against demo.dataverse.org. Creates a DRAFT and only publishes (mints the DOI) after explicit confirmation. If data is sensitive, gates on GOVERNANCE.md access tiers first (restrict/desensitize/withhold) and does not deposit identifiable traces openly. Idempotent via .dataverse-deposit.json.",
+      "files": []
     }
   ]
 }
