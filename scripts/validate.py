@@ -24,9 +24,11 @@ DOCUMENTED_TOKENS = {
     "TRACKING_ROWS", "ISSUE_SEED_ROWS", "OWNER_DEFAULT",
     # Agentic Resource Discovery layer (L5 ai-catalog.json)
     "ARD_SPEC_VERSION", "ARD_HOST_DOMAIN", "ARD_HOST_IDENTIFIER",
+    # Harvard Dataverse deposit layer (L5)
+    "DATAVERSE_URL", "DATAVERSE_COLLECTION", "DATASET_SUBJECT",
 }
 DOCUMENTED_FLAGS = {"WHY", "PIPELINE", "SENSITIVE", "OPEN", "COLLAB", "NESTED_SKILLS", "OKF",
-                    "GH", "PROJECT", "WIKI", "ARD", "NOTEBOOKS"}
+                    "GH", "PROJECT", "WIKI", "ARD", "DATAVERSE", "NOTEBOOKS"}
 
 
 def rel(p: pathlib.Path) -> str:
@@ -75,10 +77,11 @@ for path in set(re.findall(r"`(templates/[^`]+)`", index)):
         if not (ROOT / v.strip()).exists():
             errors.append(f"INDEX.md cites missing template: {v.strip()}")
 
-# 5. ARD JSON templates stay valid JSON once conditionals resolve and tokens are filled.
-#    Check both extremes — all flags on (strip only the IF markers) and all off (drop the
-#    whole IF blocks) — so neither rendering can ship malformed JSON.
-for f in sorted((ROOT / "templates" / "ard").glob("*.json.tmpl")):
+# 5. JSON templates (ARD ai-catalog, Dataverse dataset.json, …) stay valid JSON once
+#    conditionals resolve and tokens are filled. Check both extremes — all flags on (strip
+#    only the IF markers) and all off (drop the whole IF blocks) — so neither rendering can
+#    ship malformed JSON.
+for f in sorted((ROOT / "templates").rglob("*.json.tmpl")):
     text = f.read_text(encoding="utf-8")
     all_on = re.sub(r"<!-- /?IF(?::[A-Z_]+)? -->", "", text)
     all_off = re.sub(r"<!-- IF:[A-Z_]+ -->.*?<!-- /IF -->", "", text, flags=re.S)

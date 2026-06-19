@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+# Deposit {{PROJECT_NAME}} to a Dataverse repository via the Native API (curl only).
+# Creates a DRAFT dataset, uploads processed data / code / documentation tagged by
+# category, then OFFERS to publish (mint the DOI) behind an explicit confirmation.
+#
+# Usage:
+#   DATAVERSE_API_TOKEN=xxxx ./deposit-dataverse.sh           # create draft + upload, then prompt to publish
+#   DATAVERSE_API_TOKEN=xxxx ./deposit-dataverse.sh --publish # pre-confirm: publish without prompting
+#   ./deposit-dataverse.sh --no-publish                       # create draft + upload only, never publish
+#   DRY_RUN=1 ./deposit-dataverse.sh                          # print what would happen; no network writes
+#   RESTRICT_DATA=1 ...                                        # upload data/ files as restricted (sensitive projects)
+#
+# Test against https://demo.dataverse.org before production. Publishing mints a DOI
+# and is effectively permanent — review the draft in the web UI first.
+set -euo pipefail
+
+DATAVERSE_URL="${DATAVERSE_URL:-{{DATAVERSE_URL}}}"
+DATAVERSE_COLLECTION="${DATAVERSE_COLLECTION:-{{DATAVERSE_COLLECTION}}}"
+DRY_RUN="${DRY_RUN:-0}"
+RESTRICT_DATA="${RESTRICT_DATA:-0}"
+PUBLISH=ask   # ask | yes | no
+for arg in "$@"; do
+  case "$arg" in
+    --publish) PUBLISH=yes ;;
+    --no-publish) PUBLISH=no ;;
+    *) echo "unknown argument: $arg" >&2; exit 2 ;;
+  esac
+done
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+manifest="$here/dataset.json"
+sync="$here/.dataverse-deposit.json"
+[ -f "$manifest" ] || { echo "missing dataset.json next to this script" >&2; exit 1; }
+command -v curl >/dev/null || { echo "curl is required" >&2; exit 1; }
+
+run() { if [ "$DRY_RUN" = "1" ]; then echo "DRY-RUN: $*"; else "$@"; fi; }
+
+# --- preflight -------------------------------------------------------------
+if [ "$DRY_RUN" != "1" ] && [ -z "${DATAVERSE_API_TOKEN:-}" ]; then
+  echo "Set DATAVERSE_API_TOKEN (account menu -> API Token on $DATAVERSE_URL)." >&2
+  exit 1
+fi
+echo "Target: $DATAVERSE_URL  collection: $DATAVERSE_COLLECTION"
+
+# --- 1. create the draft dataset ------------------------------------------
+if [ "$DRY_RUN" = "1" ]; then
+  echo "DRY-RUN: POST $DATAVERSE_URL/api/dataverses/$DATAVERSE_COLLECTION/datasets  (from dataset.json)"
+  pid="doi:10.5072/FK2/DRYRUN"
+else
+  resp="$(curl -sS -H "X-Dataverse-key:$DATAVERSE_API_TOKEN" \
+    -X POST "$DATAVERSE_URL/api/dataverses/$DATAVERSE_COLLECTION/datasets" \
+    -H "Content-Type: application/json" --data-binary "@$manifest")"
+  pid="$(printf '%s' "$resp" | grep -o '"persistentId":"[^"]*"' | head -n1 | cut -d'"' -f4)"
+  [ -n "$pid" ] || { echo "create failed: $resp" >&2; exit 1; }
+fi
+echo "Draft dataset: $pid"
+
+# --- 2. upload files by category ------------------------------------------
+# upload_dir <dir> <category> <directoryLabel> <restrict:true|false>
+upload_dir() {
+  local dir="$1" category="$2" label="$3" restrict="$4"
+  [ -d "$dir" ] || return 0
+  local f rel json
+  while IFS= read -r -d '' f; do
+    rel="${f#"$dir"/}"
+    json="{\"description\":\"$category file\",\"categories\":[\"$category\"],\"directoryLabel\":\"$label\",\"restrict\":$restrict}"
+    echo "  + [$category] $rel"
+    run curl -sS -H "X-Dataverse-key:${DATAVERSE_API_TOKEN:-}" \
+      -X POST "$DATAVERSE_URL/api/datasets/:persistentId/add?persistentId=$pid" \
+      -F "file=@$f" -F "jsonData=$json" -o /dev/null
+  done < <(find "$dir" -type f ! -name '.gitkeep' -print0)
+}
+
+data_restrict=false; [ "$RESTRICT_DATA" = "1" ] && data_restrict=true
+echo "Uploading files..."
+upload_dir "$here/data/processed" "Data" "data/processed" "$data_restrict"
+upload_dir "$here/src"  "Code" "code" false
+upload_dir "$here/code" "Code" "code" false
+# documentation: individual top-level docs + the OKF knowledge bundle
+for doc in README.md DATA-DICTIONARY.md data-card.md decision-log.md CHANGELOG.md; do
+  [ -f "$here/$doc" ] || continue
+  echo "  + [Documentation] $doc"
+  run curl -sS -H "X-Dataverse-key:${DATAVERSE_API_TOKEN:-}" \
+    -X POST "$DATAVERSE_URL/api/datasets/:persistentId/add?persistentId=$pid" \
+    -F "file=@$here/$doc" \
+    -F "jsonData={\"description\":\"Project documentation\",\"categories\":[\"Documentation\"],\"directoryLabel\":\"documentation\",\"restrict\":false}" \
+    -o /dev/null
+done
+upload_dir "$here/knowledge" "Documentation" "documentation/knowledge" false
+
+# record the deposit so re-runs and the depositor agent can find it
+run bash -c "printf '{\"persistentId\":\"%s\",\"url\":\"%s\"}\n' \"$pid\" \"$DATAVERSE_URL/dataset.xhtml?persistentId=$pid\" > \"$sync\""
+
+# --- 3. publish (offer, confirm, or skip) ---------------------------------
+publish_now() {
+  echo "Publishing $pid (major version, mints the DOI)..."
+  run curl -sS -H "X-Dataverse-key:${DATAVERSE_API_TOKEN:-}" \
+    -X POST "$DATAVERSE_URL/api/datasets/:persistentId/actions/publish?persistentId=$pid&type=major" -o /dev/null
+  echo "Published: $DATAVERSE_URL/dataset.xhtml?persistentId=$pid"
+}
+case "$PUBLISH" in
+  yes) publish_now ;;
+  no)  echo "Left as DRAFT (--no-publish). Review, then: $0 --publish" ;;
+  ask)
+    if [ "$DRY_RUN" = "1" ]; then
+      echo "DRY-RUN: would offer to publish $pid"
+    elif [ -t 0 ]; then
+      read -r -p "Review the draft, then publish now and mint the DOI? [y/N] " ans
+      case "$ans" in [yY]*) publish_now ;; *) echo "Left as DRAFT. Publish later: $0 --publish" ;; esac
+    else
+      echo "Non-interactive: left as DRAFT. Review at $DATAVERSE_URL/dataset.xhtml?persistentId=$pid then: $0 --publish"
+    fi ;;
+esac

@@ -1,0 +1,64 @@
+# Depositing {{PROJECT_NAME}} to Dataverse
+
+This project can be archived in a [Dataverse](https://dataverse.org) repository (default:
+`{{DATAVERSE_URL}}`) to get a **citable DOI** and make its data, code, and documentation
+findable and reusable (the *Findable* + *Accessible* in FAIR). This guide and the two scripts
+beside it (`deposit-dataverse.sh`, `deposit_dataverse.py`) deposit from `dataset.json` — the
+citation-metadata manifest generated from this project.
+
+## What gets deposited
+
+| From the project | Uploaded as category | Folder in the dataset |
+| --- | --- | --- |
+| `data/processed/` | **Data** | `data/processed` |
+| `src/` · `code/` (pipeline, scripts) | **Code** | `code` |
+| `README.md`, `DATA-DICTIONARY.md`, `data-card.md`, `knowledge/` (OKF) | **Documentation** | `documentation` |
+| project name · author · contact · description · subject · keywords | citation metadata | — |
+
+`data/raw` is **not** uploaded. The dataset's subject is `{{DATASET_SUBJECT}}` — edit `dataset.json`
+to add authors, keywords, related publications, or a different subject (from Dataverse's controlled list).
+
+## Deposit it
+
+1. **Get an API token.** Log in to `{{DATAVERSE_URL}}` → account menu → **API Token** → Create. Treat it like a password; pass it via the environment, never commit it.
+2. **Pick a target collection.** `{{DATAVERSE_COLLECTION}}` must already exist and be published, and your account must be allowed to create datasets in it.
+3. **Test on the demo server first** (free, throwaway DOIs):
+
+   ```bash
+   DATAVERSE_URL=https://demo.dataverse.org DATAVERSE_API_TOKEN=xxxx ./deposit-dataverse.sh
+   ```
+
+4. **Deposit for real.** Either client works — they do the same thing:
+
+   ```bash
+   # curl, zero dependencies:
+   DATAVERSE_API_TOKEN=xxxx ./deposit-dataverse.sh
+
+   # or the official Python client (richer validation):
+   pip install pyDataverse
+   DATAVERSE_API_TOKEN=xxxx python deposit_dataverse.py
+   ```
+
+   Each creates a **draft**, uploads the files above, writes `.dataverse-deposit.json` (the record
+   used to avoid duplicate deposits on re-runs), then **asks before publishing**. Add `DRY_RUN=1` to
+   preview without writing anything.
+
+## Draft → review → publish
+
+A deposit run stops at a **draft** and offers to publish. **Review the draft in the web UI first** —
+publishing mints the DOI and is effectively permanent. Publish when ready by answering the prompt, or
+later with `./deposit-dataverse.sh --publish` (`--no-publish` to never publish). Run the
+`data-bulletproofing-checklist` and confirm the license (`{{LICENSE}}`) before publishing.
+
+After publishing, record the DOI in `README.md`, the citation, and `data-management-plan.md`, and verify
+the record — e.g. via the read-only `mcp-dataverse` server (`search_datasets`, `get_croissant_record`) or
+`curl "{{DATAVERSE_URL}}/api/datasets/:persistentId?persistentId=<doi>"`.
+
+<!-- IF:SENSITIVE -->## Sensitive data — do not deposit openly
+
+This project handles **{{SENSITIVITY_TIER}}** data. Do **not** deposit identifiable or restricted traces
+to a public repository. First apply the access tiers in `GOVERNANCE.md` and complete the
+`responsible-data-checklist`: desensitize before anything leaves the controlled tier, or upload affected
+files as restricted (`RESTRICT_DATA=1 ./deposit-dataverse.sh`, which sets `restrict:true` on `data/` files),
+or withhold them and deposit only the documentation and code. Releasing an identifier without its governance
+is exactly the theater this project refuses to ship.<!-- /IF -->
