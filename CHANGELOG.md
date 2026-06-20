@@ -2,6 +2,14 @@
 
 All notable changes to the `data-project` skill are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/); the skill aims at semantic versioning.
 
+## [0.5.0] — 2026-06-20
+
+### Added
+- **Periodically-updated ("streaming") Dataverse deposits.** A menu option (an interview cadence question → the `UPDATING` flag) for data refreshed monthly/quarterly/annually. Per the Dataverse data-citation best practices, each refresh is published as a **new version under one DOI** (cited by version + UNF), not a new dataset. New `templates/ci/dataverse-deposit.yml.tmpl` scheduled workflow re-deposits a **draft** new version on the cadence (`DEPOSIT_CRON`), then opens a review issue — it never auto-publishes (minting a version stays a human decision). `dataset.json` gains version/frequency/time-period metadata (`notesText`, `timePeriodCovered`); `DEPOSIT.md` and the L4 `data-management-plan` document the versioning + citation policy. New `UPDATE_FREQUENCY` / `DEPOSIT_CRON` tokens and `UPDATING` flag, wired into `SKILL.md`, the interviewer / synthesizer / depositor agents, `references/dataverse-deposit.md`, `references/INDEX.md`, and `references/escalation-levels.md`.
+
+### Changed
+- **Workflow templates may use GitHub Actions `${{ … }}` secrets/inputs.** `scripts/validate.py` and the scaffolded-repo CI token-guard now ignore the `$`-prefixed brace form (only a bare `{{ … }}` is treated as an unfilled skill token), so deposit/CI workflow templates can reference repository secrets.
+
 ## [0.4.0] — 2026-06-19
 
 A combined release: the **L5 Harvard Dataverse deposit** capability, plus revisions from the first real build's after-action report (Colorado Environmental Data Hub). GitHub "Track mode" and the external-prerequisite preflight/degradation chain were already in place (`SKILL.md` Track mode + Step 6.5, the `data-project-tracker` agent, `references/github-project-management.md`); the AAR work closes the remaining gaps that build had to improvise, keeping every addition opt-in and lean-by-default.

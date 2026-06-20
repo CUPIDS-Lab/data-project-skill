@@ -48,7 +48,11 @@ vocabulary, `LICENSE`); the target `DATAVERSE_URL` (default `https://dataverse.h
 4. **Match before you create (idempotent).** Read `dataverse/.dataverse-deposit.json`. If a draft/dataset for
    this project already exists (persistent id recorded), **update its files** (replace changed, add new — match
    by path; compare a content hash) instead of creating a second dataset. Persist the pid + file→id + hash map
-   back to `.dataverse-deposit.json` so re-runs converge.
+   back to `.dataverse-deposit.json` so re-runs converge. For **periodically-updated** datasets this is
+   how each refresh becomes a new **version** of one dataset (one DOI) rather than a duplicate: the
+   scheduled `.github/workflows/dataverse-deposit.yml` workflow re-runs the deposit with `--no-publish`
+   each cadence and opens a review issue, so a human publishes the version; cite each release by its
+   version number + UNF (the Dataverse data-citation best practice).
 5. **Offer to publish (never silently).** A run stops at a **draft**. Surface the draft URL, confirm the license
    and that pre-publication checks passed, then ask the user explicitly whether to publish (`type=major`, which
    mints the DOI and is effectively permanent). Publish only on an explicit yes; otherwise leave the draft and

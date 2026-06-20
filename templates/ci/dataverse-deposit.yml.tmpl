@@ -1,0 +1,70 @@
+# Scheduled Dataverse re-deposit for {{PROJECT_NAME}} — periodically-updated ("streaming") data.
+# On the configured cadence ({{UPDATE_FREQUENCY}}) this regenerates the processed data, uploads it
+# to Dataverse as a NEW DRAFT VERSION (one DOI, successive versions — cite the version + UNF), and
+# opens an issue asking a maintainer to review and publish. It NEVER publishes on its own: minting a
+# version DOI stays a human decision (see DEPOSIT.md and the Dataverse data-citation best practices,
+# https://dataverse.org/best-practices/data-citation).
+#
+# Setup: add a repository secret DATAVERSE_API_TOKEN (Settings -> Secrets and variables -> Actions).
+# The deposit step uses curl only (no Python needed). Uncomment the data-refresh block for your
+# toolchain so each run re-derives data/processed before depositing; without it the workflow
+# re-deposits whatever processed data is present in the checkout.
+
+name: dataverse-deposit
+
+on:
+  schedule:
+    - cron: "{{DEPOSIT_CRON}}"   # {{UPDATE_FREQUENCY}}
+  workflow_dispatch:             # also allow manual runs
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  deposit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # --- Refresh data/processed before depositing (uncomment the block for your toolchain) ---
+      # Python:
+      # - uses: mamba-org/setup-micromamba@v1
+      #   with:
+      #     environment-file: environment.yml
+      # - name: Rebuild processed data
+      #   shell: bash -l {0}
+      #   run: pip install -e . && snakemake --cores 2
+      # R:
+      # - uses: r-lib/actions/setup-r@v2
+      # - name: Rebuild processed data
+      #   run: Rscript -e "renv::restore(); targets::tar_make()"
+
+      - name: Deposit a new DRAFT version and open a review issue
+        env:
+          DATAVERSE_API_TOKEN: ${{ secrets.DATAVERSE_API_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DATAVERSE_API_TOKEN}" ]; then
+            echo "::error::Set the DATAVERSE_API_TOKEN repository secret so the scheduled deposit can run."
+            exit 1
+          fi
+          script=""
+          for s in ./deposit-dataverse.sh dataverse/deposit-dataverse.sh; do
+            if [ -f "$s" ]; then script="$s"; break; fi
+          done
+          [ -n "$script" ] || { echo "::error::deposit-dataverse.sh not found"; exit 1; }
+          kitdir="$(dirname "$script")"
+          # --no-publish: build/refresh the next version as a DRAFT only; a human publishes it.
+          bash "$script" --no-publish
+          url="$(grep -o '"url":"[^"]*"' "$kitdir/.dataverse-deposit.json" 2>/dev/null | head -n1 | cut -d'"' -f4 || true)"
+          {
+            echo 'A scheduled **{{UPDATE_FREQUENCY}}** refresh uploaded a new **draft** version to Dataverse (one DOI, successive versions).'
+            echo ''
+            echo "- Draft: ${url:-see collection {{DATAVERSE_COLLECTION}} at {{DATAVERSE_URL}}}"
+            echo "- Review the data and license, then publish to mint the version: $script --publish"
+            echo '- Cite the published version by its number + UNF (see DEPOSIT.md).'
+          } > /tmp/dv-issue.md
+          gh issue create --title "Review Dataverse draft — {{UPDATE_FREQUENCY}} refresh $(date +%F)" --body-file /tmp/dv-issue.md

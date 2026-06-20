@@ -87,7 +87,34 @@
                 }
               }
             ]
-          }
+          }<!-- IF:UPDATING -->,
+          {
+            "typeName": "notesText",
+            "typeClass": "primitive",
+            "multiple": false,
+            "value": "Updated {{UPDATE_FREQUENCY}}; each refresh is published as a new Dataverse version under one DOI — cite the version number and UNF you used (see DEPOSIT.md)."
+          },
+          {
+            "typeName": "timePeriodCovered",
+            "typeClass": "compound",
+            "multiple": true,
+            "value": [
+              {
+                "timePeriodCoveredStart": {
+                  "typeName": "timePeriodCoveredStart",
+                  "typeClass": "primitive",
+                  "multiple": false,
+                  "value": "EDIT-START-YYYY-MM-DD"
+                },
+                "timePeriodCoveredEnd": {
+                  "typeName": "timePeriodCoveredEnd",
+                  "typeClass": "primitive",
+                  "multiple": false,
+                  "value": "EDIT-END-YYYY-MM-DD"
+                }
+              }
+            ]
+          }<!-- /IF -->
         ]
       }
     }
