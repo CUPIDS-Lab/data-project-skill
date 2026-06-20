@@ -15,7 +15,7 @@ Build status legend: **⭐ built** — the template/digest exists now and can be
 
 | Goal | Practices (source file) |
 | --- | --- |
-| **Accessible** | plain-language summary, multiple formats (`turing-way`); FAIR/open access (`turing-way`); colorblind-safe viz & alt text (`turing-way`, accessibility-checklist ⭐); OKF concept catalog at L5 (`okf-open-knowledge-format` ⭐); user-centered design & default-to-open (`usds-playbook`); agent-discovery catalog at L5 (`agentic-resource-discovery` ⭐); repository deposit for a DOI at L5 (`dataverse-deposit` ⭐) |
+| **Accessible** | plain-language summary, multiple formats (`turing-way`); FAIR/open access (`turing-way`); colorblind-safe viz & alt text (`turing-way`, accessibility-checklist ⭐); OKF concept catalog at L5 (`okf-open-knowledge-format` ⭐); user-centered design & default-to-open (`usds-playbook`); agent-discovery catalog at L5 (`agentic-resource-discovery` ⭐); repository deposit for a DOI at L5 (`dataverse-deposit` ⭐); zero-copy data/AI-asset sharing at L5 (`open-sharing-protocol` ⭐) |
 | **Documented** | data dictionary w/ grain, provenance, units, missingness, known-issues (`ouhsc-bbmc-practices`, `data-collaboratives-canvas`); decision log & changelog (`ouhsc-bbmc-practices`); README front door (`cookiecutter-data-science`); comments explain *why* (`git-github-collaboration`); dataset transparency Data Card (`datacards-playbook`); engagement memo & assignable to-do checklist (`github-project-management`) |
 | **Transparent** | immutable raw data & DAG provenance (`cookiecutter-data-science`); decision/change logs (`ouhsc-bbmc-practices`); data bulletproofing/QA (`propublica-data-bulletproofing` ⭐, `quartz-bad-data-guide` ⭐); Data Card — provenance, uses, sensitive attributes (`datacards-playbook`); licensing (`turing-way`); access tiers & oversight (`installed-base`); published capability catalog (`agentic-resource-discovery` ⭐) |
 | **Inclusive** | code of conduct & contributor recognition (`turing-way`); design partners vs. beneficiaries, mediator, gap-check (`collaboration-architecture`); responsible data & consent (`responsible-data-handbook`); sensitive-attributes & fairness documentation (`datacards-playbook`); accessible comms (`turing-way`) |
@@ -34,6 +34,7 @@ Build status legend: **⭐ built** — the template/digest exists now and can be
 | publish as open knowledge / FAIR | `okf-open-knowledge-format` ⭐, `turing-way` | `knowledge/` OKF bundle ⭐, `LICENSE-NOTE` ⭐ |
 | make the project discoverable by agents; exposes skills, a dataset, MCP, or an API | `agentic-resource-discovery` ⭐ | `ai-catalog.json` (ARD) + `DISCOVERY.md` at **L5** ⭐; host `.well-known/` + registry deployment → `ROADMAP.md` |
 | deposit / archive outputs in a data repository; get a DOI; Harvard Dataverse; FAIR findable; **data updated on a schedule / versioned / "streaming"** | `dataverse-deposit` ⭐ | `dataverse/` deposit kit (`dataset.json` + `deposit-dataverse.sh` + `deposit_dataverse.py` + `DEPOSIT.md`) at **L5** ⭐; deposit via Deposit mode (`data-project-depositor`); **periodically-updated** → `UPDATING` flag → scheduled `ci/dataverse-deposit.yml` versioned re-deposit ⭐ |
+| share data/AI assets across orgs without copying; zero-copy; OpenSharing; Delta Sharing; scoped credentials | `open-sharing-protocol` ⭐ | `opensharing/` share kit (`share.json` + `share-profile.example.json` + `SHARING.md`) at **L5** ⭐; access gated by `GOVERNANCE.md` tiers |
 | tooling = R | `ouhsc-bbmc-practices` | `r/` variant ⭐ (default Python ⭐) |
 | accessibility flagged | `turing-way` | `accessibility-checklist` ⭐ |
 | user-facing / civic service; openness or iterative delivery | `usds-playbook` | `project-design-canvas` ⭐, `accessibility-checklist` ⭐, `LICENSE-NOTE` ⭐ |
@@ -74,6 +75,7 @@ Build status legend: **⭐ built** — the template/digest exists now and can be
 | L5 | agent-discovery catalog | `templates/ard/ai-catalog.json.tmpl`, `templates/ard/DISCOVERY.md.tmpl` | ⭐ |
 | L5 | repository deposit (DOI) | `templates/dataverse/dataset.json.tmpl`, `templates/dataverse/deposit-dataverse.sh.tmpl`, `templates/dataverse/deposit_dataverse.py.tmpl`, `templates/dataverse/DEPOSIT.md.tmpl` | ⭐ |
 | L5 | scheduled versioned re-deposit (periodically-updated data) | `templates/ci/dataverse-deposit.yml.tmpl` | ⭐ |
+| L5 | zero-copy sharing | `templates/opensharing/share.json.tmpl`, `templates/opensharing/share-profile.example.json.tmpl`, `templates/opensharing/SHARING.md.tmpl` | ⭐ |
 
 ## Sampling guidance
 

@@ -56,6 +56,10 @@ This file is read by the skill, not copied into the project. It defines the dire
 │   ├── dataset.json          #     citation metadata manifest (Native API format)
 │   ├── deposit-dataverse.sh  #     curl deposit (zero-dep); deposit_dataverse.py is the pyDataverse path
 │   └── DEPOSIT.md            #     what's deposited + how to run it (draft → confirm → publish)
+├── opensharing/              # L5  OpenSharing zero-copy share kit (share data/AI assets in place)
+│   ├── share.json            #     Share→Schema→Asset declaration (tables, volumes, .skills)
+│   ├── share-profile.example.json  # recipient profile; copy → share-profile.json (gitignored) + add token
+│   └── SHARING.md            #     what's shared + how to serve/consume it (governed by access tiers)
 └── knowledge/                # L5  OKF bundle (concept catalog) generated from the data dictionary
     ├── index.md              #     bundle root; declares okf_version: "0.1"
     ├── datasets/<name>.md

@@ -1,0 +1,47 @@
+{
+  "share": {
+    "name": "{{PROJECT_SLUG}}",
+    "displayName": "{{PROJECT_NAME}}",
+    "comment": "{{DESCRIPTION}}",
+    "properties": {
+      "license": "{{LICENSE}}",
+      "contact": "{{CONTACT_EMAIL}}"
+    }
+  },
+  "schemas": [
+    {
+      "name": "processed",
+      "share": "{{PROJECT_SLUG}}",
+      "tables": [
+        {
+          "name": "{{PROJECT_SLUG}}",
+          "schema": "processed",
+          "share": "{{PROJECT_SLUG}}",
+          "format": "delta",
+          "location": "{{SHARE_STORAGE_BASE}}/data/processed/{{PROJECT_SLUG}}",
+          "accessModes": ["url", "dir"]
+        }
+      ],
+      "volumes": [
+        {
+          "name": "documentation",
+          "schema": "processed",
+          "share": "{{PROJECT_SLUG}}",
+          "storageLocation": "{{SHARE_STORAGE_BASE}}/documentation/"
+        }
+      ],
+      "skills": [
+        {
+          "name": "{{PROJECT_SLUG}}",
+          "schema": "processed",
+          "share": "{{PROJECT_SLUG}}",
+          "description": "{{DESCRIPTION}}",
+          "storageLocation": "{{SHARE_STORAGE_BASE}}/.skills/{{PROJECT_SLUG}}",
+          "license": "{{LICENSE}}",
+          "compatibility": "agentskills.io/specification",
+          "allowedTools": ""
+        }
+      ]
+    }
+  ]
+}

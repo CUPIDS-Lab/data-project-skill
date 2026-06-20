@@ -12,7 +12,7 @@ A universal, vendor-neutral format (from Google Cloud's knowledge-catalog projec
 
 ## In one paragraph
 
-OKF turns a project's knowledge into a "bundle": a directory tree of Markdown "concept" files, each with light YAML frontmatter and a prose body, linked into a graph. It is deliberately minimal and permissive, which makes it a good open, durable knowledge layer for a published dataset — the L5 artifact this skill emits from the data dictionary, and the shared hand-off point with the `data-liberation` skill's concept catalogs.
+OKF turns a project's knowledge into a "bundle": a directory tree of Markdown "concept" files, each with light YAML frontmatter and a prose body, linked into a graph. It is deliberately minimal and permissive, which makes it a good open, durable knowledge layer for a published dataset — the L5 artifact this skill emits from the data dictionary, and the shared hand-off point with the `data-liberation` skill's concept catalogs. Where the **OpenSharing** share kit shares the *data and AI assets themselves* zero-copy (`references/open-sharing-protocol.md`), OKF shares the *understanding* — complementary L5 surfaces, and an OKF bundle can itself be shared as an OpenSharing Volume.
 
 ## Key practices (sampleable units)
 
@@ -28,7 +28,7 @@ OKF turns a project's knowledge into a "bundle": a directory tree of Markdown "c
 
 ## When most relevant
 
-Publishing a dataset as open knowledge, building a concept catalog/crosswalk, or pursuing FAIR. Strong signal on "open knowledge," "OKF," "concept catalog," "knowledge graph," "publish the dataset." L5; pairs with the Data Card.
+Publishing a dataset as open knowledge, building a concept catalog/crosswalk, or pursuing FAIR. Strong signal on "open knowledge," "OKF," "concept catalog," "knowledge graph," "publish the dataset." L5; pairs with the Data Card and the OpenSharing share kit (OpenSharing shares the data; OKF documents it).
 
 ## Caveats / conflicts
 

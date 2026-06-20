@@ -4,7 +4,7 @@ This repository is a portable **Agent Skill**. Its entry point is `SKILL.md` at 
 
 ## What it does
 
-It scaffolds right-sized, public-interest data-collaboration projects: it interviews the user, samples a bundled best-practice corpus, proposes a plan the user approves, and writes a small set of project files plus a `ROADMAP.md` of deferred work. It optimizes for accessible, documented, transparent, and inclusive collaborative data projects, and it is deliberately lean by default — it builds only what the chosen complexity level needs.
+It scaffolds right-sized, public-interest data-collaboration projects: it interviews the user, samples a bundled best-practice corpus, proposes a plan the user approves, and writes a small set of project files plus a `ROADMAP.md` of deferred work. It optimizes for accessible, documented, transparent, and inclusive collaborative data projects, and it is deliberately lean by default — it builds only what the chosen complexity level needs. At its top rung (L5) it can also publish and share outputs — an OKF knowledge bundle, an ARD agent-discovery catalog, a Harvard Dataverse deposit (citable DOI), and an OpenSharing zero-copy share kit — each gated by the project's governance and sensitivity rules.
 
 ## How to run it
 
@@ -22,7 +22,7 @@ If your harness supports named sub-agents or tasks, dispatch each phase to the m
 
 - `references/` — the on-demand corpus and the `INDEX.md` crosswalk the indexer samples; `context.md` holds the values and the hard gates (privacy law + CARE Principles).
 - `templates/` — placeholder-driven scaffolding artifacts; `directory-tree.md` is the structural source of truth.
-- `agents/` — the three role definitions above.
+- `agents/` — role definitions: the three interview→sample→synthesize phases above, plus `data-project-tracker` (GitHub Issues/Project sync, Track mode) and `data-project-depositor` (Dataverse deposit, Deposit mode).
 
 ## Non-negotiables
 
