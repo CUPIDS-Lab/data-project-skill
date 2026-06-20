@@ -39,6 +39,7 @@ Cover these, but skip anything already known or irrelevant to the inferred level
 9. **Tooling** — Python / R / polyglot (default Python); local / HPC / cloud.
 10. **Openness & accessibility** — openness goal (fully open / open-on-publication / restricted) and target license; accessibility needs (plain-language summary, alt text, colorblind-safe viz, screen-reader-friendly docs).
 11. **Publish as OKF?** — whether to emit an Open-Knowledge-Format knowledge bundle at L5.
+12. **Deposit & update cadence** — if archiving to a repository for a DOI (Dataverse) at L5: is the dataset **one-off** or **periodically refreshed**? If refreshed, the cadence (**monthly / quarterly / annually**). A refreshed dataset sets up versioned re-deposit (one DOI, a new version + UNF per release) and a scheduled deposit workflow, rather than a single frozen deposit.
 
 ## Protective defaults
 
@@ -46,4 +47,4 @@ Never invent the user's compliance posture. If IRB status, consent, or sensitivi
 
 ## Output contract — "Project Context Profile"
 
-Return one markdown block titled **Project Context Profile** with a labeled field per item above, values normalized (sensitivity as the enum; level as L0–L5; now/later/skip per deferred concern; if sensitivity is conditional, record it as `public now; becomes-sensitive-when <event>`; raw input noted as curated-source-of-record or bulk/external), plus an explicit **"Assumptions & defaults applied"** list and a **"Must confirm"** list. Keep it tight; this block is the contract the next phases depend on.
+Return one markdown block titled **Project Context Profile** with a labeled field per item above, values normalized (sensitivity as the enum; level as L0–L5; now/later/skip per deferred concern; if sensitivity is conditional, record it as `public now; becomes-sensitive-when <event>`; raw input noted as curated-source-of-record or bulk/external; deposit cadence as one-off or a refresh frequency — monthly/quarterly/annually), plus an explicit **"Assumptions & defaults applied"** list and a **"Must confirm"** list. Keep it tight; this block is the contract the next phases depend on.

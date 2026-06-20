@@ -33,7 +33,7 @@ Build status legend: **⭐ built** — the template/digest exists now and can be
 | publishing or sharing a dataset; sensitive attributes / fairness | `datacards-playbook` | `data-card` ⭐ |
 | publish as open knowledge / FAIR | `okf-open-knowledge-format` ⭐, `turing-way` | `knowledge/` OKF bundle ⭐, `LICENSE-NOTE` ⭐ |
 | make the project discoverable by agents; exposes skills, a dataset, MCP, or an API | `agentic-resource-discovery` ⭐ | `ai-catalog.json` (ARD) + `DISCOVERY.md` at **L5** ⭐; host `.well-known/` + registry deployment → `ROADMAP.md` |
-| deposit / archive outputs in a data repository; get a DOI; Harvard Dataverse; FAIR findable | `dataverse-deposit` ⭐ | `dataverse/` deposit kit (`dataset.json` + `deposit-dataverse.sh` + `deposit_dataverse.py` + `DEPOSIT.md`) at **L5** ⭐; deposit via Deposit mode (`data-project-depositor`) |
+| deposit / archive outputs in a data repository; get a DOI; Harvard Dataverse; FAIR findable; **data updated on a schedule / versioned / "streaming"** | `dataverse-deposit` ⭐ | `dataverse/` deposit kit (`dataset.json` + `deposit-dataverse.sh` + `deposit_dataverse.py` + `DEPOSIT.md`) at **L5** ⭐; deposit via Deposit mode (`data-project-depositor`); **periodically-updated** → `UPDATING` flag → scheduled `ci/dataverse-deposit.yml` versioned re-deposit ⭐ |
 | tooling = R | `ouhsc-bbmc-practices` | `r/` variant ⭐ (default Python ⭐) |
 | accessibility flagged | `turing-way` | `accessibility-checklist` ⭐ |
 | user-facing / civic service; openness or iterative delivery | `usds-playbook` | `project-design-canvas` ⭐, `accessibility-checklist` ⭐, `LICENSE-NOTE` ⭐ |
@@ -73,6 +73,7 @@ Build status legend: **⭐ built** — the template/digest exists now and can be
 | L5 | licensing / canvases | `templates/LICENSE-NOTE.md.tmpl`, `templates/data-collaborative-canvas.md.tmpl`, `templates/project-design-canvas.md.tmpl` | ⭐ |
 | L5 | agent-discovery catalog | `templates/ard/ai-catalog.json.tmpl`, `templates/ard/DISCOVERY.md.tmpl` | ⭐ |
 | L5 | repository deposit (DOI) | `templates/dataverse/dataset.json.tmpl`, `templates/dataverse/deposit-dataverse.sh.tmpl`, `templates/dataverse/deposit_dataverse.py.tmpl`, `templates/dataverse/DEPOSIT.md.tmpl` | ⭐ |
+| L5 | scheduled versioned re-deposit (periodically-updated data) | `templates/ci/dataverse-deposit.yml.tmpl` | ⭐ |
 
 ## Sampling guidance
 

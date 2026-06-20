@@ -54,6 +54,16 @@ After publishing, record the DOI in `README.md`, the citation, and `data-managem
 the record — e.g. via the read-only `mcp-dataverse` server (`search_datasets`, `get_croissant_record`) or
 `curl "{{DATAVERSE_URL}}/api/datasets/:persistentId?persistentId=<doi>"`.
 
+<!-- IF:UPDATING -->## Periodically-updated data (versioned deposits)
+
+This dataset is refreshed **{{UPDATE_FREQUENCY}}**. Follow the Dataverse [data-citation best practices](https://dataverse.org/best-practices/data-citation): keep **one DOI** for the dataset and publish each refresh as a **new version** (v1.0 → v2.0 …), not a new dataset. Each published version is independently citable by its **version number + UNF** (the Universal Numerical Fingerprint Dataverse computes for tabular files), so a reader can cite and reproduce the exact snapshot they used.
+
+- **Re-deposit a new version:** re-run the deposit (`./deposit-dataverse.sh --no-publish`). Because `.dataverse-deposit.json` records the dataset's persistent id, the upload becomes a **draft of the next version** of the same dataset rather than a duplicate.
+- **Automated cadence:** the scheduled workflow `.github/workflows/dataverse-deposit.yml` runs {{UPDATE_FREQUENCY}}, prepares that draft version, and opens an issue for review. It never publishes — a maintainer reviews and runs `--publish` to mint the version.
+- **Record what changed:** note each release's changes in `CHANGELOG.md` (deposited as Documentation), so every version carries its own changelog.
+- **Cite a specific version:** include the version and UNF, e.g. *"{{PI_NAME}}, {{YEAR}}, \"{{PROJECT_NAME}}\", {{DATAVERSE_URL}}, V2, UNF:6:…"*.
+<!-- /IF -->
+
 <!-- IF:SENSITIVE -->## Sensitive data — do not deposit openly
 
 This project handles **{{SENSITIVITY_TIER}}** data. Do **not** deposit identifiable or restricted traces

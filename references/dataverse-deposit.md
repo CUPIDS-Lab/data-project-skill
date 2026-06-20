@@ -33,6 +33,14 @@ API token present? → pyDataverse importable? → target collection reachable? 
 
 Idempotency: a `.dataverse-deposit.json` manifest maps `pid` + each file path → file id + content hash; re-running **replaces changed files and adds new ones** rather than duplicating.
 
+## Versioned / periodically-updated ("streaming") deposits
+
+When the project's data is refreshed on a cadence (monthly/quarterly/annually), follow the Dataverse [data-citation best practices](https://dataverse.org/best-practices/data-citation): keep **one dataset DOI** and publish each refresh as a **new version** (`type=major` → v2.0, v3.0…), never a new dataset. A published version is cited by **author, year, title, repository, version, the DOI, and the UNF** — the Universal Numerical Fingerprint Dataverse computes for tabular files, which pins the exact data snapshot independent of format. Re-running the deposit against the recorded `pid` makes a **draft of the next version** automatically.
+
+- **Scheduled re-deposit** [findable, transparent] — at L5 with the `UPDATING` flag, emit `templates/ci/dataverse-deposit.yml`: a workflow that runs on `{{DEPOSIT_CRON}}` (derived from the cadence), regenerates `data/processed`, re-deposits a **draft** new version (`--no-publish`), and opens a review issue. It never publishes — minting a version stays a human decision.
+- **Metadata** — record the cadence (`UPDATE_FREQUENCY` → citation `notesText`), the `timePeriodCovered`, and per-release changes in `CHANGELOG.md` (deposited as Documentation), so each version carries its own changelog.
+- **Integrity** — keep `tabularTagIngest=true` for CSVs so Dataverse computes the UNF; always cite the **version + UNF** of the snapshot used.
+
 ## Access & tokens — make sure the agent can actually do this
 
 - **Get a token (Harvard):** log in to `https://dataverse.harvard.edu` → account menu → **API Token** → Create. It is a user-level credential (treat like a password); read it from `DATAVERSE_API_TOKEN` in the environment, never commit it.
@@ -50,7 +58,7 @@ Idempotency: a `.dataverse-deposit.json` manifest maps `pid` + each file path �
 
 ## Artifacts it implies
 
-→ `templates/dataverse/dataset.json.tmpl` (citation manifest), `templates/dataverse/deposit-dataverse.sh.tmpl` (curl) + `templates/dataverse/deposit_dataverse.py.tmpl` (pyDataverse), `templates/dataverse/DEPOSIT.md.tmpl` (guide), and the `data-project-depositor` agent. Emitted at L5 when `{{DATAVERSE}}`; the `data-management-plan` (L4) names the deposit target and records the DOI, and `release-and-share` (L3) triggers the deposit at release.
+→ `templates/dataverse/dataset.json.tmpl` (citation manifest), `templates/dataverse/deposit-dataverse.sh.tmpl` (curl) + `templates/dataverse/deposit_dataverse.py.tmpl` (pyDataverse), `templates/dataverse/DEPOSIT.md.tmpl` (guide), `templates/ci/dataverse-deposit.yml.tmpl` (scheduled versioned re-deposit, emitted when `UPDATING`), and the `data-project-depositor` agent. Emitted at L5 when `{{DATAVERSE}}`; the `data-management-plan` (L4) names the deposit target and records the DOI, and `release-and-share` (L3) triggers the deposit at release.
 
 ## When most relevant
 

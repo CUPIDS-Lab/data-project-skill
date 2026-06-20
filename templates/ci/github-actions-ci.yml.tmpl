@@ -16,13 +16,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Guard: fail if any unfilled template token remains in the repo.
-      # We search for the literal double-open-brace marker; the pattern is written with bracket
-      # expressions so this workflow file itself contains no such marker and stays placeholder-free.
-      # `grep -r` exits 0 when it finds a match, so we invert: any match means the scaffold is incomplete.
+      # Guard: fail if any unfilled template token remains in the repo. We search for the literal
+      # double-open-brace marker (written with bracket expressions so this file stays placeholder-free)
+      # but skip GitHub Actions expressions (the dollar-prefixed brace form) so workflow templates that
+      # legitimately reference secrets or inputs are not flagged as unfilled tokens.
       - name: Check for unfilled template tokens
         run: |
-          if grep -rIn --exclude-dir=.git '[{][{]' .; then
+          if grep -rIn --exclude-dir=.git -P '(?<![$])[{][{]' .; then
             echo "::error::Unfilled template tokens found (see matches above). Fill or remove them before merging."
             exit 1
           fi

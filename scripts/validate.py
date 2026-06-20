@@ -26,9 +26,11 @@ DOCUMENTED_TOKENS = {
     "ARD_SPEC_VERSION", "ARD_HOST_DOMAIN", "ARD_HOST_IDENTIFIER",
     # Harvard Dataverse deposit layer (L5)
     "DATAVERSE_URL", "DATAVERSE_COLLECTION", "DATASET_SUBJECT",
+    # Versioned / periodically-updated Dataverse deposit (scheduled re-deposit)
+    "UPDATE_FREQUENCY", "DEPOSIT_CRON",
 }
 DOCUMENTED_FLAGS = {"WHY", "PIPELINE", "SENSITIVE", "OPEN", "COLLAB", "NESTED_SKILLS", "OKF",
-                    "GH", "PROJECT", "WIKI", "ARD", "DATAVERSE", "NOTEBOOKS"}
+                    "GH", "PROJECT", "WIKI", "ARD", "DATAVERSE", "NOTEBOOKS", "UPDATING"}
 
 
 def rel(p: pathlib.Path) -> str:
@@ -51,7 +53,9 @@ for f in sorted((ROOT / "templates").rglob("*.tmpl")):
     for fl in opens:
         if fl not in DOCUMENTED_FLAGS:
             errors.append(f"{rel(f)}: undocumented IF flag '{fl}'")
-    for tok in re.findall(r"\{\{([^}]*)\}\}", text):
+    # Skip GitHub Actions ${{ ... }} expressions (the $-prefixed form) so workflow templates can
+    # reference secrets/inputs; only bare {{ ... }} are treated as skill tokens.
+    for tok in re.findall(r"(?<!\$)\{\{([^}]*)\}\}", text):
         if not re.fullmatch(r"[A-Z0-9_]+", tok):
             errors.append(f"{rel(f)}: malformed token '{{{{{tok}}}}}'")
         elif tok not in DOCUMENTED_TOKENS:
