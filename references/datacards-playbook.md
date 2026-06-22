@@ -8,7 +8,7 @@ tags: [documented, transparent, inclusive, datasets, fairness, sensitive-data]
 
 # Data Cards Playbook
 
-A toolkit from Google PAIR for producing **Data Cards** — structured, people-centered transparency documentation for datasets. Source: https://sites.research.google/datacardsplaybook/ (code & templates: https://github.com/pair-code/datacardsplaybook).
+A toolkit from Google PAIR for producing **Data Cards** — structured, people-centered transparency documentation for datasets. Source: https://sites.research.google/datacardsplaybook/ (code & templates: https://github.com/pair-code/datacardsplaybook, archived 2025).
 
 ## In one paragraph
 

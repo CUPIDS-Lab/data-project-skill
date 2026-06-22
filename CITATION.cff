@@ -9,7 +9,7 @@ authors:
 repository-code: "https://github.com/cupids-lab/data-project-skill"
 license: MIT
 version: "0.6.0"
-date-released: "2026-06-20"
+date-released: "2026-06-22"
 keywords:
   - data science
   - reproducibility

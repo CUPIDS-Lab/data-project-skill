@@ -29,7 +29,7 @@ ARD is a small JSON manifest, `ai-catalog.json`, that advertises what a publishe
 
 ## When most relevant
 
-Publishing a data project so agents can discover and use it: it has nested `.skills/`, ships a dataset others should find, or exposes an MCP server / A2A agent / data API. Strong signal on "make it discoverable by agents," "ARD," "ai-catalog," "agent registry," "well-known catalog." **L5**; pairs with the OKF bundle (knowledge for humans/tools) and the Data Card.
+Publishing a data project so agents can discover and use it: it has nested `.skills/`, ships a dataset others should find, or exposes an MCP server / A2A agent / data API. Strong signal on "make it discoverable by agents," "ARD," "ai-catalog," "agent registry," "well-known catalog." **L5**; pairs with the OKF bundle (knowledge for humans/tools), the Data Card, and the OpenSharing share kit (which grants scoped access to the resources ARD advertises).
 
 ## Caveats / conflicts
 
