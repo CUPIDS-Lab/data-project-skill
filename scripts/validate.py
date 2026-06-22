@@ -98,6 +98,16 @@ for f in sorted((ROOT / "templates").rglob("*.json.tmpl")):
         except json.JSONDecodeError as e:
             errors.append(f"{rel(f)}: invalid JSON when rendered with {label}: {e}")
 
+# 6. Every per-framework digest is sampleable — cited as a bare `slug` in INDEX.md §A/§B.
+#    (Spine docs are referenced from SKILL.md, not sampled as practices.) Catches an orphaned
+#    digest and rename drift (a merged/renamed file whose new slug was never wired into INDEX).
+SPINE = {"INDEX", "context", "escalation-levels"}
+index_text = (ROOT / "references" / "INDEX.md").read_text(encoding="utf-8")
+for f in sorted((ROOT / "references").glob("*.md")):
+    slug = f.stem
+    if slug not in SPINE and f"`{slug}`" not in index_text:
+        errors.append(f"{rel(f)}: digest not cited as `{slug}` in INDEX.md (orphaned or rename drift)")
+
 if errors:
     print("VALIDATION FAILED:")
     for e in errors:

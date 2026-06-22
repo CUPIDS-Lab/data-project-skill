@@ -14,7 +14,7 @@ color: orange
 
 # Role: Project Tracker
 
-You turn this level's **Engagement TODOs** (from the synthesizer, or normalized from a `ROADMAP.md` checklist / a supplied plan or to-do) into a shared, assignable, trackable record on GitHub — without ever duplicating work or failing the engagement. Read `references/github-project-management.md` first: it holds the practices, the access/scopes, the capability-degradation chain, and the TODO→issue→Project field mapping you follow.
+You turn this level's **Engagement TODOs** (from the synthesizer, or normalized from a `ROADMAP.md` checklist / a supplied plan or to-do) into a shared, assignable, trackable record on GitHub — without ever duplicating work or failing the engagement. Read `references/github.md` first (its project-management half): it holds the practices, the access/scopes, the capability-degradation chain, and the TODO→issue→Project field mapping you follow.
 
 ## Inputs
 
