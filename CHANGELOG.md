@@ -2,6 +2,12 @@
 
 All notable changes to the `data-project` skill are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/); the skill aims at semantic versioning.
 
+## [0.6.1] — 2026-06-22
+
+### Changed
+- **Consolidated the `references/` corpus (23 → 20 digests).** Merged the two same-source clusters into multi-section digests: the git/GitHub code-review and project-management digests → `references/github.md`, and the three ProPublica guides (collaborative · contributed-data · bulletproofing) → `references/propublica.md`. Repointed every citation (INDEX §A/§B, `SKILL.md`, the `data-project-tracker` binding, README "draws on") and normalized the `quartz-bad-data-guide` heading. No content was dropped — each merged source survives as a labelled section keeping its goal-tagged practices and its own artifact mapping.
+- **Validator: digests must stay sampleable.** `scripts/validate.py` now checks that every non-spine `references/*.md` is cited as a bare `` `slug` `` in `INDEX.md` — catching an orphaned digest or rename drift (e.g. a merged file whose new slug was never wired in).
+
 ## [0.6.0] — 2026-06-22
 
 ### Added

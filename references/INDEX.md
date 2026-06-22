@@ -16,10 +16,10 @@ Build status legend: **⭐ built** — the template/digest exists now and can be
 | Goal | Practices (source file) |
 | --- | --- |
 | **Accessible** | plain-language summary, multiple formats (`turing-way`); FAIR/open access (`turing-way`); colorblind-safe viz & alt text (`turing-way`, accessibility-checklist ⭐); OKF concept catalog at L5 (`okf-open-knowledge-format` ⭐); user-centered design & default-to-open (`usds-playbook`); agent-discovery catalog at L5 (`agentic-resource-discovery` ⭐); repository deposit for a DOI at L5 (`dataverse-deposit` ⭐); zero-copy data/AI-asset sharing at L5 (`open-sharing-protocol` ⭐) |
-| **Documented** | data dictionary w/ grain, provenance, units, missingness, known-issues (`ouhsc-bbmc-practices`, `data-collaboratives-canvas`); decision log & changelog (`ouhsc-bbmc-practices`); README front door (`cookiecutter-data-science`); comments explain *why* (`git-github-collaboration`); dataset transparency Data Card (`datacards-playbook`); engagement memo & assignable to-do checklist (`github-project-management`) |
-| **Transparent** | immutable raw data & DAG provenance (`cookiecutter-data-science`); decision/change logs (`ouhsc-bbmc-practices`); data bulletproofing/QA (`propublica-data-bulletproofing` ⭐, `quartz-bad-data-guide` ⭐); Data Card — provenance, uses, sensitive attributes (`datacards-playbook`); licensing (`turing-way`); access tiers & oversight (`installed-base`); published capability catalog (`agentic-resource-discovery` ⭐) |
+| **Documented** | data dictionary w/ grain, provenance, units, missingness, known-issues (`ouhsc-bbmc-practices`, `data-collaboratives-canvas`); decision log & changelog (`ouhsc-bbmc-practices`); README front door (`cookiecutter-data-science`); comments explain *why* (`github`); dataset transparency Data Card (`datacards-playbook`); engagement memo & assignable to-do checklist (`github`) |
+| **Transparent** | immutable raw data & DAG provenance (`cookiecutter-data-science`); decision/change logs (`ouhsc-bbmc-practices`); data bulletproofing/QA (`propublica` ⭐, `quartz-bad-data-guide` ⭐); Data Card — provenance, uses, sensitive attributes (`datacards-playbook`); licensing (`turing-way`); access tiers & oversight (`installed-base`); published capability catalog (`agentic-resource-discovery` ⭐) |
 | **Inclusive** | code of conduct & contributor recognition (`turing-way`); design partners vs. beneficiaries, mediator, gap-check (`collaboration-architecture`); responsible data & consent (`responsible-data-handbook`); sensitive-attributes & fairness documentation (`datacards-playbook`); accessible comms (`turing-way`) |
-| **Collaborative** | feature-branch + PR workflow, CI (`git-github-collaboration`); roles + CODEOWNERS (`collaboration-architecture`); collaboration canvas & governance (`data-collaboratives-canvas`); partner lifecycle & contributed-data intake (`propublica-collaborative` ⭐, `propublica-collaborate-manual` ⭐); issue/project/milestone tracking (`github-project-management`) |
+| **Collaborative** | feature-branch + PR workflow, CI (`github`); roles + CODEOWNERS (`collaboration-architecture`); collaboration canvas & governance (`data-collaboratives-canvas`); partner lifecycle & contributed-data intake (`propublica` ⭐); issue/project/milestone tracking (`github`) |
 | **Reproducible** | standard tree & immutable raw (`cookiecutter-data-science`, `ouhsc-bbmc-practices`); pinned env + pipeline-as-code + dry-run (`snakemake`); seeds, linear scripts, validation (`ouhsc-bbmc-practices`); version control & testing (`turing-way`) |
 
 ## §B — Profile-signal → emphasis rules
@@ -27,9 +27,9 @@ Build status legend: **⭐ built** — the template/digest exists now and can be
 | Signal in the Profile | Boost these sources | Require / route these artifacts |
 | --- | --- | --- |
 | sensitivity = sensitive-human / regulated / Indigenous (CARE) | `responsible-data-handbook`, `installed-base`, `ouhsc-bbmc-practices` | **fire the affordance↔duty coupling**; `responsible-data-checklist` ⭐, `data-management-plan` ⭐, `GOVERNANCE` ⭐; if too shallow for GOVERNANCE, write the coupling as a blocking `ROADMAP.md` item |
-| multi-organization / cross-sector | `data-collaboratives-canvas`, `propublica-collaborative` ⭐, `collaboration-architecture` | `collaboration-protocol` ⭐, `GOVERNANCE` ⭐, `CHARTER` ⭐ |
-| contributed / crowdsourced data | `propublica-collaborate-manual` ⭐, `responsible-data-handbook` | `contributed-data-intake` ⭐ |
-| publishing / communicating findings | `propublica-data-bulletproofing` ⭐, `quartz-bad-data-guide` | `data-bulletproofing-checklist` ⭐, `data-quality-checklist` ⭐ |
+| multi-organization / cross-sector | `data-collaboratives-canvas`, `propublica` ⭐, `collaboration-architecture` | `collaboration-protocol` ⭐, `GOVERNANCE` ⭐, `CHARTER` ⭐ |
+| contributed / crowdsourced data | `propublica` ⭐, `responsible-data-handbook` | `contributed-data-intake` ⭐ |
+| publishing / communicating findings | `propublica` ⭐, `quartz-bad-data-guide` | `data-bulletproofing-checklist` ⭐, `data-quality-checklist` ⭐ |
 | publishing or sharing a dataset; sensitive attributes / fairness | `datacards-playbook` | `data-card` ⭐ |
 | publish as open knowledge / FAIR | `okf-open-knowledge-format` ⭐, `turing-way` | `knowledge/` OKF bundle ⭐, `LICENSE-NOTE` ⭐ |
 | make the project discoverable by agents; exposes skills, a dataset, MCP, or an API | `agentic-resource-discovery` ⭐ | `ai-catalog.json` (ARD) + `DISCOVERY.md` at **L5** ⭐; host `.well-known/` + registry deployment → `ROADMAP.md` |
@@ -38,7 +38,7 @@ Build status legend: **⭐ built** — the template/digest exists now and can be
 | tooling = R | `ouhsc-bbmc-practices` | `r/` variant ⭐ (default Python ⭐) |
 | accessibility flagged | `turing-way` | `accessibility-checklist` ⭐ |
 | user-facing / civic service; openness or iterative delivery | `usds-playbook` | `project-design-canvas` ⭐, `accessibility-checklist` ⭐, `LICENSE-NOTE` ⭐ |
-| collaborators / "how do we track work" / wants issues, a board, or a wiki | `github-project-management` | issue forms + `seed-github.sh` + Project at **L3** ⭐ (wiki seeds at L4 ⭐); below L3 keep to `NEXT-STEPS` + the `ROADMAP` checklist |
+| collaborators / "how do we track work" / wants issues, a board, or a wiki | `github` | issue forms + `seed-github.sh` + Project at **L3** ⭐ (wiki seeds at L4 ⭐); below L3 keep to `NEXT-STEPS` + the `ROADMAP` checklist |
 | small synchronous team, low sensitivity | `cookiecutter-data-science`, `collaboration-architecture` (typology) | keep light — prefer L0–L1 ⭐ and `ROADMAP.md` over governance bloat |
 
 ## §C — Level → artifact → template (with build status)

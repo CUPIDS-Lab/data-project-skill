@@ -14,7 +14,7 @@ A comprehensive field guide to the ways data goes wrong, organized by who is bes
 
 Most data problems are recognizable and many are fixable — but some mean you should not use the data at all, and others mean you can proceed only with stated caveats. The guide sorts roughly four dozen failure modes into four responsibility tiers (your source, you, an expert, a programmer) so you know who to ask and what to do. It is the checklist behind the "known issues" you record in the data dictionary and the data-quality scan you run before trusting a dataset.
 
-## Key practices (sampleable units), by responsibility tier
+## Key practices (sampleable units)
 
 - **Issues your source should fix** [transparent, documented] — missing values; zeros or sentinels (65535, -1, 1970-01-01) standing in for missing; expected records absent; inconsistent spelling, name order, or date formats; unspecified units; ambiguous field names; undocumented provenance; truncation at 65,536 rows / 255 columns; numbers stored as text (lost leading zeros); totals that don't match published figures.
 - **Issues you should fix** [reproducible, documented] — garbled text/encoding and line endings; data trapped in PDFs or scans; wrong aggregation level or geography; human-entry inconsistency; inflation or seasonality skew; manipulated timeframe or frame of reference; non-random or biased samples; margins of error that are too large or unknown.
