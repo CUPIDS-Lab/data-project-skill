@@ -2,7 +2,7 @@
 
 All notable changes to the `data-project` skill are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/); the skill aims at semantic versioning.
 
-## [0.6.0] — 2026-06-20
+## [0.6.0] — 2026-06-22
 
 ### Added
 - **L5 OpenSharing zero-copy sharing.** New `references/open-sharing-protocol.md` digest and a `templates/opensharing/` kit (`share.json` Share→Schema→Asset declaration, `share-profile.example.json` recipient profile, `SHARING.md` serve/consume guide). When the `OPENSHARING` flag is set, the skill maps the project's processed tables (**Table**), file/doc directories (**Volume**), and `.skills/` (**AgentSkill**) onto the [OpenSharing](https://github.com/OpenSharing-IO/OpenSharing) protocol (Linux Foundation; Delta-Sharing-compatible), so the project can be shared across organizations **in place** via temporary, scoped credentials instead of by copying. The skill emits only the declaration — it never runs a sharing server or vends credentials — and what enters a share is gated by the `GOVERNANCE.md` access tiers; the filled recipient profile (which holds a bearer token) is gitignored.
@@ -10,6 +10,7 @@ All notable changes to the `data-project` skill are recorded here. The format fo
 
 ### Changed
 - Refreshed `references/okf-open-knowledge-format.md` to position OpenSharing alongside OKF (OKF shares the understanding; OpenSharing shares the assets, and an OKF bundle can itself be shared as a Volume), and updated the top-level `AGENTS.md` to describe the L5 publish/share surfaces and the current agent roster.
+- Audit pass: bumped the scaffold's `ruff-pre-commit` pin (`v0.6.9` → `v0.15.18`), annotated the now-archived Data Cards Playbook code repo, and named OpenSharing as the fourth L5 surface in the Dataverse and ARD digests.
 
 ## [0.5.0] — 2026-06-20
 

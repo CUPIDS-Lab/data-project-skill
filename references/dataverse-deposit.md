@@ -8,7 +8,7 @@ tags: [accessible, transparent, fair, findable, deposit, dataverse]
 
 # Harvard Dataverse Deposit (Native API)
 
-How a finished project archives its outputs in a Dataverse repository so they are findable, citable (a DOI), and reusable — the L5 deposit surface, sibling to the OKF knowledge bundle and the ARD catalog. Source: the Dataverse [Native API guide](https://guides.dataverse.org/en/latest/api/native-api.html); clients: [pyDataverse](https://github.com/gdcc/pyDataverse) (official GDCC Python client) and [mcp-dataverse](https://github.com/gdcc/mcp-dataverse) (read-only discovery).
+How a finished project archives its outputs in a Dataverse repository so they are findable, citable (a DOI), and reusable — the L5 deposit surface, sibling to the OKF knowledge bundle, the ARD catalog, and the OpenSharing share kit. Source: the Dataverse [Native API guide](https://guides.dataverse.org/en/latest/api/native-api.html); clients: [pyDataverse](https://github.com/gdcc/pyDataverse) (official GDCC Python client) and [mcp-dataverse](https://github.com/gdcc/mcp-dataverse) (read-only discovery).
 
 ## In one paragraph
 
