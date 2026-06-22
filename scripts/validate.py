@@ -28,9 +28,11 @@ DOCUMENTED_TOKENS = {
     "DATAVERSE_URL", "DATAVERSE_COLLECTION", "DATASET_SUBJECT",
     # Versioned / periodically-updated Dataverse deposit (scheduled re-deposit)
     "UPDATE_FREQUENCY", "DEPOSIT_CRON",
+    # OpenSharing zero-copy sharing layer (L5)
+    "OPENSHARING_ENDPOINT", "SHARE_STORAGE_BASE",
 }
 DOCUMENTED_FLAGS = {"WHY", "PIPELINE", "SENSITIVE", "OPEN", "COLLAB", "NESTED_SKILLS", "OKF",
-                    "GH", "PROJECT", "WIKI", "ARD", "DATAVERSE", "NOTEBOOKS", "UPDATING"}
+                    "GH", "PROJECT", "WIKI", "ARD", "DATAVERSE", "NOTEBOOKS", "UPDATING", "OPENSHARING"}
 
 
 def rel(p: pathlib.Path) -> str:

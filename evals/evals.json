@@ -42,6 +42,12 @@
       "prompt": "We deposit this dataset to Harvard Dataverse and refresh it every quarter. Set that up.",
       "expected_output": "Infers L5 deposit with periodic updates: sets DATAVERSE + UPDATING, UPDATE_FREQUENCY=Quarterly, and DEPOSIT_CRON to a quarterly schedule. Emits the dataverse deposit kit plus templates/ci/dataverse-deposit.yml (schedule + workflow_dispatch) that re-deposits a DRAFT new version with --no-publish and opens a review issue, never auto-publishing. dataset.json carries notesText (update frequency) and timePeriodCovered; DEPOSIT.md and the L4 data-management-plan explain one DOI + a new version per refresh, cited by version + UNF. Notes the DATAVERSE_API_TOKEN repository secret the scheduled workflow needs. No unfilled tokens remain.",
       "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "We want to share our processed datasets and our agent skills with a partner organization without giving them a copy of the data. Wire up OpenSharing.",
+      "expected_output": "Infers L5 and sets the OPENSHARING flag. Emits the opensharing/ kit: share.json declaring a Share (named from the project slug) with a 'processed' Schema that maps data/processed -> Table assets (format + object-store location + accessModes), file/doc directories -> Volume assets (storageLocation), and .skills/ -> AgentSkill assets; share-profile.example.json (the recipient Delta-Sharing profile: shareCredentialsVersion, endpoint, bearerToken placeholder); and SHARING.md covering serve (run an OpenSharing/Delta-Sharing server over object storage that vends temporary scoped credentials) and consume (delta-sharing client). Stresses sharing is zero-copy/in-place and that the skill emits only the declaration -- it does not run a server or vend credentials (deferred to ROADMAP/SHARING.md). Gates what enters a share on GOVERNANCE.md access tiers (scope/desensitize/withhold for sensitive data) and gitignores the filled share-profile.json because the bearer token is a secret. Notes the AgentSkill assets are the same .skills/ the ARD ai-catalog advertises. share.json is valid JSON with no unfilled {{ }} tokens.",
+      "files": []
     }
   ]
 }

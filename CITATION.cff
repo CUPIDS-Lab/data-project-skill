@@ -8,7 +8,7 @@ authors:
     website: "https://github.com/cupids-lab"
 repository-code: "https://github.com/cupids-lab/data-project-skill"
 license: MIT
-version: "0.5.0"
+version: "0.6.0"
 date-released: "2026-06-20"
 keywords:
   - data science
@@ -22,3 +22,5 @@ keywords:
   - agentic resource discovery
   - data deposit
   - dataverse
+  - open sharing
+  - zero-copy sharing

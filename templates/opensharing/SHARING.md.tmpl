@@ -1,0 +1,60 @@
+# Sharing {{PROJECT_NAME}} with OpenSharing
+
+This project can be shared **zero-copy** with [OpenSharing](https://github.com/OpenSharing-IO/OpenSharing) — "the open
+sharing protocol for the agentic era" (Linux Foundation, Apache 2.0, [Delta Sharing](https://delta.io/sharing/)-compatible).
+The data and AI assets stay in your own object storage; a recipient discovers what's shared and is handed **short-lived,
+scoped credentials** to read each asset directly. Nothing is moved or duplicated. `share.json` beside this file declares what
+is shared; `share-profile.example.json` is the recipient-side profile.
+
+## What this project shares
+
+OpenSharing organizes assets as **Share → Schema → Asset**. This project's share (`{{PROJECT_SLUG}}`, schema `processed`):
+
+| From the project | Shared as | Where it lives |
+| --- | --- | --- |
+| `data/processed/` (as Delta / Iceberg / Parquet) | **Table** | `{{SHARE_STORAGE_BASE}}/data/processed/…` |
+| `documentation/`, `knowledge/`, file directories | **Volume** | `{{SHARE_STORAGE_BASE}}/documentation/…` |
+| `.skills/<name>` (AgentSkills) | **AgentSkill** | `{{SHARE_STORAGE_BASE}}/.skills/…` |
+
+Edit `share.json` to list your real processed tables and skill directories (the names must match the directories in storage),
+to add or remove schemas, and to set `format`/`accessModes` per table.
+
+## Serve it (provider)
+
+1. **Put the assets in object storage.** Land `data/processed` as Delta/Iceberg/Parquet and your files/skills under `{{SHARE_STORAGE_BASE}}` (S3, GCS, Azure Blob, or Cloudflare R2).
+2. **Run a sharing server.** Stand up an OpenSharing / Delta-Sharing-compatible server and configure its shares, schemas, and assets from `share.json` (map each object's `location`/`storageLocation` to the storage paths above).
+3. **The server vends access.** On request it returns temporary, scoped credentials (`awsTempCredentials` / `azureUserDelegationSas` / `gcpOauthToken` / `r2Credentials`) with an `expirationTime` — least privilege, per asset, time-boxed. You revoke access by rotating the recipient's bearer token or removing the asset; because sharing is in place, you always control the source.
+
+## Consume it (recipient)
+
+1. Copy the example profile and fill in the token your provider vended — **this file holds a secret, so keep it out of git**:
+
+   ```bash
+   cp share-profile.example.json share-profile.json   # then paste the bearerToken; share-profile.json is gitignored
+   ```
+
+2. Read the share with any Delta Sharing client (`pip install delta-sharing`; Spark, DuckDB, Power BI, Tableau, Snowflake also work):
+
+   ```python
+   import delta_sharing
+   client = delta_sharing.SharingClient("share-profile.json")
+   print(client.list_shares())                 # discover what you can read
+   df = delta_sharing.load_as_pandas("share-profile.json#{{PROJECT_SLUG}}.processed.{{PROJECT_SLUG}}")
+   ```
+
+The profile points at `{{OPENSHARING_ENDPOINT}}`; add `"icebergEndpoint"` if you serve Iceberg tables.
+
+## How this fits the other L5 surfaces
+
+OpenSharing shares the **live data and AI assets** (zero-copy, governed). It complements the project's other publish surfaces:
+the **OKF** `knowledge/` bundle shares the *understanding*, the **ARD** `ai-catalog.json` *advertises* that these resources exist
+(the AgentSkill here is the same `.skills/` it lists), and the **Dataverse** deposit archives a *frozen, citable copy* with a DOI.
+Use OpenSharing when partners need working access without taking a copy; use the deposit when you need a permanent citation.
+
+<!-- IF:SENSITIVE -->## Sensitive data — govern what enters the share
+
+This project handles **{{SENSITIVITY_TIER}}** data. Scoped, expiring credentials are a **control, not a license** to share what
+shouldn't be shared. Decide what enters the share with the access tiers in `GOVERNANCE.md`, and complete the
+`responsible-data-checklist` first: desensitize before an asset becomes shareable, scope the recipient to the minimum assets,
+or withhold identifiable/restricted assets entirely. Never place identifiable, regulated, or Indigenous-data (CARE) assets in an
+open share. Because access is continuous, treat token rotation and revocation as part of the governance, not an afterthought.<!-- /IF -->
