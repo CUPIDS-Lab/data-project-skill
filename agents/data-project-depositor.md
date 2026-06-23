@@ -24,17 +24,17 @@ data/code/docs→category mapping, the access/token requirements, and the capabi
 ## Inputs
 
 The project to deposit (default: the current working directory) with its `data/processed/`, code (`src/`,
-pipeline), and documentation (`README.md`, `DATA-DICTIONARY.md`, `data-card.md`, `knowledge/`); the citation
+pipeline), and documentation (`README.md`, `DATA-DICTIONARY.md`, `docs/data-card.md`, `knowledge/`); the citation
 facts (`PROJECT_NAME`, `PI_NAME`/`LAB_NAME`, `CONTACT_EMAIL`, `DESCRIPTION`, a `subject` from the controlled
 vocabulary, `LICENSE`); the target `DATAVERSE_URL` (default `https://dataverse.harvard.edu`) and
-`DATAVERSE_COLLECTION` alias; and the project's `SENSITIVITY_TIER` and `GOVERNANCE.md` access tiers.
+`DATAVERSE_COLLECTION` alias; and the project's `SENSITIVITY_TIER` and `docs/governance/GOVERNANCE.md` access tiers.
 
 ## Method (idempotent, capability-aware, confirm-before-publish)
 
 1. **Gate on sensitivity first.** If the data is sensitive-human / regulated / Indigenous, do **not** deposit
-   identifiable traces openly: apply the `GOVERNANCE.md` access tiers — desensitize, mark affected files
+   identifiable traces openly: apply the `docs/governance/GOVERNANCE.md` access tiers — desensitize, mark affected files
    restricted (`restrict:true`), or withhold them and deposit only code + documentation — and confirm the
-   `responsible-data-checklist` and `data-bulletproofing-checklist` are done. When in doubt, withhold and ask.
+   `docs/checklists/responsible-data-checklist.md` and `docs/checklists/data-bulletproofing-checklist.md` are done. When in doubt, withhold and ask.
 2. **Build the manifest.** Write/refresh `dataverse/dataset.json` (citation block: title, author, datasetContact
    with email, dsDescription, subject from the controlled list) from the project's metadata. Keep it valid JSON.
 3. **Preflight, then pick a tier.** Is `DATAVERSE_API_TOKEN` set? Is the collection reachable

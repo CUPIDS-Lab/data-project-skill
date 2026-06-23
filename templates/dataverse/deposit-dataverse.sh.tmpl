@@ -77,7 +77,7 @@ upload_dir "$here/data/processed" "Data" "data/processed" "$data_restrict"
 upload_dir "$here/src"  "Code" "code" false
 upload_dir "$here/code" "Code" "code" false
 # documentation: individual top-level docs + the OKF knowledge bundle
-for doc in README.md DATA-DICTIONARY.md data-card.md decision-log.md CHANGELOG.md; do
+for doc in README.md DATA-DICTIONARY.md docs/data-card.md decision-log.md CHANGELOG.md; do
   [ -f "$here/$doc" ] || continue
   echo "  + [Documentation] $doc"
   run curl -sS -H "X-Dataverse-key:${DATAVERSE_API_TOKEN:-}" \

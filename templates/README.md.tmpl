@@ -32,7 +32,7 @@ snakemake --cores 4   # run the pipeline
 
 ## Data access
 
-<!-- IF:SENSITIVE -->This project handles **{{SENSITIVITY_TIER}}** data. Sensitive data is **not** in this repository. See `GOVERNANCE.md` for access tiers and the process to request access, and `responsible-data-checklist.md` before ingesting or sharing data (until those exist, see `ROADMAP.md`).<!-- /IF -->
+<!-- IF:SENSITIVE -->This project handles **{{SENSITIVITY_TIER}}** data. Sensitive data is **not** in this repository. See `docs/governance/GOVERNANCE.md` for access tiers and the process to request access, and `docs/checklists/responsible-data-checklist.md` before ingesting or sharing data (until those exist, see `ROADMAP.md`).<!-- /IF -->
 <!-- IF:OPEN -->Processed, non-sensitive data is shared in open formats. See `DATA-DICTIONARY.md` for the schema and `knowledge/` for the open-knowledge catalog (if present).<!-- /IF -->
 
 ## Documentation
@@ -40,10 +40,10 @@ snakemake --cores 4   # run the pipeline
 - `DATA-DICTIONARY.md` — variables, grain, provenance, units, missingness, known issues.
 - `decision-log.md` — why key choices were made.
 - `CHANGELOG.md` — what changed and when.
-<!-- IF:COLLAB -->- `CONTRIBUTING.md`, `GOVERNANCE.md`, `ROLES.md` — how to collaborate here (any not yet present are tracked in `ROADMAP.md`).<!-- /IF -->
+<!-- IF:COLLAB -->- `CONTRIBUTING.md`, `docs/governance/GOVERNANCE.md`, `docs/governance/CHARTER.md` — how to collaborate here (any not yet present are tracked in `ROADMAP.md`).<!-- /IF -->
 <!-- IF:ARD -->- `ai-catalog.json`, `DISCOVERY.md` — agent-discovery manifest (ARD): the resources agents can find here, and how to publish it to a host/registry.<!-- /IF -->
 <!-- IF:DATAVERSE -->- `dataverse/DEPOSIT.md` — how to deposit the data, code, and docs to a Dataverse repository for a citable DOI.<!-- /IF -->
-<!-- IF:OPENSHARING -->- `opensharing/SHARING.md` — how to share the data and `.skills/` zero-copy with partners (governed by `GOVERNANCE.md`).<!-- /IF -->
+<!-- IF:OPENSHARING -->- `opensharing/SHARING.md` — how to share the data and `.skills/` zero-copy with partners (governed by `docs/governance/GOVERNANCE.md`).<!-- /IF -->
 
 ## Citation
 

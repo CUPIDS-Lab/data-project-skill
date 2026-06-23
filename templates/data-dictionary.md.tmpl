@@ -1,20 +1,32 @@
 # Data dictionary — {{PROJECT_NAME}}
 
-Documentation is half the work: a dataset without this file is a private spreadsheet. Keep this current and co-located with the data. One entry per dataset/table below; one variable per row within each table.
+Documentation is half the work: a dataset without this file is a private spreadsheet. Keep this current and co-located with the data. **Fill one `Dataset` block below for every dataset you hold** — one per file in `data/raw/` (and per processed output); in a multi-pipeline monorepo, fill one per pipeline's `data/processed/` output. Copy the block as many times as you have datasets. One variable per row within each table.
 
 ## Dataset: `<dataset-name>`
 
-- **Grain (unit of observation):** one row per `<thing>` (e.g. one row per patient-visit).
-- **Source / provenance:** where this came from, collection method, and date obtained. Record the chain of custody.
+- **Grain (unit of observation):** one row per `<thing>` (e.g. one row per patient-visit; one row per county-month). State it precisely — the grain is what every variable below is measured *at*, and getting it wrong is the most common dictionary error.
+- **Source / provenance:** where this came from, collection method, and date obtained. Record the chain of custody (who provided it, in what format, retrieved how).
 - **Input license:** `<license of the source data>`.
 - **Sensitivity:** {{SENSITIVITY_TIER}}.
 - **Update cadence:** static / re-released `<how often>`.
+- **Row count (as obtained):** `<N>` — a number you can reconcile against the source's own published total (see the bulletproofing checklist).
 
 ### Variables
+
+One row per column in the dataset. Fill every cell; "unknown" is itself worth recording.
 
 | Variable | Type | Units | Allowed values / range | Description | Missingness |
 | --- | --- | --- | --- | --- | --- |
 | `<name>` | `<string/int/float/bool/date>` | `<unit>` | `<domain>` | what it means and *why it exists* | how missing is represented and why |
+
+How to fill each column:
+
+- **Variable** — the exact column name as it appears in the data (verbatim: case, underscores, and all).
+- **Type** — the storage/semantic type: `string`, `int`, `float`, `bool`, `date`/`datetime` (note the format, e.g. `YYYY-MM-DD`), or `category`.
+- **Units** — the unit of measure (`USD`, `count`, `mg/L`, `percent 0–100` vs. `proportion 0–1`); write `—` for unitless identifiers. Ambiguous units are a top source of downstream error — be explicit.
+- **Allowed values / range** — for categoricals, the full code list with meanings (`0 = no, 1 = yes`; `R = renter, O = owner`); for numerics, the valid range (`0–120`); for free text, the expected pattern.
+- **Description** — what the variable means *and why it exists* in this dataset, not a restatement of its name.
+- **Missingness** — how missing/unknown is encoded **and** what it means: blank vs. `NA` vs. a sentinel (`-9`, `999`, `N/A`, empty string), and whether "missing" means *not collected*, *not applicable*, or *zero*. Never let a sentinel masquerade as a real value.
 
 ### Derived variables
 
@@ -23,6 +35,14 @@ Computed/normalized/summary variables published centrally (not re-derived per an
 ### Known issues & caveats
 
 List the data problems you have found and how you handled them — missing values vs. zeros, inconsistent spelling/encoding, suspicious sentinels, truncation, aggregation mismatches, totals that don't reconcile with published figures. State what the data can plausibly support (description and comparison far more readily than prediction) and what it cannot. Unresolved issues that constrain use go here so downstream users are not surprised.
+
+## Glossary
+
+Define the domain terms, acronyms, and shorthand this project uses so a newcomer can read the data and docs without outside context. One term per row, kept next to the schema it describes (a standalone `GLOSSARY.md` is unnecessary — terms live here with the dictionary). Note where the project's usage differs from common usage.
+
+| Term / acronym | Definition |
+| --- | --- |
+| `<term>` | `<plain-language definition; flag where this project's usage differs from common usage>` |
 
 <!-- IF:OKF -->### Open-knowledge mapping
 

@@ -7,7 +7,7 @@ tags: [index, crosswalk, sampling]
 
 # Reference Corpus Crosswalk (sampling map)
 
-This is the indexer's primary working file. Use it to turn a Project Context Profile into a small, cited set of relevant practices and the templates they imply — a table lookup refined by judgment, not a vector search. Cite source files by name. With ~14 framework digests plus the skill's spine references this lookup is the right tool; if the corpus ever grows past a few dozen documents, revisit with a retrieval index.
+This is the indexer's primary working file. Use it to turn a Project Context Profile into a small, cited set of relevant practices and the templates they imply — a table lookup refined by judgment, not a vector search. Cite source files by name. With ~15 framework digests plus the skill's spine references this lookup is the right tool; if the corpus ever grows past a few dozen documents, revisit with a retrieval index.
 
 Build status legend: **⭐ built** — the template/digest exists now and can be generated; **○ roadmap** — not yet built, so route the concern into `ROADMAP.md` instead of generating a file. As of this build, every template and digest below is **⭐ built**; the now/later mechanism (see `escalation-levels.md`) still defers concerns into `ROADMAP.md` by the user's choice, not because a template is missing.
 
@@ -27,8 +27,8 @@ Build status legend: **⭐ built** — the template/digest exists now and can be
 | Signal in the Profile | Boost these sources | Require / route these artifacts |
 | --- | --- | --- |
 | sensitivity = sensitive-human / regulated / Indigenous (CARE) | `responsible-data-handbook`, `installed-base`, `ouhsc-bbmc-practices` | **fire the affordance↔duty coupling**; `responsible-data-checklist` ⭐, `data-management-plan` ⭐, `GOVERNANCE` ⭐; if too shallow for GOVERNANCE, write the coupling as a blocking `ROADMAP.md` item |
-| multi-organization / cross-sector | `data-collaboratives-canvas`, `propublica` ⭐, `collaboration-architecture` | `collaboration-protocol` ⭐, `GOVERNANCE` ⭐, `CHARTER` ⭐ |
-| contributed / crowdsourced data | `propublica` ⭐, `responsible-data-handbook` | `contributed-data-intake` ⭐ |
+| multi-organization / cross-sector | `data-collaboratives-canvas`, `propublica` ⭐, `collaboration-architecture` | `GOVERNANCE` ⭐, `CHARTER` ⭐ (charter now carries the roles table + collaboration protocol) |
+| contributed / crowdsourced data | `propublica` ⭐, `responsible-data-handbook` | contributed-data intake — folded into `data-management-plan` ⭐ |
 | publishing / communicating findings | `propublica` ⭐, `quartz-bad-data-guide` | `data-bulletproofing-checklist` ⭐, `data-quality-checklist` ⭐ |
 | publishing or sharing a dataset; sensitive attributes / fairness | `datacards-playbook` | `data-card` ⭐ |
 | publish as open knowledge / FAIR | `okf-open-knowledge-format` ⭐, `turing-way` | `knowledge/` OKF bundle ⭐, `LICENSE-NOTE` ⭐ |
@@ -39,6 +39,7 @@ Build status legend: **⭐ built** — the template/digest exists now and can be
 | accessibility flagged | `turing-way` | `accessibility-checklist` ⭐ |
 | user-facing / civic service; openness or iterative delivery | `usds-playbook` | `project-design-canvas` ⭐, `accessibility-checklist` ⭐, `LICENSE-NOTE` ⭐ |
 | collaborators / "how do we track work" / wants issues, a board, or a wiki | `github` | issue forms + `seed-github.sh` + Project at **L3** ⭐ (wiki seeds at L4 ⭐); below L3 keep to `NEXT-STEPS` + the `ROADMAP` checklist |
+| multi-pipeline monorepo / liberating several sources / "add another pipeline" | `landing-a-pipeline` ⭐, `stamping-and-shared-core` ⭐ | `PIPELINES` flag → auto-discovered `ci/pipelines-ci.yml` ⭐ + one `pipelines/<name>/` per source; land each via the ordered flow in `landing-a-pipeline`; factor a shared core at ~3 pipelines (`stamping-and-shared-core`) |
 | small synchronous team, low sensitivity | `cookiecutter-data-science`, `collaboration-architecture` (typology) | keep light — prefer L0–L1 ⭐ and `ROADMAP.md` over governance bloat |
 
 ## §C — Level → artifact → template (with build status)
@@ -55,20 +56,19 @@ Build status legend: **⭐ built** — the template/digest exists now and can be
 | L1 | handoff memo | `templates/NEXT-STEPS.md.tmpl` | ⭐ |
 | L2 | env / pipeline / config (Python) | `templates/python/{environment.yml,Snakefile,config.yaml,pyproject.toml,pre-commit-config.yaml}.tmpl` | ⭐ |
 | L2 | env / pipeline (R) | `templates/r/{DESCRIPTION,_targets.R,renv-note.md,Makefile}.tmpl` | ⭐ |
-| L2 | CI | `templates/ci/github-actions-ci.yml.tmpl` | ⭐ |
+| L2 | CI (single project) | `templates/ci/github-actions-ci.yml.tmpl` | ⭐ |
+| L2 | CI (multi-pipeline monorepo) | `templates/ci/pipelines-ci.yml.tmpl` | ⭐ |
 | L3 | contributing / conduct | `templates/CONTRIBUTING.md.tmpl`, `templates/CODE_OF_CONDUCT.md.tmpl` | ⭐ |
-| L3 | roles / ownership | `templates/ROLES.md.tmpl`, `templates/CODEOWNERS.tmpl` | ⭐ |
-| L3 | governance / charter | `templates/GOVERNANCE.md.tmpl`, `templates/CHARTER.md.tmpl` | ⭐ |
-| L3 | collaboration / intake | `templates/collaboration-protocol.md.tmpl`, `templates/contributed-data-intake.md.tmpl` | ⭐ |
+| L3 | ownership | `templates/CODEOWNERS.tmpl` (paths → roles; roles live in `CHARTER.md.tmpl`) | ⭐ |
+| L3 | governance / charter (+ roles, collaboration protocol, values spine) → `docs/governance/` | `templates/GOVERNANCE.md.tmpl`, `templates/CHARTER.md.tmpl` | ⭐ |
 | L3 | nested guidance skills | `templates/nested-skills/{data-intake,documentation,release-and-share}.SKILL.md.tmpl` | ⭐ |
-| L3 | how-we-track-work | `templates/PROJECT-MANAGEMENT.md.tmpl` | ⭐ |
+| L3 | how-we-track-work | folded into `templates/CONTRIBUTING.md.tmpl` | ⭐ |
 | L3 | issue forms / PR / labels | `templates/github/ISSUE_TEMPLATE/{task,data-issue,config}.yml.tmpl`, `templates/github/PULL_REQUEST_TEMPLATE.md.tmpl`, `templates/github/labels.yml.tmpl` | ⭐ |
 | L3 | issue seeding + access + project template | `templates/github/{seed-github.sh,engagement-issues.md,ACCESS.md,project-template.md}.tmpl` | ⭐ |
-| L4 | values spine | `templates/INSTALLED-BASE.md.tmpl` | ⭐ |
-| L4 | DMP / responsible data | `templates/data-management-plan.md.tmpl`, `templates/responsible-data-checklist.md.tmpl` | ⭐ |
-| L4 | QA | `templates/data-bulletproofing-checklist.md.tmpl`, `templates/data-quality-checklist.md.tmpl` | ⭐ |
-| L4 | accessibility | `templates/accessibility-checklist.md.tmpl` | ⭐ |
-| L4 | dataset transparency card | `templates/data-card.md.tmpl` | ⭐ |
+| L4 | DMP (+ contributed-data intake) → `docs/governance/` | `templates/data-management-plan.md.tmpl`, `templates/responsible-data-checklist.md.tmpl` | ⭐ |
+| L4 | QA checklists → `docs/checklists/` | `templates/data-bulletproofing-checklist.md.tmpl`, `templates/data-quality-checklist.md.tmpl` | ⭐ |
+| L4 | accessibility → `docs/checklists/` | `templates/accessibility-checklist.md.tmpl` | ⭐ |
+| L4 | dataset transparency card → `docs/` | `templates/data-card.md.tmpl` | ⭐ |
 | L4 | wiki seeds | `templates/github/wiki-seeds/{Home,_Sidebar}.md.tmpl` | ⭐ |
 | L5 | knowledge bundle | `templates/okf/{index,log,concept,dataset,table}.md.tmpl` | ⭐ |
 | L5 | licensing / canvases | `templates/LICENSE-NOTE.md.tmpl`, `templates/data-collaborative-canvas.md.tmpl`, `templates/project-design-canvas.md.tmpl` | ⭐ |

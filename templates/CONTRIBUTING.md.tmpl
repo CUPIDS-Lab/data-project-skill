@@ -41,11 +41,26 @@ Notebooks are playgrounds, not products. Explore freely in `exploratory/`, then 
 
 ## Keep secrets and sensitive data out of the repo
 
-Credentials, tokens, and raw sensitive data never belong in version control, including inside notebook cells and their outputs. Read configuration and secrets from the environment or an ignored local file, and keep the example/template config free of real values. <!-- IF:SENSITIVE -->This project handles **{{SENSITIVITY_TIER}}** data: desensitize before anything leaves the controlled tier, follow the access tiers in `GOVERNANCE.md`, and complete the `responsible-data-checklist` before ingesting or sharing data.<!-- /IF -->
+Credentials, tokens, and raw sensitive data never belong in version control, including inside notebook cells and their outputs. Read configuration and secrets from the environment or an ignored local file, and keep the example/template config free of real values. <!-- IF:SENSITIVE -->This project handles **{{SENSITIVITY_TIER}}** data: desensitize before anything leaves the controlled tier, follow the access tiers in `docs/governance/GOVERNANCE.md`, and complete the `docs/checklists/responsible-data-checklist.md` before ingesting or sharing data.<!-- /IF -->
 
 ## Discoverability is a feature
 
-A data portal is poor at connecting people, so the burden of making this project and its contributors findable falls on its documentation. When you add a capability, update the `README.md`, the relevant role in `ROLES.md`, and the schema in `DATA-DICTIONARY.md` so the next person can find and reuse what you built. Treat documentation that has fallen behind the code as a bug.
+A data portal is poor at connecting people, so the burden of making this project and its contributors findable falls on its documentation. When you add a capability, update the `README.md`, the relevant role in `docs/governance/CHARTER.md`, and the schema in `DATA-DICTIONARY.md` so the next person can find and reuse what you built. Treat documentation that has fallen behind the code as a bug.
+
+## How we track work
+
+We keep the assignable checklist in `ROADMAP.md` and the handoff memo in `NEXT-STEPS.md`; those two files are enough to run the project on their own. The GitHub layer below mirrors them for teams.
+
+<!-- IF:GH -->**Issue → milestone → board.** Each task is one GitHub Issue — the smallest unit a person can be assigned and held accountable for. Issues for a maturity level are grouped under a per-level **milestone** (**{{MILESTONE_TITLE}}**), so "what does this level still owe" is one click away and closing the milestone marks the level done. <!-- IF:PROJECT -->Issues then surface on the **{{PROJECT_TITLE}}** Project board across board, table, and roadmap views.<!-- /IF -->
+
+**Label taxonomy.** Apply consistently so you can slice the work without reading every issue: `level:*` (which rung), `priority:*` (`high`/`med`/`low`), `size:*` (`s`/`m`/`l`), `type:*` (e.g. `type:data`, `type:docs`, `type:pipeline`, `type:governance`), and `blocking` (gates ingesting sensitive data, publishing, or climbing a level — must be closed or its risk explicitly accepted before the project does the thing it guards).
+
+**Source of truth and idempotent sync.** The `ROADMAP.md` checklist is the source of truth and GitHub is a projection of it. Edit the checklist first, then re-run `data-project track` (or `.github/seed-github.sh`) to create-or-update the labels, milestone, issues<!-- IF:PROJECT -->, and Project items<!-- /IF --> from it. The sync is **idempotent** — it matches existing issues and updates them rather than duplicating — so it is safe to re-run after every roadmap edit.
+
+**Access and scopes.** Automating this needs the right token scopes; the most common failure is that Projects v2 lives at org/user scope, not repo scope. See `.github/ACCESS.md` for the exact scopes each path needs (`gh` refresh, classic PAT, fine-grained PAT, or GitHub App) and the preflight that downgrades gracefully. When a CI workflow needs a Project or the wiki, supply a PAT/App token as a repository secret (referenced by its `secrets.PROJECTS_TOKEN` name); the default Actions token cannot modify org Projects or push the wiki.
+<!-- /IF -->
+
+<!-- IF:WIKI -->**Long-form docs live in the wiki.** Narrative/how-to that outgrows the README lives in this repo's wiki (a separate git repo with its own `Home`/`_Sidebar`), so the front-door docs stay short. By default only repository collaborators can edit it; keep the plan itself in `ROADMAP.md`.<!-- /IF -->
 
 ## PR checklist
 

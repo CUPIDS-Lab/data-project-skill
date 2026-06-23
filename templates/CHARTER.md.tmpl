@@ -1,6 +1,6 @@
 # Charter — {{PROJECT_NAME}}
 
-This charter settles the questions a collaboration must agree on before the work hardens around unstated assumptions. Different institutions define the same things differently and bring incompatible expectations; writing the agreement down up front is cheaper than discovering the disagreement halfway through. Keep it short and revisit it when the collaboration changes. It draws (silently) on organizational, policy, and data-technical concerns, and pairs with `GOVERNANCE.md` (access, retention, remedy) and `ROLES.md` (who does the work).
+This charter settles the questions a collaboration must agree on before the work hardens around unstated assumptions. Different institutions define the same things differently and bring incompatible expectations; writing the agreement down up front is cheaper than discovering the disagreement halfway through. Keep it short and revisit it when the collaboration changes. It draws (silently) on organizational, policy, and data-technical concerns, and pairs with `docs/governance/GOVERNANCE.md` (access, retention, remedy). It also carries this project's **roles** and **collaboration protocol** (below).
 
 ## Purpose
 
@@ -31,8 +31,55 @@ Make joint, contextualized interpretation of results a standing practice rather 
 
 ## What survives the pilot
 
-The default trajectory of these projects is quiet erosion when the grant, semester, or pilot ends, so state the maintenance commitment explicitly. Name the custodians who outlast the current cohort, the retention duties (cross-referenced to `GOVERNANCE.md`), where the data and pipeline will live afterward, and the migration plan if the host changes. A project with no named custodian after the pilot has, in effect, decided to disappear.
+The default trajectory of these projects is quiet erosion when the grant, semester, or pilot ends, so state the maintenance commitment explicitly. Name the custodians who outlast the current cohort, the retention duties (cross-referenced to `docs/governance/GOVERNANCE.md`), where the data and pipeline will live afterward, and the migration plan if the host changes. A project with no named custodian after the pilot has, in effect, decided to disappear.
 
 - **Custodians after the pilot:** `<named people or roles>`.
 - **Where it lives / migration plan:** `<host, mirror, handoff>`.
 - **Maintenance commitment:** `<who keeps it running, and to what standard>`.
+
+## Roles & responsibilities
+
+Name who does what so responsibility is legible and nothing important is owned by nobody. A data collaboration runs on five core roles — **data engineer, software developer, subject-matter expert, mediator, project manager** — embedded in a wider community and supported by auxiliary specialists. Each is a responsibility, not necessarily a separate person; a small project may have one person wearing several hats, which is fine as long as the hats are named. Keep this current as people join and leave, and read it alongside `CODEOWNERS`, which maps these roles to the repository paths they review.
+
+**Thinker/doer split.** The work divides into framing and building. Subject-matter experts are the **thinkers** — they frame the questions, define the terms, and interpret results, holding the context that prevents misreadings. The data engineer and software developer are the **doers** who implement the pipeline and tools. Design for tight, high-bandwidth, often synchronous feedback between the two rather than for crowd scale.
+
+**The mediator function.** Someone must translate between the technical and subject-matter views — the **mediator**. This is where collaborations succeed or stall: an unmediated team produces technically correct work that answers the wrong question, or domain-correct intentions that never become working code. Name the mediator explicitly even if it is a hat someone else also wears.
+
+| Role | Who | Responsibilities |
+| --- | --- | --- |
+| Data engineer | `<name / handle>` | Acquires and models data; owns the pipeline, schema, identifiers, and quality checks; keeps derived data reproducible from raw. |
+| Software developer | `<name / handle>` | Builds and maintains the tooling and reusable code in `src/`; packaging, tests, and interfaces. |
+| Subject-matter expert | `<name / handle>` | Frames the questions; defines terms and joint indicators; interprets results; owns `DATA-DICTIONARY.md` meaning. |
+| Mediator | `<name / handle>` | Translates between technical and domain views; keeps the feedback loop tight; surfaces mismatches early. |
+| Project manager | `<name / handle>` | Coordinates the work and cadence; owns this charter and governance; tracks decisions and what survives the pilot. |
+| Community — publishers | `<name / org>` | Release and steward outputs and data for the beneficiaries. |
+| Community — consumers | `<name / org>` | Use the data and outputs; their needs shape scope. |
+| Community — connectors | `<name / org>` | Link the project to people, partners, and reference data. |
+| Community — communicators | `<name / org>` | Make the project and its findings findable and understandable. |
+| Auxiliary — infrastructure | `<name / handle>` | Hosting, compute, storage, backups, and access controls. |
+| Auxiliary — statistics | `<name / handle>` | Methodology, sampling, and held-out/cross-validated checks against overfitting. |
+| Auxiliary — legal | `<name / handle>` | Licensing, data-sharing terms, privacy, and liability. |
+
+**Gap-check — unfilled roles.** If any core role is unfilled, name it here rather than papering over it with an empty cell, and make filling it the first priority before the project takes on work that role guards. An unowned core role — especially the mediator — is the most likely point of failure, so treat closing these gaps as blocking.
+
+- `<role>` — open because `<reason>`; interim coverage `<who>`; plan to fill `<how / when>`.
+
+## How we collaborate (partners)
+
+How this project coordinates multiple partner organizations without the coordination becoming heavier than the work — the operational complement to the agreement above. Keep the formality minimal and proportionate: enough structure to keep a level playing field for smaller partners, not so much that it deters them. (For a single-organization project, keep only what applies.)
+
+**Partnership lifecycle.** Treat each partner relationship as having a lifecycle so joining, contributing, and leaving are deliberate:
+- **Recruit** — identify partners whose data or context the project needs, map what each brings and what motivates them, and confirm the value proposition is mutual before any data moves.
+- **Onboard** — agree the terms (below), grant the appropriate access tier from `docs/governance/GOVERNANCE.md`, walk the partner through the shared definitions and schema, and name their point of contact.
+- **Maintain** — keep the agreed communication cadence, share back results and credit, and surface problems early through the remedy pathway rather than letting them fester.
+- **Wind down** — when a partner leaves or the project ends, settle data retention and deletion, honor any embargo and attribution still owed, and record what survives in "What survives the pilot" above.
+
+**MOU essentials.** A memorandum of understanding here should be short and readable, capturing the few things that prevent disputes. Keep the terms symmetric so a smaller partner is not disadvantaged. At minimum agree: **embargo** (what cannot be published before an agreed date, and who can lift it); **attribution** (how each partner is credited, agreed before publication); **information-sharing** (what is shared with whom, what stays internal); and **data governance** (which access tier applies, retention/deletion terms, ownership and licensing — cross-referenced to `docs/governance/GOVERNANCE.md`).
+
+**Communication cadence.** Agree a regular rhythm of contact so coordination does not depend on crises, and write it down so every partner — not only the most active — knows when decisions happen. State the standing meeting frequency, the channel for between-meeting questions, and how cross-partner decisions are surfaced and recorded.
+
+**Coordinator.** One named person — the project manager from the roles table above — owns the partnership relationships, runs the cadence, and is the point of contact when something needs deciding across partners. Multi-partner coordination that belongs to no one drifts toward the loudest partner.
+
+- **Coordinator:** `<name / handle / contact>`.
+
+**Reporting recipe and caveats.** When partners publish from shared data, agree a common reporting recipe — the methodology, joint definitions, and caveats that travel with the numbers — so the same figure is not described three incompatible ways across three partners. State the limitations that must accompany any public use, and commit to collaborative interpretation before publication so the data owners' context corrects misreadings before they reach an audience.

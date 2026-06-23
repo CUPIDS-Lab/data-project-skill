@@ -1,6 +1,6 @@
 # Governance — {{PROJECT_NAME}}
 
-This file says who may touch what, how long we keep things, how decisions get made, and how a documented problem becomes a correction. It exists because public-interest data infrastructure sits under chronic pressure to be enclosed, exempted from scrutiny, and quietly eroded; the answers below are how {{PROJECT_NAME}} resists each. Read it with `ROLES.md` (who holds these responsibilities) and `CHARTER.md` (what survives the pilot). This project's sensitivity is **{{SENSITIVITY_TIER}}** and its openness posture is **{{OPENNESS}}**.
+This file says who may touch what, how long we keep things, how decisions get made, and how a documented problem becomes a correction. It exists because public-interest data infrastructure sits under chronic pressure to be enclosed, exempted from scrutiny, and quietly eroded; the answers below are how {{PROJECT_NAME}} resists each. Read it with `docs/governance/CHARTER.md` (the roles who hold these responsibilities, and what survives the pilot). This project's sensitivity is **{{SENSITIVITY_TIER}}** and its openness posture is **{{OPENNESS}}**.
 
 ## Access tiers
 
@@ -22,7 +22,7 @@ Describe how decisions get made and recorded so that authority is legible rather
 
 ## Contestable oversight
 
-Oversight here is testable, not nominal: the project keeps logs and change histories that affected parties can inspect, and at least one role — named in `ROLES.md` — is authorized to interpret and contest the evidence rather than merely receive it. Record what is logged (access to restricted/sensitive tiers, changes to data and schema, releases), who holds audit rights, and the cadence on which logs are reviewed. The point is that a powerful actor cannot quietly carve out an exemption from scrutiny; the watching is routine and the records are reviewable.
+Oversight here is testable, not nominal: the project keeps logs and change histories that affected parties can inspect, and at least one role — named in `docs/governance/CHARTER.md` — is authorized to interpret and contest the evidence rather than merely receive it. Record what is logged (access to restricted/sensitive tiers, changes to data and schema, releases), who holds audit rights, and the cadence on which logs are reviewed. The point is that a powerful actor cannot quietly carve out an exemption from scrutiny; the watching is routine and the records are reviewable.
 
 ## Remedy and escalation
 
@@ -31,6 +31,16 @@ A documented problem must have a path to becoming a correction, or oversight is 
 ## Transparency vs. privacy
 
 This project publishes in the public interest and protects the people in its data at the same time, and those goals pull against each other. State the project's standing posture: default to openness for non-sensitive aggregate findings, default to protection for anything identifiable, and resolve specific tradeoffs deliberately rather than by reflex — recording the reasoning in `decision-log.md`. When the two genuinely conflict, the duty to the people in the data takes precedence over the convenience of disclosure.
+
+## Values spine (the installed base behind these rules)
+
+The rules above are not bureaucracy for its own sake — they operationalize the {{LAB_NAME}} values spine. Public-interest data infrastructure sits under three chronic pressures, and each section of this file answers one with a counter-value:
+
+- **Enclosure → Openness.** Evidence gets locked into formats and platforms that are technically open but practically closed. Keep data and pipeline in durable, legible, version-controllable formats, keep everything exportable, and take on no vendor-locked artifact as a required dependency — lock-in is itself a form of enclosure.
+- **Exemption → Oversight.** Powerful actors carve out exemptions from scrutiny. Make oversight routine and testable: reviewable change logs and version history, a reporting cadence where one is warranted, and a named role authorized to interpret and contest the evidence (see *Contestable oversight* above).
+- **Erosion → Ownership.** These projects erode quietly when grants, pilots, or semesters end. Carry stewardship obligations that survive turnover — named custodians, the retention schedule above, and a migration plan (recorded in `docs/governance/CHARTER.md`, "what survives the pilot").
+
+Held as concrete repo requirements, the spine is six **installed-base elements**: (1) *jurisdictional linkability* — stable identifiers and documented crosswalks (`DATA-DICTIONARY.md`); (2) *provenance-in-practice* — reviewable provenance, change logs, and version history (`DATA-DICTIONARY.md`, `decision-log.md`, `CHANGELOG.md`); (3) *stewardship continuity* — retention, redundancy, migration, and named custodians (the retention schedule above plus `docs/governance/CHARTER.md`); (4) *legitimate visibility / tiered access* — the access tiers above; (5) *contestable oversight* — logging, audit rights, and an authorized role (the contestable-oversight section above plus the roles in `docs/governance/CHARTER.md`); (6) *remedy / escalation* — the remedy-and-escalation pathway above. This is not a license to over-build: for a public, non-sensitive dataset most elements collapse to a sentence in `README.md` and a line in `ROADMAP.md`; the weight scales with sensitivity and the kind of collaboration. The one place sensitivity overrides leanness is the coupling below.
 
 <!-- IF:SENSITIVE -->## Sensitive data — affordances ship with duties
 
