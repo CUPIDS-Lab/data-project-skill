@@ -2,34 +2,35 @@
 
 Make this project usable by the widest possible range of people — including those using screen readers, those who cannot perceive color differences, and those who are not specialists in the subject. Accessibility is part of being legible to someone with none of the project's context, not a final polish, so apply these as you write and build rather than at the end. The guidance follows the Turing Way's communication recommendations; right-size it to what this project actually produces.
 
+**How to use this checklist:** each item says *what to check, where, how, and what passing vs. failing looks like* so you can action it without prior accessibility expertise. Work through one pass per **public-facing output** — each report, dashboard, notebook, or figure set you ship (in a multi-pipeline monorepo, one pass per pipeline's outputs). Check a box only when it holds for the actual artifact, not in principle.
+
 ## Language & summary
 
-- [ ] A plain-language summary explains what the project is, who it serves, and what it found, without jargon or unexplained acronyms.
-- [ ] Specialist terms are defined on first use, and sentences are kept short enough to follow.
+- [ ] **Plain-language summary exists.** *What:* a short summary of what the project is, who it serves, and what it found. *Where:* the top of the README and of any published report. *How:* write it for a smart non-specialist — no jargon, no unexplained acronyms; expand each acronym on first use. *Pass:* a reader outside the field can say what you did and why after one paragraph. *Fail:* the summary only makes sense to someone already on the project.
+- [ ] **Specialist terms are defined on first use.** *What:* domain terms and abbreviations. *How:* define them inline the first time, or link a glossary; keep sentences short enough to follow in one read. *Pass:* no undefined term gates comprehension. *Fail:* the reader must already know the vocabulary.
 
 ## Figures & color
 
-- [ ] Every figure, chart, and image has alternative text describing what it shows and the point it makes.
-- [ ] Charts use a colorblind-safe palette and do not rely on color alone to carry meaning — pair it with labels, patterns, or shape.
-- [ ] Text and graphical elements meet sufficient contrast against their background.
+- [ ] **Every figure has alt text.** *What:* charts, maps, images, diagrams. *Where:* the `alt`/caption of each figure in reports, docs, and notebooks. *How:* describe what the figure shows **and the point it makes** (not "a bar chart"). *Pass:* a screen-reader user gets the figure's message from the alt text alone. *Fail:* alt text is empty, "image", or just the filename.
+- [ ] **Color is not the only signal, and the palette is colorblind-safe.** *What:* any encoding that uses color (lines, categories, choropleths). *How:* pair color with labels, patterns, or shape, and pick a colorblind-safe palette (e.g. ColorBrewer "Set2"/"Dark2", Okabe–Ito, or `viridis`); avoid red/green as the only contrast. *Pass:* the chart still reads in grayscale and to a red–green colorblind viewer. *Fail:* meaning is carried by hue alone (red = bad, green = good, nothing else).
+- [ ] **Text and elements have sufficient contrast.** *What:* body text, labels, and UI against their background. *How:* aim for WCAG AA contrast (~4.5:1 for normal text); check with any online contrast checker. *Pass:* readable for low-vision users and in poor lighting. *Fail:* light-gray-on-white captions or low-contrast chart labels.
 
 ## Document structure
 
-- [ ] Headings are properly nested (one level at a time) so the document has a navigable outline.
-- [ ] Lists use real list markup rather than manual bullets or numbers.
-- [ ] Links use meaningful text that says where they go, not "click here" or a bare URL.
+- [ ] **Headings are properly nested.** *What:* the heading outline (`#`, `##`, `###`). *How:* descend one level at a time — don't jump `#`→`###` — and use real heading markup, not bold text standing in for a heading. *Why:* screen-reader users navigate by the heading tree, so a broken outline removes their map of the document. *Pass:* the document has a clean, navigable outline. *Fail:* skipped levels or fake (bold) headings.
+- [ ] **Lists and links use real markup.** *What:* bulleted/numbered lists and hyperlinks. *How:* use list syntax (not manual "- " inside a paragraph) and link text that names the destination ("the data-management plan"), never "click here" or a bare URL. *Pass:* assistive tech announces lists as lists and links by their purpose. *Fail:* "click [here](...)" or a wall of bare URLs.
 
 ## Tables
 
-- [ ] Tables have real header rows (and row headers where needed) so assistive technology can read them.
-- [ ] Data is presented as actual text tables, never as an image of a table.
+- [ ] **Tables have real header rows.** *What:* every data table. *How:* use Markdown/HTML table headers (and row headers where a row labels its data) so assistive tech can associate each cell with its header. *Pass:* a screen reader reads "Column X = value" per cell. *Fail:* a grid of cells with no header semantics.
+- [ ] **Data is text, never an image of a table.** *What:* tabular data in reports/slides. *How:* ship actual text tables (Markdown/CSV/HTML); never paste a screenshot of a spreadsheet. *Pass:* the values are selectable, searchable, and machine-readable. *Fail:* a PNG of numbers no one can copy.
 
 ## Documents & notebooks
 
-- [ ] PDFs are tagged and readable by assistive technology (or an accessible HTML/Markdown version is offered instead).
-- [ ] Notebooks include narrative text, alt text on plotted figures, and a logical reading order rather than code cells alone.
+- [ ] **PDFs are tagged, or an accessible alternative is offered.** *What:* any PDF you publish. *How:* export with tags from the source tool (e.g. "Save as tagged PDF", or run a tagging/remediation step), or publish an HTML/Markdown version alongside it. *Pass:* the PDF is navigable by assistive tech, or a readable HTML/MD version exists. *Fail:* a scanned or untagged PDF that reads as a single image.
+- [ ] **Notebooks have narrative, alt text, and a logical reading order.** *What:* shipped Jupyter/Quarto notebooks. *How:* interleave Markdown that explains each step, add alt text to plotted figures, and keep cells in top-to-bottom execution order. *Pass:* the notebook reads as a document, not a pile of code cells. *Fail:* code-only cells with no narration or out-of-order execution.
 
 ## Meetings & communication
 
-- [ ] Meetings and presentations are run inclusively — captions or notes provided, materials shared in advance, and multiple ways to contribute offered.
-- [ ] Communication channels and documents are available in formats people can actually access, and you invite people to tell you what they need.
+- [ ] **Meetings are run inclusively.** *What:* project meetings and presentations. *How:* offer captions or shared notes, send materials in advance, and provide more than one way to contribute (voice, chat, async doc). *Pass:* someone who can't attend live or process audio in real time can still take part. *Fail:* live-only, no notes, nothing shared ahead.
+- [ ] **Communication is available in formats people can access, and you ask.** *What:* the channels and documents the project uses. *How:* offer accessible formats, and explicitly invite people to tell you what they need. *Pass:* access needs are solicited, not assumed. *Fail:* one format, take it or leave it.

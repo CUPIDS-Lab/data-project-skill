@@ -65,10 +65,13 @@ mkdir my-data-project && cd my-data-project   # or clone an empty repo and cd in
 
 4. **Review and approve the plan.** You get a concise plan: the directory tree, the exact files it will create now, and the roadmap of deferred items. Nothing is written until you approve, so edit freely.
 
-5. **Let it scaffold.** The skill writes files into your working directory (never its own), creates the data directories with `.gitkeep`, marks `data/raw` immutable, and writes a `ROADMAP.md` listing what was deferred and how to add it later. Then commit:
+5. **Let it scaffold.** The skill writes files into your working directory (never its own), creates the data directories with `.gitkeep`, marks `data/raw` immutable, and writes a `ROADMAP.md` listing what was deferred and how to add it later. Then review what was created and commit it — stage **explicit paths** rather than `git add -A`, so that in a shared checkout you never sweep another agent's in-progress files into your commit:
 
 ```bash
-git add -A && git commit -m "Scaffold data project"
+git status                                   # see exactly what was scaffolded
+git add README.md AGENTS.md ROADMAP.md .gitignore .gitattributes data/ \
+        DATA-DICTIONARY.md decision-log.md CHANGELOG.md
+git commit -m "Scaffold data project"
 ```
 
 6. **Climb when you're ready.** Re-run the skill in the same repo and ask to *"climb to L2"* (add a reproducible pipeline) or *"take this to L3"* (collaboration and governance); it adds only the new level's artifacts and refreshes `ROADMAP.md`. Running it on a repo you *didn't* scaffold — scaffolding in, auditing, or syncing to GitHub — is covered next.
@@ -140,7 +143,7 @@ This is the companion to the lab's [`data-liberation`](https://github.com/cupids
 
 ## Build status
 
-All six levels (L0–L5) are built: structure and documentation; the Python and R reproducible stacks plus CI; collaboration and governance (contributing, code of conduct, roles + CODEOWNERS, governance, charter, collaboration protocol, contributed-data intake, nested `.skills/`); the responsible-data, data-management, bulletproofing, data-quality, and accessibility artifacts plus the installed-base values spine and a Data Card; and the L5 licensing, canvases, OKF knowledge bundle, the ARD agent-discovery catalog, the Harvard Dataverse deposit kit, and the OpenSharing zero-copy share kit. `references/INDEX.md` tracks each template's status. Having the full menu doesn't change the lean-by-default behavior: the interview still right-sizes every run and defers anything above the chosen level into the project's `ROADMAP.md`.
+All six levels (L0–L5) are built: structure and documentation; the Python and R reproducible stacks plus CI (single-project, and an auto-discovered multi-pipeline monorepo matrix); collaboration and governance (contributing, code of conduct, roles + CODEOWNERS, governance, charter, collaboration protocol, contributed-data intake, nested `.skills/`); the responsible-data, data-management, bulletproofing, data-quality, and accessibility artifacts plus the installed-base values spine and a Data Card; and the L5 licensing, canvases, OKF knowledge bundle, the ARD agent-discovery catalog, the Harvard Dataverse deposit kit, and the OpenSharing zero-copy share kit. `references/INDEX.md` tracks each template's status. Having the full menu doesn't change the lean-by-default behavior: the interview still right-sizes every run and defers anything above the chosen level into the project's `ROADMAP.md`.
 
 ## License
 

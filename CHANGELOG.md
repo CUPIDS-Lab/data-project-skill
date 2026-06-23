@@ -2,6 +2,22 @@
 
 All notable changes to the `data-project` skill are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/); the skill aims at semantic versioning.
 
+## [0.7.0] — 2026-06-23
+
+Revisions from the **second** real build's after-action report (Colorado Environmental Data Hub), which exercised the skill across **four** `data-liberation` pipelines in one repo. The `pipelines/<name>/` monorepo layout has existed since 0.4.0 but was never made *operational* — every new friction clustered at that seam. This release closes it, opt-in and lean-by-default.
+
+### Added
+- **Auto-discovered multi-pipeline CI.** New `templates/ci/pipelines-ci.yml.tmpl`: a `discover` job globs `pipelines/*/Snakefile` into a JSON array and a `test` job fans out over it via a build matrix (`fail-fast: false`), so adding a pipeline needs **no** workflow edit — with a documented static-matrix fallback ("land the matrix row in the same PR as the directory"). New `PIPELINES` flag (multi-pipeline monorepo; distinct from the singular `PIPELINE`), documented in `SKILL.md` and guarded by `scripts/validate.py`; emitted **instead of** the single-project `github-actions-ci.yml`. The scheduled `dataverse-deposit.yml` rebuilds every pipeline before its one versioned deposit when `PIPELINES` is set.
+- **First-class "land a pipeline" sub-flow.** New `references/landing-a-pipeline.md`: the ordered procedure (isolated worktree → scaffold a self-contained `pipelines/<name>/` → auto-discovered CI → repo-doc registration → one PR `Add <name> pipeline (#NN)` with `Closes #NN` → green → merge → verify `origin`), a **registration checklist** naming every surface a landed pipeline must update, and a `<!-- data-project:pipeline=<name> -->` marker convention.
+- **Shared-core stance.** New `references/stamping-and-shared-core.md`: when (~3 pipelines) and how to factor domain-agnostic plumbing into a shared core (`src/<pkg>/` or `pipelines/_core/`) versus keep domain logic per pipeline, and how to **stamp a sibling** instead of copy-pasting. Wired from `references/context.md`.
+- **Two evals** (multi-pipeline CI scaffold; land-a-pipeline) in `evals/evals.json`.
+
+### Changed
+- **Multi-agent / shared-working-tree isolation.** `SKILL.md` Guardrails and `references/github.md` now prescribe a **git worktree per agent**, **explicit-path staging (never `git add -A`/`.`)** in a shared dirty tree, and `git fetch` + verify `origin/<default-branch>` before merging or auditing; Audit mode fetches/verifies first; `README.md`'s scaffold example no longer models `git add -A`.
+- **Close issues on landing, and reconcile the monorepo.** `data-project-tracker` closes a pipeline/task issue from its merged landing PR (`Closes #N`) rather than a roadmap diff, flags **built-but-open / closed-but-unbuilt** issues, and reconciles `pipelines/*` against the repo's documented pipelines (the marker surfaces), flagging under-registration.
+- **Novice-legibility pass finished.** Rewrote the L4 `accessibility-checklist` and `data-dictionary` templates so each item/column is self-contained (what / where / how / pass-vs-fail; allowed-values and missingness-encoding examples) and prompts filling one pass per output / per dataset / per pipeline.
+- **Housekeeping.** Corrected the stale framework-digest count in `references/INDEX.md` (~14 → ~15) and wired the two new references into INDEX §B/§C, `SKILL.md`'s reference map + "what's built", and `templates/directory-tree.md` (per-pipeline `environment.yml` + landing/shared-core pointers).
+
 ## [0.6.1] — 2026-06-22
 
 ### Changed

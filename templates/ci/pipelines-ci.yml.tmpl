@@ -1,0 +1,100 @@
+# Multi-pipeline ("monorepo") CI for a scaffolded data project — one repo hosting several
+# data-liberation pipelines under pipelines/<name>/ (see references/landing-a-pipeline.md).
+# Runs on every pull request and push, per the collaborative-data-science workflow.
+#
+# The build matrix is AUTO-DISCOVERED from the repo: the `discover` job globs pipelines/*/ and the
+# `test` job fans out over whatever it finds, so adding a pipeline needs NO edit to this file — its
+# directory is picked up on the next run. (Static-matrix fallback: if you would rather pin the list,
+# replace the `discover` job with a literal `matrix.pipeline: [a, b, c]` array — and then add the new
+# row in the SAME pull request that adds the pipeline's directory. Never land a matrix row before the
+# code it points at, or `main` goes red against a directory that does not exist yet.)
+#
+# The project may be Python or R. The discover job keys on each pipeline's Snakefile (the per-pipeline
+# marker the canonical tree guarantees); the test job's build steps default to the Python toolchain.
+# For an R monorepo, swap the commented R block into the test job (renv + targets).
+# The template-token guard always runs regardless of language — no scaffolded repo should ship
+# unfilled placeholders.
+
+name: ci
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  # Guard: fail if any unfilled template token remains anywhere in the repo. Searches for the literal
+  # double-open-brace marker (written with bracket expressions so this file stays placeholder-free) but
+  # skips GitHub Actions expressions (the dollar-prefixed brace form) so workflow files are not flagged.
+  tokens:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Check for unfilled template tokens
+        run: |
+          if grep -rIn --exclude-dir=.git -P '(?<![$])[{][{]' .; then
+            echo "::error::Unfilled template tokens found (see matches above). Fill or remove them before merging."
+            exit 1
+          fi
+          echo "No unfilled template tokens found."
+
+  # Discover the pipelines to test by globbing pipelines/*/Snakefile into a JSON array of directory
+  # names. The `test` job turns that array into a build matrix, so the workflow always tracks the repo's
+  # actual pipelines/ contents with zero manual matrix upkeep.
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      pipelines: ${{ steps.find.outputs.pipelines }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Enumerate pipelines/*
+        id: find
+        run: |
+          set -euo pipefail
+          names="$(find pipelines -mindepth 2 -maxdepth 2 -name Snakefile -printf '%h\n' 2>/dev/null \
+            | xargs -r -n1 basename | sort -u | jq -R . | jq -cs .)"
+          echo "pipelines=${names:-[]}" >> "$GITHUB_OUTPUT"
+          echo "Discovered pipelines: ${names:-[]}"
+
+  # One build per discovered pipeline. fail-fast:false so one red pipeline does not cancel the others;
+  # the `if` guard skips the job cleanly when no pipelines exist yet (empty array).
+  test:
+    needs: discover
+    if: ${{ needs.discover.outputs.pipelines != '[]' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        pipeline: ${{ fromJSON(needs.discover.outputs.pipelines) }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pipelines/${{ matrix.pipeline }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # --- Python pipelines (default) ---
+      # environment-file is resolved from the repo root (the `with:` of an action ignores
+      # defaults.run.working-directory), so it is spelled out in full; the run steps below inherit
+      # working-directory and operate inside the pipeline. If your pipelines share one root
+      # environment.yml, point environment-file at it instead.
+      - name: Set up environment (micromamba)
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-file: pipelines/${{ matrix.pipeline }}/environment.yml
+      - name: Lint
+        shell: bash -l {0}
+        run: ruff check .
+      - name: Pipeline dry-run
+        shell: bash -l {0}
+        run: snakemake -n
+
+      # --- R pipelines: swap the three steps above for this block (and glob DESCRIPTION, not
+      #     Snakefile, in the discover job) ---
+      # - name: Set up R
+      #   uses: r-lib/actions/setup-r@v2
+      # - name: Restore renv environment
+      #   run: Rscript -e "renv::restore()"
+      # - name: Pipeline dry-run
+      #   run: Rscript -e "targets::tar_manifest()"

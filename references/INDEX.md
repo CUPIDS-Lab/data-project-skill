@@ -7,7 +7,7 @@ tags: [index, crosswalk, sampling]
 
 # Reference Corpus Crosswalk (sampling map)
 
-This is the indexer's primary working file. Use it to turn a Project Context Profile into a small, cited set of relevant practices and the templates they imply — a table lookup refined by judgment, not a vector search. Cite source files by name. With ~14 framework digests plus the skill's spine references this lookup is the right tool; if the corpus ever grows past a few dozen documents, revisit with a retrieval index.
+This is the indexer's primary working file. Use it to turn a Project Context Profile into a small, cited set of relevant practices and the templates they imply — a table lookup refined by judgment, not a vector search. Cite source files by name. With ~15 framework digests plus the skill's spine references this lookup is the right tool; if the corpus ever grows past a few dozen documents, revisit with a retrieval index.
 
 Build status legend: **⭐ built** — the template/digest exists now and can be generated; **○ roadmap** — not yet built, so route the concern into `ROADMAP.md` instead of generating a file. As of this build, every template and digest below is **⭐ built**; the now/later mechanism (see `escalation-levels.md`) still defers concerns into `ROADMAP.md` by the user's choice, not because a template is missing.
 
@@ -39,6 +39,7 @@ Build status legend: **⭐ built** — the template/digest exists now and can be
 | accessibility flagged | `turing-way` | `accessibility-checklist` ⭐ |
 | user-facing / civic service; openness or iterative delivery | `usds-playbook` | `project-design-canvas` ⭐, `accessibility-checklist` ⭐, `LICENSE-NOTE` ⭐ |
 | collaborators / "how do we track work" / wants issues, a board, or a wiki | `github` | issue forms + `seed-github.sh` + Project at **L3** ⭐ (wiki seeds at L4 ⭐); below L3 keep to `NEXT-STEPS` + the `ROADMAP` checklist |
+| multi-pipeline monorepo / liberating several sources / "add another pipeline" | `landing-a-pipeline` ⭐, `stamping-and-shared-core` ⭐ | `PIPELINES` flag → auto-discovered `ci/pipelines-ci.yml` ⭐ + one `pipelines/<name>/` per source; land each via the ordered flow in `landing-a-pipeline`; factor a shared core at ~3 pipelines (`stamping-and-shared-core`) |
 | small synchronous team, low sensitivity | `cookiecutter-data-science`, `collaboration-architecture` (typology) | keep light — prefer L0–L1 ⭐ and `ROADMAP.md` over governance bloat |
 
 ## §C — Level → artifact → template (with build status)
@@ -55,7 +56,8 @@ Build status legend: **⭐ built** — the template/digest exists now and can be
 | L1 | handoff memo | `templates/NEXT-STEPS.md.tmpl` | ⭐ |
 | L2 | env / pipeline / config (Python) | `templates/python/{environment.yml,Snakefile,config.yaml,pyproject.toml,pre-commit-config.yaml}.tmpl` | ⭐ |
 | L2 | env / pipeline (R) | `templates/r/{DESCRIPTION,_targets.R,renv-note.md,Makefile}.tmpl` | ⭐ |
-| L2 | CI | `templates/ci/github-actions-ci.yml.tmpl` | ⭐ |
+| L2 | CI (single project) | `templates/ci/github-actions-ci.yml.tmpl` | ⭐ |
+| L2 | CI (multi-pipeline monorepo) | `templates/ci/pipelines-ci.yml.tmpl` | ⭐ |
 | L3 | contributing / conduct | `templates/CONTRIBUTING.md.tmpl`, `templates/CODE_OF_CONDUCT.md.tmpl` | ⭐ |
 | L3 | roles / ownership | `templates/ROLES.md.tmpl`, `templates/CODEOWNERS.tmpl` | ⭐ |
 | L3 | governance / charter | `templates/GOVERNANCE.md.tmpl`, `templates/CHARTER.md.tmpl` | ⭐ |
