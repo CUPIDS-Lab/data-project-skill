@@ -12,7 +12,7 @@ citation-metadata manifest generated from this project.
 | --- | --- | --- |
 | `data/processed/` | **Data** | `data/processed` |
 | `src/` · `code/` (pipeline, scripts) | **Code** | `code` |
-| `README.md`, `DATA-DICTIONARY.md`, `data-card.md`, `knowledge/` (OKF) | **Documentation** | `documentation` |
+| `README.md`, `DATA-DICTIONARY.md`, `docs/data-card.md`, `knowledge/` (OKF) | **Documentation** | `documentation` |
 | project name · author · contact · description · subject · keywords | citation metadata | — |
 
 `data/raw` is **not** uploaded. The dataset's subject is `{{DATASET_SUBJECT}}` — edit `dataset.json`
@@ -48,9 +48,9 @@ to add authors, keywords, related publications, or a different subject (from Dat
 A deposit run stops at a **draft** and offers to publish. **Review the draft in the web UI first** —
 publishing mints the DOI and is effectively permanent. Publish when ready by answering the prompt, or
 later with `./deposit-dataverse.sh --publish` (`--no-publish` to never publish). Run the
-`data-bulletproofing-checklist` and confirm the license (`{{LICENSE}}`) before publishing.
+`docs/checklists/data-bulletproofing-checklist.md` and confirm the license (`{{LICENSE}}`) before publishing.
 
-After publishing, record the DOI in `README.md`, the citation, and `data-management-plan.md`, and verify
+After publishing, record the DOI in `README.md`, the citation, and `docs/governance/data-management-plan.md`, and verify
 the record — e.g. via the read-only `mcp-dataverse` server (`search_datasets`, `get_croissant_record`) or
 `curl "{{DATAVERSE_URL}}/api/datasets/:persistentId?persistentId=<doi>"`.
 
@@ -67,8 +67,8 @@ This dataset is refreshed **{{UPDATE_FREQUENCY}}**. Follow the Dataverse [data-c
 <!-- IF:SENSITIVE -->## Sensitive data — do not deposit openly
 
 This project handles **{{SENSITIVITY_TIER}}** data. Do **not** deposit identifiable or restricted traces
-to a public repository. First apply the access tiers in `GOVERNANCE.md` and complete the
-`responsible-data-checklist`: desensitize before anything leaves the controlled tier, or upload affected
+to a public repository. First apply the access tiers in `docs/governance/GOVERNANCE.md` and complete the
+`docs/checklists/responsible-data-checklist.md`: desensitize before anything leaves the controlled tier, or upload affected
 files as restricted (`RESTRICT_DATA=1 ./deposit-dataverse.sh`, which sets `restrict:true` on `data/` files),
 or withhold them and deposit only the documentation and code. Releasing an identifier without its governance
 is exactly the theater this project refuses to ship.<!-- /IF -->

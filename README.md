@@ -17,8 +17,8 @@ The corpus and templates are a menu, not a default output. Two dials, set in a s
 | **L0 Structure** | repo skeleton, README, AGENTS.md, ignore rules, `data/` tree, ROADMAP | Reproducible |
 | **L1 Document** | data dictionary, decision log, changelog | Documented |
 | **L2 Reproduce** | pinned environment, pipeline-as-code, config, CI dry-run | Reproducible |
-| **L3 Collaborate** | contributing, code of conduct, roles, governance, charter, nested skills | Collaborative, Inclusive |
-| **L4 Responsible & accessible** | data-management plan, responsible-data & data-quality checklists, accessibility | Transparent, Accessible, Inclusive |
+| **L3 Collaborate** | contributing (+ how-we-track-work), code of conduct, CODEOWNERS, and under `docs/governance/`: governance, charter (roles + collaboration protocol); nested skills | Collaborative, Inclusive |
+| **L4 Responsible & accessible** | data-management plan, responsible-data/bulletproofing/data-quality/accessibility checklists, data card — grouped under `docs/` | Transparent, Accessible, Inclusive |
 | **L5 Publish as open knowledge** | OKF knowledge bundle, ARD agent-discovery catalog, Dataverse deposit (DOI), OpenSharing zero-copy sharing, FAIR/CARE, licensing, publication | Accessible, Transparent |
 
 ## How it works
@@ -143,7 +143,7 @@ This is the companion to the lab's [`data-liberation`](https://github.com/cupids
 
 ## Build status
 
-All six levels (L0–L5) are built: structure and documentation; the Python and R reproducible stacks plus CI (single-project, and an auto-discovered multi-pipeline monorepo matrix); collaboration and governance (contributing, code of conduct, roles + CODEOWNERS, governance, charter, collaboration protocol, contributed-data intake, nested `.skills/`); the responsible-data, data-management, bulletproofing, data-quality, and accessibility artifacts plus the installed-base values spine and a Data Card; and the L5 licensing, canvases, OKF knowledge bundle, the ARD agent-discovery catalog, the Harvard Dataverse deposit kit, and the OpenSharing zero-copy share kit. `references/INDEX.md` tracks each template's status. Having the full menu doesn't change the lean-by-default behavior: the interview still right-sizes every run and defers anything above the chosen level into the project's `ROADMAP.md`.
+All six levels (L0–L5) are built: structure and documentation; the Python and R reproducible stacks plus CI (single-project, and an auto-discovered multi-pipeline monorepo matrix); collaboration and governance (contributing — also carrying how-we-track-work — code of conduct, CODEOWNERS, and a grouped `docs/governance/` tree holding governance with its values spine and the charter with roles + the collaboration protocol, plus nested `.skills/`); the responsible-data, data-management (with contributed-data intake), bulletproofing, data-quality, and accessibility artifacts and a Data Card — the governance set and checklists organized under `docs/`; and the L5 licensing, canvases, OKF knowledge bundle, the ARD agent-discovery catalog, the Harvard Dataverse deposit kit, and the OpenSharing zero-copy share kit. `references/INDEX.md` tracks each template's status. Having the full menu doesn't change the lean-by-default behavior: the interview still right-sizes every run and defers anything above the chosen level into the project's `ROADMAP.md`.
 
 ## License
 

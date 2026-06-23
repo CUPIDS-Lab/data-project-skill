@@ -7,14 +7,20 @@ Read this first. It states the non-negotiables and points you at the right place
 - **Raw data is immutable.** Never edit anything under `data/raw/` in place. Read it, write derived data to `data/interim/` or `data/processed/`. Anything derived must be reproducible from raw. **Bulk or re-downloadable** raw stays git-ignored; a small **curated source-of-record** (the project's own catalog or seed file) is tracked via a `.gitignore` carve-out and documented here and in `DATA-DICTIONARY.md` as immutable.
 - **Open, version-controllable formats.** Prefer plain text, CSV/Parquet, Markdown, and text-based pipeline definitions. Do not introduce a vendor-locked artifact as a required dependency; anything a hosted tool produces must be exportable.
 - **Provenance lives with the data.** Record where data came from, its license, and any transformations in `DATA-DICTIONARY.md` and `decision-log.md`.
-- **Secrets and sensitive data never land in the repo.** Keep credentials out of code and notebooks. <!-- IF:SENSITIVE -->This project handles **{{SENSITIVITY_TIER}}** data — desensitize before anything leaves the controlled tier, and follow the access tiers in `GOVERNANCE.md` (or `ROADMAP.md` until it exists).<!-- /IF -->
+- **Secrets and sensitive data never land in the repo.** Keep credentials out of code and notebooks. <!-- IF:SENSITIVE -->This project handles **{{SENSITIVITY_TIER}}** data — desensitize before anything leaves the controlled tier, and follow the access tiers in `docs/governance/GOVERNANCE.md` (or `ROADMAP.md` until it exists).<!-- /IF -->
 
 ## Where things are
 
-- Source data and derived outputs: `data/`. Schema: `DATA-DICTIONARY.md`.
+- Source data and derived outputs: `data/`. Schema (and project terms): `DATA-DICTIONARY.md`.
 - Exploration: `exploratory/` (notebooks stay here; package reusable code into `src/`).
-- What's planned but not built yet: `ROADMAP.md`.
-<!-- IF:OPENSHARING -->- Sharing data and AI assets zero-copy with partners: `opensharing/SHARING.md` (what enters a share is governed by `GOVERNANCE.md`; the recipient token is never committed).<!-- /IF -->
+- What's planned but not built yet: `ROADMAP.md`; the handoff memo is `NEXT-STEPS.md`.
+- **Governance and collaboration live under `docs/`** — consult them at the decision points they govern, don't just file them:
+  - Before granting access, publishing, or setting retention → `docs/governance/GOVERNANCE.md` (access tiers, retention, remedy/escalation, and the values spine these rules operationalize).
+  - Who does what, partners, shared definitions, what survives the pilot → `docs/governance/CHARTER.md` (roles + collaboration protocol).
+  - How data is stored, shared, and disposed of, plus contributed-data intake → `docs/governance/data-management-plan.md`.
+  - Before publishing or releasing → the stage-gate checklists in `docs/checklists/` (responsible-data, bulletproofing, data-quality, accessibility); per-dataset transparency in `docs/data-card.md`.
+- How we work and track tasks: `CONTRIBUTING.md`.
+<!-- IF:OPENSHARING -->- Sharing data and AI assets zero-copy with partners: `opensharing/SHARING.md` (what enters a share is governed by `docs/governance/GOVERNANCE.md`; the recipient token is never committed).<!-- /IF -->
 
 <!-- IF:NESTED_SKILLS -->## Task-specific guidance
 

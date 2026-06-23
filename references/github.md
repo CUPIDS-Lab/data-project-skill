@@ -59,7 +59,7 @@ An authenticated **GitHub MCP** is an alternate path to A/B when `gh` is absent.
 | TODO field | GitHub issue | Project field |
 | --- | --- | --- |
 | Title | issue title | item title |
-| Owner/role | assignee (default: the `ROLES.md` role) | (synced) |
+| Owner/role | assignee (default: the role from `docs/governance/CHARTER.md`) | (synced) |
 | Priority | `priority:{high,med,low}` label | **Priority** (single-select) |
 | Size | `size:{s,m,l}` label | **Size** (single-select/number) |
 | Level | `level:{L0..L5}` label + milestone | **Level** (single-select) |
@@ -71,7 +71,7 @@ An authenticated **GitHub MCP** is an alternate path to A/B when `gh` is absent.
 ## Artifacts it implies
 
 - Ignore + attributes → `templates/gitignore.tmpl`, `templates/gitattributes.tmpl`; workflow + review norms → `templates/CONTRIBUTING.md.tmpl`; CI → `templates/ci/github-actions-ci.yml.tmpl`.
-- Planning/tracking → `templates/github/ISSUE_TEMPLATE/{task,data-issue,config}.yml.tmpl`, `templates/github/PULL_REQUEST_TEMPLATE.md.tmpl`, `templates/github/labels.yml.tmpl`, `templates/github/seed-github.sh.tmpl`, `templates/github/engagement-issues.md.tmpl`, `templates/github/project-template.md.tmpl`, `templates/github/ACCESS.md.tmpl`, `templates/github/wiki-seeds/{Home,_Sidebar}.md.tmpl`, `templates/PROJECT-MANAGEMENT.md.tmpl`; the assignable checklist in `templates/ROADMAP.md.tmpl` + `templates/NEXT-STEPS.md.tmpl`; and the `data-project-tracker` agent.
+- Planning/tracking → `templates/github/ISSUE_TEMPLATE/{task,data-issue,config}.yml.tmpl`, `templates/github/PULL_REQUEST_TEMPLATE.md.tmpl`, `templates/github/labels.yml.tmpl`, `templates/github/seed-github.sh.tmpl`, `templates/github/engagement-issues.md.tmpl`, `templates/github/project-template.md.tmpl`, `templates/github/ACCESS.md.tmpl`, `templates/github/wiki-seeds/{Home,_Sidebar}.md.tmpl`; the how-we-track-work guidance now lives in a section of `templates/CONTRIBUTING.md.tmpl`; the assignable checklist in `templates/ROADMAP.md.tmpl` + `templates/NEXT-STEPS.md.tmpl`; and the `data-project-tracker` agent.
 
 ## When most relevant
 

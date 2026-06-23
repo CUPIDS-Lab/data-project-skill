@@ -45,8 +45,8 @@ These cover three distinct phases of multi-partner, public-interest data work. *
 
 ## Artifacts it implies
 
-- Collaboration → `templates/collaboration-protocol.md.tmpl`; complements `templates/CHARTER.md.tmpl`, `templates/GOVERNANCE.md.tmpl`, and the `data-collaborative-canvas`.
-- Contributed data → `templates/contributed-data-intake.md.tmpl`; reinforces `templates/responsible-data-checklist.md.tmpl` and `GOVERNANCE.md` access tiers.
+- Collaboration → the collaboration-protocol section of `templates/CHARTER.md.tmpl`; complements `templates/GOVERNANCE.md.tmpl` and the `data-collaborative-canvas`.
+- Contributed data → the contributed-data-intake section of `templates/data-management-plan.md.tmpl`; reinforces `templates/responsible-data-checklist.md.tmpl` and the governance access tiers.
 - Bulletproofing → `templates/data-bulletproofing-checklist.md.tmpl`; reinforces the "known issues" section of `templates/data-dictionary.md.tmpl`.
 
 ## When most relevant

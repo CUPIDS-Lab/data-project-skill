@@ -63,7 +63,7 @@ tracker can reconcile:
 - `CHANGELOG.md` — an entry for the landed pipeline.
 - `AGENTS.md` — if the pipeline changes how an agent runs the repo.
 - `decision-log.md` — the dated decision and any source caveats.
-- `data-management-plan.md` and the dataset `data-card` (L4+) — the new source's storage/retention and provenance.
+- `docs/governance/data-management-plan.md` and the dataset `docs/data-card.md` (L4+) — the new source's storage/retention and provenance.
 - the GitHub **wiki** (L4, if enabled) — narrative/how-to.
 - both CI workflows — the test workflow (auto or static row) and, if depositing, the scheduled re-deposit.
 - `.github/engagement-sync.json` — the tracker keeps the task↔issue map; landing closes the issue.

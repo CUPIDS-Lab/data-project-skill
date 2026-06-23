@@ -4,7 +4,7 @@
 # so that review responsibility is legible and every part of the project has an
 # owner. GitHub requests a review from the listed owners when a pull request
 # touches a matching path. The handles below are placeholders of the form
-# @org/<role> — replace them with the people or teams named in ROLES.md.
+# @org/<role> — replace them with the people or teams named in docs/governance/CHARTER.md.
 # Later entries win, so order from general to specific.
 
 # Default owner: the project manager catches anything not matched below.
@@ -23,11 +23,10 @@
 # (The data dictionary above is the one exception they own outright.)
 /docs/                  @org/subject-matter-expert
 
-# Governance and the charter set the project's terms: the project manager owns
-# them, with legal as a second reviewer on the terms that bind partners.
-/GOVERNANCE.md          @org/project-manager @org/legal
-/CHARTER.md             @org/project-manager
-/ROLES.md               @org/project-manager
+# Governance, the charter (roles + collaboration protocol), and the data-management
+# plan set the project's terms: the project manager owns them under docs/governance/,
+# with legal as a second reviewer on the terms that bind partners.
+/docs/governance/       @org/project-manager @org/legal
 
 # Environment and CI affect reproducibility for everyone — the developer owns
 # them so the pinned environment and pipeline stay in sync.

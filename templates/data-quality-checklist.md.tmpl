@@ -1,6 +1,6 @@
 # Data quality checklist — {{PROJECT_NAME}}
 
-Scan a new or updated dataset for the common "bad data" problems before you build on it, using this adaptation of the Quartz bad-data taxonomy. The checks are grouped by who is best placed to fix each problem — your source, you, a subject-matter expert, or a programmer — because knowing whose problem it is determines what to do next. Record what you find and how you handled it in `DATA-DICTIONARY.md`'s known-issues section so downstream users are not surprised. This is about whether the data can be trusted at all; `data-bulletproofing-checklist.md` is the pre-publication reconciliation that follows.
+Scan a new or updated dataset for the common "bad data" problems before you build on it, using this adaptation of the Quartz bad-data taxonomy. The checks are grouped by who is best placed to fix each problem — your source, you, a subject-matter expert, or a programmer — because knowing whose problem it is determines what to do next. Record what you find and how you handled it in `DATA-DICTIONARY.md`'s known-issues section so downstream users are not surprised. This is about whether the data can be trusted at all; `docs/checklists/data-bulletproofing-checklist.md` is the pre-publication reconciliation that follows.
 
 ## Issues your SOURCE should fix
 
@@ -36,4 +36,4 @@ Scan a new or updated dataset for the common "bad data" problems before you buil
 - [ ] The data needs to be re-aggregated or reshaped programmatically (e.g. rolled up from records, or pivoted).
 - [ ] OCR or text extraction needs tuning to recover the data reliably from scans or PDFs.
 
-<!-- IF:SENSITIVE -->This project handles **{{SENSITIVITY_TIER}}** data: run these checks inside the controlled tier and treat any field that could re-identify someone as a quality *and* a privacy concern — pair it with the access tiers in `GOVERNANCE.md` and the `responsible-data-checklist`.<!-- /IF -->
+<!-- IF:SENSITIVE -->This project handles **{{SENSITIVITY_TIER}}** data: run these checks inside the controlled tier and treat any field that could re-identify someone as a quality *and* a privacy concern — pair it with the access tiers in `docs/governance/GOVERNANCE.md` and the `docs/checklists/responsible-data-checklist.md`.<!-- /IF -->

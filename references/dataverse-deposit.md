@@ -53,7 +53,7 @@ When the project's data is refreshed on a cadence (monthly/quarterly/annually), 
 | --- | --- | --- | --- |
 | `data/processed/*` | `Data` | `data/processed` | `tabularTagIngest=true` for `.csv`/`.tab`; never deposit `data/raw` if sensitive |
 | `src/<pkg>/`, `Snakefile`/`_targets.R`, `config.yaml` | `Code` | `code` | the re-runnable pipeline; link `{{REPO_URL}}` in metadata too |
-| `README.md`, `DATA-DICTIONARY.md`, `data-card.md`, `knowledge/` (OKF) | `Documentation` | `documentation` | so a reader can interpret the data |
+| `README.md`, `DATA-DICTIONARY.md`, `docs/data-card.md`, `knowledge/` (OKF) | `Documentation` | `documentation` | so a reader can interpret the data |
 | name / PI / contact / description / subject / license | citation `metadataBlocks` | — | `{{PROJECT_NAME}}`, `{{PI_NAME}}`, `{{CONTACT_EMAIL}}`, `{{DESCRIPTION}}`, `{{DATASET_SUBJECT}}`, `{{LICENSE}}` |
 
 ## Artifacts it implies

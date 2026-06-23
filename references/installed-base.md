@@ -7,7 +7,7 @@ tags: [values, governance, ethics, safeguards, sensitive-data]
 
 # Installed-Base Values Spine
 
-Read this when shaping anything that touches identifiers, retention, access, audit, or publication — and always when data is sensitive. This is the skill's value spine: it is what prevents affordances from becoming surveillance or theater. It is applied as a *guardrail by the synthesizer*, not as a pile of extra files; it only becomes new artifacts (a `GOVERNANCE.md`, an access-tier table, an `INSTALLED-BASE.md`) when the project's type and sensitivity warrant them.
+Read this when shaping anything that touches identifiers, retention, access, audit, or publication — and always when data is sensitive. This is the skill's value spine: it is what prevents affordances from becoming surveillance or theater. It is applied as a *guardrail by the synthesizer*, not as a pile of extra files; it only becomes new artifacts (the `docs/governance/GOVERNANCE.md` access-tier table and its values-spine section) when the project's type and sensitivity warrant them.
 
 ## Three pressures, three counter-values
 

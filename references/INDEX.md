@@ -27,8 +27,8 @@ Build status legend: **⭐ built** — the template/digest exists now and can be
 | Signal in the Profile | Boost these sources | Require / route these artifacts |
 | --- | --- | --- |
 | sensitivity = sensitive-human / regulated / Indigenous (CARE) | `responsible-data-handbook`, `installed-base`, `ouhsc-bbmc-practices` | **fire the affordance↔duty coupling**; `responsible-data-checklist` ⭐, `data-management-plan` ⭐, `GOVERNANCE` ⭐; if too shallow for GOVERNANCE, write the coupling as a blocking `ROADMAP.md` item |
-| multi-organization / cross-sector | `data-collaboratives-canvas`, `propublica` ⭐, `collaboration-architecture` | `collaboration-protocol` ⭐, `GOVERNANCE` ⭐, `CHARTER` ⭐ |
-| contributed / crowdsourced data | `propublica` ⭐, `responsible-data-handbook` | `contributed-data-intake` ⭐ |
+| multi-organization / cross-sector | `data-collaboratives-canvas`, `propublica` ⭐, `collaboration-architecture` | `GOVERNANCE` ⭐, `CHARTER` ⭐ (charter now carries the roles table + collaboration protocol) |
+| contributed / crowdsourced data | `propublica` ⭐, `responsible-data-handbook` | contributed-data intake — folded into `data-management-plan` ⭐ |
 | publishing / communicating findings | `propublica` ⭐, `quartz-bad-data-guide` | `data-bulletproofing-checklist` ⭐, `data-quality-checklist` ⭐ |
 | publishing or sharing a dataset; sensitive attributes / fairness | `datacards-playbook` | `data-card` ⭐ |
 | publish as open knowledge / FAIR | `okf-open-knowledge-format` ⭐, `turing-way` | `knowledge/` OKF bundle ⭐, `LICENSE-NOTE` ⭐ |
@@ -59,18 +59,16 @@ Build status legend: **⭐ built** — the template/digest exists now and can be
 | L2 | CI (single project) | `templates/ci/github-actions-ci.yml.tmpl` | ⭐ |
 | L2 | CI (multi-pipeline monorepo) | `templates/ci/pipelines-ci.yml.tmpl` | ⭐ |
 | L3 | contributing / conduct | `templates/CONTRIBUTING.md.tmpl`, `templates/CODE_OF_CONDUCT.md.tmpl` | ⭐ |
-| L3 | roles / ownership | `templates/ROLES.md.tmpl`, `templates/CODEOWNERS.tmpl` | ⭐ |
-| L3 | governance / charter | `templates/GOVERNANCE.md.tmpl`, `templates/CHARTER.md.tmpl` | ⭐ |
-| L3 | collaboration / intake | `templates/collaboration-protocol.md.tmpl`, `templates/contributed-data-intake.md.tmpl` | ⭐ |
+| L3 | ownership | `templates/CODEOWNERS.tmpl` (paths → roles; roles live in `CHARTER.md.tmpl`) | ⭐ |
+| L3 | governance / charter (+ roles, collaboration protocol, values spine) → `docs/governance/` | `templates/GOVERNANCE.md.tmpl`, `templates/CHARTER.md.tmpl` | ⭐ |
 | L3 | nested guidance skills | `templates/nested-skills/{data-intake,documentation,release-and-share}.SKILL.md.tmpl` | ⭐ |
-| L3 | how-we-track-work | `templates/PROJECT-MANAGEMENT.md.tmpl` | ⭐ |
+| L3 | how-we-track-work | folded into `templates/CONTRIBUTING.md.tmpl` | ⭐ |
 | L3 | issue forms / PR / labels | `templates/github/ISSUE_TEMPLATE/{task,data-issue,config}.yml.tmpl`, `templates/github/PULL_REQUEST_TEMPLATE.md.tmpl`, `templates/github/labels.yml.tmpl` | ⭐ |
 | L3 | issue seeding + access + project template | `templates/github/{seed-github.sh,engagement-issues.md,ACCESS.md,project-template.md}.tmpl` | ⭐ |
-| L4 | values spine | `templates/INSTALLED-BASE.md.tmpl` | ⭐ |
-| L4 | DMP / responsible data | `templates/data-management-plan.md.tmpl`, `templates/responsible-data-checklist.md.tmpl` | ⭐ |
-| L4 | QA | `templates/data-bulletproofing-checklist.md.tmpl`, `templates/data-quality-checklist.md.tmpl` | ⭐ |
-| L4 | accessibility | `templates/accessibility-checklist.md.tmpl` | ⭐ |
-| L4 | dataset transparency card | `templates/data-card.md.tmpl` | ⭐ |
+| L4 | DMP (+ contributed-data intake) → `docs/governance/` | `templates/data-management-plan.md.tmpl`, `templates/responsible-data-checklist.md.tmpl` | ⭐ |
+| L4 | QA checklists → `docs/checklists/` | `templates/data-bulletproofing-checklist.md.tmpl`, `templates/data-quality-checklist.md.tmpl` | ⭐ |
+| L4 | accessibility → `docs/checklists/` | `templates/accessibility-checklist.md.tmpl` | ⭐ |
+| L4 | dataset transparency card → `docs/` | `templates/data-card.md.tmpl` | ⭐ |
 | L4 | wiki seeds | `templates/github/wiki-seeds/{Home,_Sidebar}.md.tmpl` | ⭐ |
 | L5 | knowledge bundle | `templates/okf/{index,log,concept,dataset,table}.md.tmpl` | ⭐ |
 | L5 | licensing / canvases | `templates/LICENSE-NOTE.md.tmpl`, `templates/data-collaborative-canvas.md.tmpl`, `templates/project-design-canvas.md.tmpl` | ⭐ |

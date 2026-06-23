@@ -34,23 +34,24 @@ This file is read by the skill, not copied into the project. It defines the dire
 │   ├── figures/    .gitkeep  # L2  generated charts
 │   └── tables/     .gitkeep  # L2  generated tables
 ├── tests/          .gitkeep  # L2  data/code validation
-├── docs/           .gitkeep  # L2  Quarto/Markdown documentation
-├── CONTRIBUTING.md           # L3  workflow + anti-pattern guardrails
+├── docs/                       # L2  documentation home: rendered docs (Quarto/Markdown) + governance + checklists
+│   ├── data-card.md            # L4  per-dataset transparency card
+│   ├── governance/             # L3  who-may-touch-what + the team agreement
+│   │   ├── GOVERNANCE.md        #     access tiers, retention, escalation, transparency/privacy + values spine
+│   │   ├── CHARTER.md           #     purpose, partners, shared defs, roles, collaboration protocol, survives-the-pilot
+│   │   └── data-management-plan.md  # L4  storage, retention, sharing, backup, compliance + contributed-data intake
+│   └── checklists/             # L4  actionable stage-gates
+│       ├── responsible-data-checklist.md    # consent, minimization, harms, security
+│       ├── data-bulletproofing-checklist.md # pre-publication QA
+│       ├── data-quality-checklist.md        # known-issues checks (bad-data taxonomy)
+│       └── accessibility-checklist.md       # alt text, plain language, colorblind-safe viz
+├── CONTRIBUTING.md           # L3  workflow, review norms + how-we-track-work (issues/board)
 ├── CODE_OF_CONDUCT.md        # L3  inclusive collaboration norms
-├── ROLES.md                  # L3  five roles, mediator, gap-check
-├── CODEOWNERS                # L3  roles mapped to paths
-├── GOVERNANCE.md             # L3  access tiers, retention, escalation, transparency/privacy
-├── CHARTER.md                # L3  purpose, partners, shared definitions, what survives the pilot
+├── CODEOWNERS                # L3  paths → roles (defined in docs/governance/CHARTER.md)
 ├── .skills/                  # L3  nested guidance skills for downstream agents/humans
 │   ├── data-intake/SKILL.md
 │   ├── documentation/SKILL.md
 │   └── release-and-share/SKILL.md
-├── INSTALLED-BASE.md         # L4  values spine rendered as repo requirements
-├── data-management-plan.md   # L4  storage, retention, sharing, backup, compliance
-├── responsible-data-checklist.md   # L4  consent, minimization, harms, security
-├── data-bulletproofing-checklist.md # L4  pre-publication QA
-├── data-quality-checklist.md # L4  known-issues checks (bad-data taxonomy)
-├── accessibility-checklist.md# L4  alt text, plain language, colorblind-safe viz
 ├── ai-catalog.json           # L5  ARD manifest: agent-discoverable resources (repo scope; see DISCOVERY.md)
 ├── DISCOVERY.md              # L5  what the catalog advertises + how to deploy it to host/registry (deferred)
 ├── dataverse/                # L5  Dataverse deposit kit (archive data/code/docs → citable DOI)
@@ -67,4 +68,4 @@ This file is read by the skill, not copied into the project. It defines the dire
     └── tables/<name>.md
 ```
 
-Notes: `data/raw` is immutable (never edited in place); keep **bulk/external** raw out of version control (see `.gitignore`), but **track a small curated source-of-record** via a `.gitignore` carve-out and document it as immutable. The package directory under `src/<pkg>/` is named for the project and is the **repo-wide** location for reusable, importable, tested code (`R/` for the R variant); a nested `data-liberation` pipeline's own `scripts/` may stay local to its `pipelines/<name>/`. A **single-pipeline** project keeps `Snakefile`/`config.yaml` at the repo root (above); a repo hosting **several** liberated pipelines gives each its own `pipelines/<name>/` and maps each to a tracked issue/sub-issue — promote a root pipeline into `pipelines/<name>/` when a second one arrives, then land every subsequent pipeline by the ordered procedure in `references/landing-a-pipeline.md` (the monorepo CI `templates/ci/pipelines-ci.yml.tmpl` auto-discovers `pipelines/*/Snakefile`, so no workflow edit is needed per pipeline). Once the repo crosses ~3 pipelines, factor shared plumbing into a shared core — `src/<pkg>/` or a `pipelines/_core/` package — instead of copy-pasting it into each sibling (`references/stamping-and-shared-core.md`). At L0–L1 most of this collapses to the top-level docs plus `data/`. Everything above the chosen level belongs in `ROADMAP.md`, not on disk.
+Notes: `data/raw` is immutable (never edited in place); keep **bulk/external** raw out of version control (see `.gitignore`), but **track a small curated source-of-record** via a `.gitignore` carve-out and document it as immutable. The package directory under `src/<pkg>/` is named for the project and is the **repo-wide** location for reusable, importable, tested code (`R/` for the R variant); a nested `data-liberation` pipeline's own `scripts/` may stay local to its `pipelines/<name>/`. A **single-pipeline** project keeps `Snakefile`/`config.yaml` at the repo root (above); a repo hosting **several** liberated pipelines gives each its own `pipelines/<name>/` and maps each to a tracked issue/sub-issue — promote a root pipeline into `pipelines/<name>/` when a second one arrives, then land every subsequent pipeline by the ordered procedure in `references/landing-a-pipeline.md` (the monorepo CI `templates/ci/pipelines-ci.yml.tmpl` auto-discovers `pipelines/*/Snakefile`, so no workflow edit is needed per pipeline). Once the repo crosses ~3 pipelines, factor shared plumbing into a shared core — `src/<pkg>/` or a `pipelines/_core/` package — instead of copy-pasting it into each sibling (`references/stamping-and-shared-core.md`). Governance, the team `CHARTER` (which now carries roles + the collaboration protocol), the data-management plan, and the stage-gate checklists live under `docs/` (`docs/governance/`, `docs/checklists/`); the GitHub **community-health** files — `CONTRIBUTING`, `CODE_OF_CONDUCT`, `CODEOWNERS` — stay at the repo root, where GitHub auto-detects them, and `INSTALLED-BASE` folds into `docs/governance/GOVERNANCE.md`. At L0–L1 most of this collapses to the top-level docs plus `data/`. Everything above the chosen level belongs in `ROADMAP.md`, not on disk.

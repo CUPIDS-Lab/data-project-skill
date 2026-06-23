@@ -2,6 +2,16 @@
 
 All notable changes to the `data-project` skill are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/); the skill aims at semantic versioning.
 
+## [0.8.0] — 2026-06-23
+
+De-clutters the generated repo and makes the governance docs load-bearing. At L3/L4 the skill used to drop ~24 docs into the project **root**, several of which (`CHARTER`, `INSTALLED-BASE`, `collaboration-protocol`, `contributed-data-intake`, `PROJECT-MANAGEMENT`, `data-management-plan`) were written once and then referenced by no agent process. This release condenses overlaps, groups the rest under a `docs/` tree, and wires what remains into `AGENTS.md` and the nested skills. **This changes the generated-repo layout only — the menu and lean-by-default are unchanged.**
+
+### Changed
+- **Grouped `docs/` tree.** Generated governance/reference docs now land under `docs/`: `docs/governance/` (`GOVERNANCE`, `CHARTER`, `data-management-plan`), `docs/checklists/` (responsible-data, bulletproofing, data-quality, accessibility), and `docs/data-card.md`. The GitHub **community-health** files (`CONTRIBUTING`, `CODE_OF_CONDUCT`, `CODEOWNERS`) stay at the repo root — GitHub only auto-detects them in root / `.github/` / top of `docs/` — as do the active working docs (`README`, `AGENTS`, `CHANGELOG`, `LICENSE`, `ROADMAP`, `decision-log`, `DATA-DICTIONARY`, `NEXT-STEPS`). `templates/directory-tree.md` is the structural source of truth.
+- **Condensed five templates into their natural homes** (no capability lost): `INSTALLED-BASE` → a values-spine section of `GOVERNANCE`; `ROLES` and `collaboration-protocol` → sections of `CHARTER`; `PROJECT-MANAGEMENT` → a "How we track work" section of `CONTRIBUTING`; `contributed-data-intake` → a section of `data-management-plan`; and a Glossary section was added to `DATA-DICTIONARY` so a separate `GLOSSARY.md` is unnecessary. The five standalone templates were deleted.
+- **Wired governance into agent processes.** `AGENTS.md` now carries a `docs/` index that points at `GOVERNANCE`/`CHARTER`/the DMP/the checklists **at the decision points they govern**, so they are consulted rather than filed-and-forgotten; the nested `.skills/` and `CODEOWNERS` reference the new paths.
+- **Repointed every intra-repo doc link** (~60 references across ~25 files) to the new `docs/…` paths and merge targets, and updated the skill's own crosswalk and digests: `references/INDEX.md` §B/§C, `references/escalation-levels.md`, the "Artifacts it implies" mappings in `propublica`/`responsible-data-handbook`/`collaboration-architecture`/`installed-base`/`github`, `SKILL.md` (Step 6, Deposit mode, "what's built"), the synthesizer/depositor agents, `evals.json` (eval #3 + a new docs-layout eval #11), and the README. Validator stays green (22 references, 63 templates).
+
 ## [0.7.0] — 2026-06-23
 
 Revisions from the **second** real build's after-action report (Colorado Environmental Data Hub), which exercised the skill across **four** `data-liberation` pipelines in one repo. The `pipelines/<name>/` monorepo layout has existed since 0.4.0 but was never made *operational* — every new friction clustered at that seam. This release closes it, opt-in and lean-by-default.

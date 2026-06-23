@@ -28,7 +28,7 @@ A data collaboration runs on five core roles — **data engineer, software devel
 
 - **Thinker/doer split:** subject-matter experts frame and interpret; technical members implement. These teams are small, interdisciplinary, and low-turnover, so design for tight, high-bandwidth, often synchronous feedback between the two — not for crowd scale.
 - **The mediator function:** someone translates between technical and subject-matter views. Name it explicitly; it is where collaborations succeed or stall.
-- **The gap-check:** if a core role is unfilled, say so in `ROLES.md` and make filling it the first priority rather than papering over it. `CODEOWNERS` maps roles to repository paths so review responsibility is legible.
+- **The gap-check:** if a core role is unfilled, say so in the roles gap-check in `docs/governance/CHARTER.md` and make filling it the first priority rather than papering over it. `CODEOWNERS` maps those roles to repository paths so review responsibility is legible.
 
 ## Eight team-data-science practices (FAIR- and tidy-aligned)
 

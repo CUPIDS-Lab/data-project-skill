@@ -25,7 +25,7 @@ Responsible Data frames data work around the rights and risks of the people the 
 
 ## Artifacts it implies
 
-- → `templates/responsible-data-checklist.md.tmpl`, `templates/data-management-plan.md.tmpl`, `templates/contributed-data-intake.md.tmpl`; feeds `GOVERNANCE.md` access tiers and the `installed-base.md` coupling.
+- → `templates/responsible-data-checklist.md.tmpl`, `templates/data-management-plan.md.tmpl` (which now carries the contributed-data-intake section); feeds `GOVERNANCE.md` access tiers and the `installed-base.md` coupling.
 
 ## When most relevant
 

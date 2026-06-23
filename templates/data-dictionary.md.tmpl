@@ -36,6 +36,14 @@ Computed/normalized/summary variables published centrally (not re-derived per an
 
 List the data problems you have found and how you handled them — missing values vs. zeros, inconsistent spelling/encoding, suspicious sentinels, truncation, aggregation mismatches, totals that don't reconcile with published figures. State what the data can plausibly support (description and comparison far more readily than prediction) and what it cannot. Unresolved issues that constrain use go here so downstream users are not surprised.
 
+## Glossary
+
+Define the domain terms, acronyms, and shorthand this project uses so a newcomer can read the data and docs without outside context. One term per row, kept next to the schema it describes (a standalone `GLOSSARY.md` is unnecessary — terms live here with the dictionary). Note where the project's usage differs from common usage.
+
+| Term / acronym | Definition |
+| --- | --- |
+| `<term>` | `<plain-language definition; flag where this project's usage differs from common usage>` |
+
 <!-- IF:OKF -->### Open-knowledge mapping
 
 At L5 this dataset is mirrored as an OKF concept under `knowledge/datasets/` (and one `knowledge/tables/<name>.md` per table): the fields above map to frontmatter (`type`, `title`, `description`, `resource`, `tags`, `timestamp`) plus a `# Schema` section and bundle-relative cross-links.<!-- /IF -->
