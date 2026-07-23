@@ -1,0 +1,40 @@
+# FAIR self-assessment — {{PROJECT_NAME}}
+
+FAIR is a maturity *continuum*, not a badge. This checklist maps each FAIR sub-principle (Wilkinson et al. 2016) to what satisfies it **in this repository** and the level that adds it, so you can see how FAIR the project is today and what the next rung costs. Tick an item when it is true; record the rest as named, deferred work in `ROADMAP.md`. Aim for **"FAIR enough"** for this project's goals, not a perfect score.
+
+**FAIR is not the same as open:** authenticated, tiered access (A1.2) keeps restricted data FAIR while honoring the access tiers in `docs/governance/GOVERNANCE.md` and the CARE principles — being FAIR never means publishing what must stay controlled.
+
+## Findable
+
+- [ ] **F1 — persistent identifier.** (meta)data carry a globally unique, persistent id.<!-- IF:DATAVERSE --> Satisfied at publication by the Dataverse DOI (see `dataverse/DEPOSIT.md`).<!-- /IF --> *Where:* record the DOI/PID in `README.md`, `CITATION.cff`, and the data-management plan. *If not yet minted → `ROADMAP.md` (L5 deposit).*
+- [ ] **F2 — rich metadata.** Data are described with rich metadata. *Where:* `DATA-DICTIONARY.md` (grain, fields, units, missingness, provenance) + `docs/data-card.md`; the code is described by `codemeta.json`.
+- [ ] **F3 — id in metadata.** The metadata explicitly include the data's identifier.<!-- IF:OKF --> Satisfied in the `knowledge/` OKF frontmatter.<!-- /IF --><!-- IF:ARD --> The `ai-catalog.json` resource URNs also carry it.<!-- /IF -->
+- [ ] **F4 — indexed / searchable.** (meta)data are registered or indexed in a searchable resource.<!-- IF:ARD --> The `ai-catalog.json` advertises them to agents;<!-- /IF --> a repository deposit (Dataverse / registry) makes them human-searchable. *If neither yet → `ROADMAP.md`.*
+
+## Accessible
+
+- [ ] **A1 / A1.1 — open protocol.** (meta)data are retrievable by their id over a standardized, open, free protocol (HTTPS).<!-- IF:OPENSHARING --> Zero-copy access is served via the OpenSharing endpoint (`opensharing/SHARING.md`).<!-- /IF -->
+- [ ] **A1.2 — authentication where needed.** Restricted data are reachable through an authentication/authorization step, not silently withheld.<!-- IF:SENSITIVE --> **Required here:** wire access to the tiers in `docs/governance/GOVERNANCE.md`; the FAIR *metadata* stays public even when the data are gated.<!-- /IF -->
+- [ ] **A2 — metadata outlive data.** Metadata remain accessible even if the data are removed or restricted — deposit/index the metadata independently of the payload.
+
+## Interoperable
+
+- [ ] **I1 — formal representation.** (meta)data use a formal, shared language (CSV/Parquet + a documented schema now; JSON-LD / DCAT at L5).
+- [ ] **I2 — FAIR vocabularies.** Fields use controlled vocabularies where they exist — name them in `DATA-DICTIONARY.md`.
+- [ ] **I3 — qualified links.** (meta)data include qualified references to related (meta)data: source datasets, related publications, and prior versions.
+
+## Reusable
+
+- [ ] **R1 — plural, accurate attributes.** Richly described for reuse: `DATA-DICTIONARY.md` + `docs/data-card.md` cover recommended *and* non-recommended uses and known limits.
+- [ ] **R1.1 — license.** A clear, accessible data-use license (`LICENSE`<!-- IF:OPEN -->, expanded in `LICENSE-NOTE`<!-- /IF -->). State separately whether reuse may **base new research on it, publish from it, or use it commercially**.
+- [ ] **R1.2 — provenance.** Detailed provenance.<!-- IF:PIPELINE --> The re-runnable pipeline (`Snakefile` / `_targets.R`) plus `decision-log.md` are the provenance record.<!-- /IF -->
+- [ ] **R1.3 — community standards.** Meets domain-relevant community standards for metadata schema, file formats, and identifiers.
+
+## Software and the wider object family
+
+- [ ] **Software is FAIR too.** `codemeta.json` + `CITATION.cff` give the code a description, license, identified authors, and (at deposit) a version-distinct id — start this early, not at publication.
+- [ ] **Deeper object FAIR (deferred).** Workflow packaging (RO-Crate + run provenance) and, for any published model, a model card + uncertainty metrics are `ROADMAP.md` items — add them when the project ships a workflow or a model.
+
+---
+
+_Self-assessment, not certification: passing these does not make the project "FAIR" in the abstract; it makes it as FAIR as this project's goals require. See `references/fair-maturity.md` for the principle sources and the full level crosswalk._

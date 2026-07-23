@@ -2,6 +2,16 @@
 
 All notable changes to the `data-project` skill are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/); the skill aims at semantic versioning.
 
+## [0.9.0] — 2026-07-23
+
+Makes FAIR **explicit and measurable** instead of informal, and adds a one-flowing-line-per-paragraph documentation style.
+
+### Added
+- **FAIR maturity backbone.** New `references/fair-maturity.md` turns the skill's informal "aims at FAIR" into an explicit, level-gated practice: the FAIR sub-principles (F/A/I/R) verbatim, the **FAIR-DSM** maturity model (Content / Representation / Hosting) crosswalked to L0–L5, the "FAIR is a continuum / FAIR enough" grounding for lean-by-default, the FAIR-is-not-open reconciliation with CARE (A1.2 access tiers), and the machine-actionable Maturity-Indicator framing. New templates: `FAIR-CHECKLIST.md` (a per-principle self-assessment mapping each facet to what satisfies it in this repo and the level that adds it → `docs/`), `codemeta.json` (machine-readable software metadata; repo root, from L2), and `CITATION.cff` (how to cite; repo root, from L1). Synthesized from 14 Nature *Scientific Data* papers on FAIR, FAIRification, FAIR maturity, and FAIR-for-software/workflows/AI. Wired into `SKILL.md` (Step 6, reference map, what's-built), `references/INDEX.md` (§A/§B/§C), `references/escalation-levels.md`, `references/context.md`, and `templates/directory-tree.md`.
+
+### Changed
+- **Documentation style: one flowing line per paragraph.** `SKILL.md` now requires every Markdown prose paragraph and list item to be a single flowing line with no hard-wrapped line breaks (tables, fenced code, and frontmatter keep their structural breaks). Enforced across the repo: reflowed the six Markdown files that still hard-wrapped prose or list items (`agents/data-project-depositor.md`, `references/landing-a-pipeline.md`, `references/stamping-and-shared-core.md`, `templates/ard/DISCOVERY.md.tmpl`, `templates/dataverse/DEPOSIT.md.tmpl`, `templates/opensharing/SHARING.md.tmpl`); the rest already complied.
+
 ## [0.8.0] — 2026-06-23
 
 De-clutters the generated repo and makes the governance docs load-bearing. At L3/L4 the skill used to drop ~24 docs into the project **root**, several of which (`CHARTER`, `INSTALLED-BASE`, `collaboration-protocol`, `contributed-data-intake`, `PROJECT-MANAGEMENT`, `data-management-plan`) were written once and then referenced by no agent process. This release condenses overlaps, groups the rest under a `docs/` tree, and wires what remains into `AGENTS.md` and the nested skills. **This changes the generated-repo layout only — the menu and lean-by-default are unchanged.**
