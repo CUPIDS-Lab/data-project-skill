@@ -31,7 +31,7 @@ API token present? → pyDataverse importable? → target collection reachable? 
 - **D — always:** the `dataset.json` manifest + `DEPOSIT.md` guide are written regardless, so the deposit is reproducible off-skill.
 - **Verification (read-only side-channel):** after publish, `mcp-dataverse` (`search_datasets`, `get_croissant_record`) or a `GET /api/datasets/:persistentId` confirms the record. mcp-dataverse cannot create/upload/publish.
 
-Idempotency: a `.dataverse-deposit.json` manifest maps `pid` + each file path → file id + content hash; re-running **replaces changed files and adds new ones** rather than duplicating.
+Idempotency: the scripts record the dataset's `persistentId` in `.dataverse-deposit.json` and reuse it (or an explicit `--pid`), so a re-run **updates the same dataset's draft** — replacing files whose names already exist and adding only genuinely new ones — rather than creating a duplicate dataset.
 
 ## Versioned / periodically-updated ("streaming") deposits
 
@@ -41,11 +41,25 @@ When the project's data is refreshed on a cadence (monthly/quarterly/annually), 
 - **Metadata** — record the cadence (`UPDATE_FREQUENCY` → citation `notesText`), the `timePeriodCovered`, and per-release changes in `CHANGELOG.md` (deposited as Documentation), so each version carries its own changelog.
 - **Integrity** — keep `tabularTagIngest=true` for CSVs so Dataverse computes the UNF; always cite the **version + UNF** of the snapshot used.
 
+## Deposit mechanics (each cost a debug cycle)
+
+These are the Dataverse-specific traps a real deposit hit; the generated scripts encode them so the next project gets them for free.
+
+- **Ingest vs. opaque storage** — Dataverse *ingests* a plain CSV/TSV into a typed `.tab` (per-variable metadata + a UNF), but *unpacks a `.zip`* into individually-ingested members. Ship per-partition files as **plain CSV** (you want the ingest); ship one large combined dump as **`.gz`** (stored opaque, one file). The scripts set `tabularTagIngest` by extension.
+- **Ingest locks the dataset** — a CSV ingest holds a dataset lock and the next file op returns HTTP 400. **Poll `GET /api/datasets/:persistentId/locks` until it is empty between every upload** (`wait_for_locks`), which turns a flaky multi-file deposit into a reliable serial one; budget wall-clock for wide CSVs.
+- **Format the CSV for the ingester at write time** — the ingester types a column from its values, so one stray token demotes a whole numeric column to strings (and drops its UNF). Write UTF-8, `yyyy-MM-dd` dates, one uniformly-typed 2-decimal numeric column, `\n` line terminator + minimal quoting + no index column, and leave missing cells empty. This is a pipeline responsibility (prepare `data/processed` for ingest), not the deposit script's.
+- **Byte-determinism is a deposit requirement** — the UNF is a checksum, so nondeterministic serialization makes a no-op refresh look like a change and churns the file version. Same data in ⇒ same bytes ⇒ same UNF ⇒ no spurious version.
+- **Create vs. update; replace vs. add** — `--collection` **creates**; `--pid` (or a recorded `.dataverse-deposit.json`) **updates** the existing dataset's draft, replacing files whose names already exist (`POST /api/files/{id}/replace`, `forceReplace`) and adding only new ones. Re-running is safe — which unattended CI needs.
+- **Deposit the self-documenting bundle** — alongside the data, deposit the codebook/data dictionary, the provenance sidecar, and the **audit/validation reports** (`docs/checklists` outputs), so the archived snapshot carries its own validation and provenance.
+- **Safe-by-default targeting** — the scripts default to the **demo sandbox**; production needs an explicit `--prod` (or `DATAVERSE_URL`), the token is read only from the environment, the API is not called without it, and publish is gated behind `--publish`. In CI, publish only on the scheduled event or a manual `workflow_dispatch`, and add a `concurrency` guard so two refreshes never race on the same dataset.
+- **Metadata from one front-matter source** — build the citation block from the project's own front matter (`README` / `CITATION.cff`: title, authors + ORCIDs, contact, description, keywords, license) so the paper and the deposit cannot drift; keep `subject` to a value Dataverse offers.
+- **Repository-agnostic seam** — Dataverse and Zenodo differ mainly in the metadata schema and the ingest behavior, so keep the orchestration (build → create/update → upload → publish) above a thin per-repository adapter; a **Zenodo** target is then a drop-in rather than a rewrite (route Zenodo to `ROADMAP.md` until built).
+
 ## Access & tokens — make sure the agent can actually do this
 
 - **Get a token (Harvard):** log in to `https://dataverse.harvard.edu` → account menu → **API Token** → Create. It is a user-level credential (treat like a password); read it from `DATAVERSE_API_TOKEN` in the environment, never commit it.
 - **Permissions:** the token's user needs *create dataset* in the target collection (`{{DATAVERSE_COLLECTION}}`), which **must already exist and be published**; publishing may require a curator/admin role or trigger a review workflow on some installations.
-- **Test safely:** dry-run against the demo instance `https://demo.dataverse.org` (free, throwaway DOIs) before touching production `https://dataverse.harvard.edu`. Preflight: token set? collection reachable (`GET /api/dataverses/{alias}`)? on a gap, print "missing X → set/grant via Y" and degrade a tier rather than aborting.
+- **Safe by default:** the scripts **default to the demo sandbox** `https://demo.dataverse.org` (free, throwaway DOIs); production needs an explicit `--prod` (or `DATAVERSE_URL`). Rehearse the whole path on demo before touching production `https://dataverse.harvard.edu`. Preflight: token set? collection reachable (`GET /api/dataverses/{alias}`)? on a gap, print "missing X → set/grant via Y" and degrade a tier rather than aborting.
 
 ## Project artifact → Dataverse mapping
 
@@ -54,6 +68,7 @@ When the project's data is refreshed on a cadence (monthly/quarterly/annually), 
 | `data/processed/*` | `Data` | `data/processed` | `tabularTagIngest=true` for `.csv`/`.tab`; never deposit `data/raw` if sensitive |
 | `src/<pkg>/`, `Snakefile`/`_targets.R`, `config.yaml` | `Code` | `code` | the re-runnable pipeline; link `{{REPO_URL}}` in metadata too |
 | `README.md`, `DATA-DICTIONARY.md`, `docs/data-card.md`, `knowledge/` (OKF) | `Documentation` | `documentation` | so a reader can interpret the data |
+| `docs/checklists/*` (audit/QA reports), codebook, provenance sidecar | `Documentation` | `documentation/validation` | the snapshot documents its own validation & provenance |
 | name / PI / contact / description / subject / license | citation `metadataBlocks` | — | `{{PROJECT_NAME}}`, `{{PI_NAME}}`, `{{CONTACT_EMAIL}}`, `{{DESCRIPTION}}`, `{{DATASET_SUBJECT}}`, `{{LICENSE}}` |
 
 ## Artifacts it implies

@@ -2,6 +2,16 @@
 
 All notable changes to the `data-project` skill are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/); the skill aims at semantic versioning.
 
+## [0.10.0] — 2026-07-23
+
+Hardens the Dataverse deposit kit with the mechanics from a real (sandbox-tested) deposit, synthesized from three Dataverse-deposit after-action reports, so future projects get them for free.
+
+### Changed
+- **Dataverse deposit kit hardened.** `deposit-dataverse.sh` + `deposit_dataverse.py` now poll the dataset **lock** between uploads (a CSV ingest holds a lock and the next upload 400s); **create-or-update idempotently** — `--collection` creates, `--pid` (or the recorded `.dataverse-deposit.json`) updates the existing dataset's draft, replacing files by name and adding only new ones; set **`tabularTagIngest`** for CSV/TSV (ship a large combined dump as `.gz`, stored opaque, not a `.zip`, which Dataverse explodes into members); **default to the demo sandbox** and require an explicit `--prod` for production; and deposit the **audit/validation reports** (`docs/checklists`) so the snapshot documents its own validation. The scheduled `dataverse-deposit.yml` gains a `concurrency` guard and targets production in place (`--prod --pid`, with the DOI as a repo variable). `references/dataverse-deposit.md`, `templates/dataverse/DEPOSIT.md.tmpl`, the `data-project-depositor` agent, and `SKILL.md` Deposit mode capture the ingest-vs-opaque / lock / format-for-ingester / byte-determinism / front-matter-metadata / repository-agnostic-seam (Zenodo) lessons.
+
+### Notes
+- The companion reports' pipeline/PDF/Survey findings (multi-source abstraction, live-source Survey, PDFium, loud-drop guards) target the sibling `data-liberation` skill and are out of scope for this repo.
+
 ## [0.9.0] — 2026-07-23
 
 Makes FAIR **explicit and measurable** instead of informal, and adds a one-flowing-line-per-paragraph documentation style.
