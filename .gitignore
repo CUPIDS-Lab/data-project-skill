@@ -1,0 +1,14 @@
+# The skill repo itself only holds source (SKILL.md, references/, templates/, agents/,
+# scripts/). Keep tool/build artifacts from running Python on scripts/ out of git.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
