@@ -5,10 +5,12 @@
 # version DOI stays a human decision (see DEPOSIT.md and the Dataverse data-citation best practices,
 # https://dataverse.org/best-practices/data-citation).
 #
-# Setup: add a repository secret DATAVERSE_API_TOKEN (Settings -> Secrets and variables -> Actions).
-# The deposit step uses curl only (no Python needed). Uncomment the data-refresh block for your
-# toolchain so each run re-derives data/processed before depositing; without it the workflow
-# re-deposits whatever processed data is present in the checkout.
+# Setup: add a repository secret DATAVERSE_API_TOKEN and a repository variable DATAVERSE_PID (the
+# dataset DOI) under Settings -> Secrets and variables -> Actions. The deposit targets production
+# (--prod) and updates that dataset in place. The deposit step uses curl only (no Python needed).
+# Uncomment the data-refresh block for your toolchain so each run re-derives data/processed before
+# depositing; cache the expensive-and-immutable inputs (a release/registry artifact) and recompute
+# only the moving tail, rather than re-deriving everything each run.
 
 name: dataverse-deposit
 
@@ -20,6 +22,11 @@ on:
 permissions:
   contents: read
   issues: write
+
+# Serialize refreshes so two runs never race on the same dataset.
+concurrency:
+  group: dataverse-deposit
+  cancel-in-progress: false
 
 jobs:
   deposit:
@@ -49,6 +56,7 @@ jobs:
       - name: Deposit a new DRAFT version and open a review issue
         env:
           DATAVERSE_API_TOKEN: ${{ secrets.DATAVERSE_API_TOKEN }}
+          DATAVERSE_PID: ${{ vars.DATAVERSE_PID }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
@@ -62,8 +70,9 @@ jobs:
           done
           [ -n "$script" ] || { echo "::error::deposit-dataverse.sh not found"; exit 1; }
           kitdir="$(dirname "$script")"
-          # --no-publish: build/refresh the next version as a DRAFT only; a human publishes it.
-          bash "$script" --no-publish
+          # Target the PRODUCTION dataset in place (--prod --pid); --no-publish leaves a DRAFT for a human to publish.
+          pid_args=""; [ -n "${DATAVERSE_PID:-}" ] && pid_args="--pid ${DATAVERSE_PID}"
+          bash "$script" --prod $pid_args --no-publish
           url="$(grep -o '"url":"[^"]*"' "$kitdir/.dataverse-deposit.json" 2>/dev/null | head -n1 | cut -d'"' -f4 || true)"
           {
             echo 'A scheduled **{{UPDATE_FREQUENCY}}** refresh uploaded a new **draft** version to Dataverse (one DOI, successive versions).'
