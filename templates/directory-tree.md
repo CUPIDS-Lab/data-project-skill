@@ -18,12 +18,14 @@ This file is read by the skill, not copied into the project. It defines the dire
 ├── DATA-DICTIONARY.md        # L1  schema, grain, provenance, units, missingness, caveats
 ├── decision-log.md           # L1  dated design/data decisions with rationale
 ├── CHANGELOG.md              # L1  human-readable change history
+├── CITATION.cff              # L1  how to cite the project/dataset (Citation File Format)
 ├── exploratory/    .gitkeep  # L2  notebooks live here only — never shipped to production
 ├── Snakefile                 # L2  pipeline-as-code at the repo root (Python default); run `snakemake -n` from here
 ├── config.yaml               # L2  pipeline parameters & paths, resolved relative to the repo root
 ├── _targets.R                # L2  pipeline-as-code for the R variant (run via `targets::tar_make()`)
 ├── src/<pkg>/                # L2  Python source: reusable, importable, tested code (pkg = PKG_NAME, the slug with underscores)
 ├── R/                        # L2  R source: stage functions sourced by _targets.R (R projects use this instead of src/<pkg>/)
+├── codemeta.json             # L2  machine-readable software metadata (CodeMeta) — FAIR for the code
 ├── pipelines/                # L2+ MULTI-pipeline monorepo (the data-liberation hand-off): one self-contained
 │   └── <name>/               #     pipeline per liberated source; each maps 1:1 to a tracked issue/sub-issue
 │       ├── Snakefile         #     this pipeline's own DAG + the CI discovery marker (single-pipeline projects keep the root Snakefile above)
@@ -36,6 +38,7 @@ This file is read by the skill, not copied into the project. It defines the dire
 ├── tests/          .gitkeep  # L2  data/code validation
 ├── docs/                       # L2  documentation home: rendered docs (Quarto/Markdown) + governance + checklists
 │   ├── data-card.md            # L4  per-dataset transparency card
+│   ├── FAIR-CHECKLIST.md       # L4  per-principle FAIR self-assessment (see references/fair-maturity.md)
 │   ├── governance/             # L3  who-may-touch-what + the team agreement
 │   │   ├── GOVERNANCE.md        #     access tiers, retention, escalation, transparency/privacy + values spine
 │   │   ├── CHARTER.md           #     purpose, partners, shared defs, roles, collaboration protocol, survives-the-pilot
