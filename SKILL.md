@@ -3,12 +3,7 @@ name: data-project
 description: >-
   Scaffold a public-interest data collaboration — repo skeleton, documentation, reproducible pipeline,
   governance/roles, responsible-data & data-quality artifacts, and an Open-Knowledge-Format catalog.
-  Works at six escalating levels (L0 a sane repo skeleton → L5 a governed, FAIR, published OKF bundle):
-  start low and climb only as far as the task needs; build the essentials now and DOCUMENT the rest in a
-  roadmap. Use whenever someone is starting, restructuring, or onboarding collaborators to a data project,
-  lab repo, data archive, civic-data effort, or shared-data initiative — even "set up a repo for X data"
-  or "help me start a project around this dataset" — or wants to audit an existing repo against open,
-  inclusive, reproducible standards. Trigger on "new data project," "set up a repo," "data collaboration,"
+  Trigger on "new data project," "set up a repo," "data collaboration,"
   "data dictionary," "governance," "responsible data," "open knowledge," "OKF," "agent discovery," "ARD,"
   "ai-catalog," "make it discoverable by agents," "deposit," "Dataverse," "get a DOI," "archive the data,"
   "share the data," "zero-copy," "OpenSharing," "Delta Sharing," "audit my repo," even when
