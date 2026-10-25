@@ -12,7 +12,7 @@ import re
 import sys
 import pathlib
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
+ROOT = pathlib.Path(__file__).resolve().parent.parent / "skills" / "data-project"
 errors: list[str] = []
 
 DOCUMENTED_TOKENS = {

@@ -37,7 +37,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-SKILL_ROOT = Path(__file__).resolve().parents[1]
+SKILL_ROOT = Path(__file__).resolve().parents[1] / "skills" / "data-liberation"
 TEMPLATE_ROOT = SKILL_ROOT / "templates" / "project"
 
 # The slot-fills the agent must provide. Kept in lockstep with the

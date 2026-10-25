@@ -1,22 +1,32 @@
 name: validate
 
-# Guard the skill's internal consistency on every change: OKF `type` frontmatter
-# on references, balanced/documented template conditionals, well-formed/documented
-# placeholder tokens, and INDEX template paths that resolve. This is the repo
-# practicing the reproducibility and verification it preaches.
+# Guards both skills on every change. Each job runs one skill's validator from tools/;
+# a later phase merges them into a single tools/validate.py.
 
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 jobs:
-  validate:
+  data-project:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
-      - name: Validate skill structure
-        run: python scripts/validate.py
+          python-version: "3.13"
+      - name: Validate skills/data-project
+        run: python tools/validate_data_project.py
+
+  data-liberation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: false
+          python-version: "3.13"
+      - name: Validate skills/data-liberation and smoke-test the rendered project
+        run: uv run --no-project python tools/validate_data_liberation.py --smoke
