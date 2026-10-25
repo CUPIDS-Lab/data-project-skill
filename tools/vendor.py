@@ -40,9 +40,15 @@ def load_manifest() -> list[tuple[str, list[str]]]:
 
 def expected_bytes(src: str) -> bytes:
     raw = (SHARED / src).read_bytes()
-    if src.endswith(".md"):
-        return HEADER.format(src=src).encode("utf-8") + raw
-    return raw
+    if not src.endswith(".md"):
+        return raw
+    text = raw.decode("utf-8")
+    header = HEADER.format(src=src)
+    # Frontmatter must stay on line 1 to remain frontmatter, so the header follows it.
+    if text.startswith("---\n"):
+        end = text.index("\n---\n", 4) + len("\n---\n")
+        return (text[:end] + "\n" + header + text[end:].lstrip("\n")).encode("utf-8")
+    return (header + text).encode("utf-8")
 
 
 def main(argv: list[str] | None = None) -> int:

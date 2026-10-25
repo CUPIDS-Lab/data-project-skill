@@ -13,6 +13,7 @@ production. Validates the citation metadata before the create call.
     DATAVERSE_API_TOKEN=xxx python deposit_dataverse.py --prod --collection <alias>        # production: create
     DATAVERSE_API_TOKEN=xxx python deposit_dataverse.py --prod --pid doi:10.7910/DVN/XXX   # update the draft in place
     ... --publish | --no-publish            # (default: ask)
+    ... --major          # with --publish: force a major version (breaking change)
     DRY_RUN=1 ...        # print actions, no network writes
     RESTRICT_DATA=1 ...  # upload data/ files as restricted
 
@@ -34,6 +35,7 @@ RESTRICT_DATA = os.environ.get("RESTRICT_DATA", "0") == "1"
 
 publish = "ask"
 pid = ""
+force_major = False
 args = sys.argv[1:]
 i = 0
 while i < len(args):
@@ -42,6 +44,8 @@ while i < len(args):
         publish = "yes"
     elif a == "--no-publish":
         publish = "no"
+    elif a == "--major":
+        force_major = True
     elif a in ("--prod", "--production"):
         BASE_URL = PROD_URL
     elif a == "--url":
@@ -57,7 +61,9 @@ while i < len(args):
         sys.exit("unknown argument: " + a)
     i += 1
 
-here = Path(__file__).resolve().parent
+here = Path(__file__).resolve().parent  # the kit folder (dataverse/)
+# The project root: the kit's parent when the kit lives in dataverse/, else the kit folder itself.
+root = here if (here / "data").is_dir() else here.parent
 manifest = here / "dataset.json"
 sync = here / ".dataverse-deposit.json"
 if not manifest.exists():
@@ -74,13 +80,23 @@ if not pid and sync.exists():
 
 # (directory, category, directoryLabel, restrict)
 DATA_DIRS = [
-    (here / "data" / "processed", "Data", "data/processed", RESTRICT_DATA),
-    (here / "src", "Code", "code", False),
-    (here / "code", "Code", "code", False),
-    (here / "knowledge", "Documentation", "documentation/knowledge", False),
-    (here / "docs" / "checklists", "Documentation", "documentation/validation", False),
+    (root / "data" / "processed", "Data", "data/processed", RESTRICT_DATA),
+    (root / "scripts", "Code", "code/scripts", False),
+    (root / "R", "Code", "code/R", False),
+    (root / "knowledge", "Documentation", "documentation/knowledge", False),
+    (root / "data" / "audit", "Documentation", "documentation/validation", False),
+    (root / "docs" / "checklists", "Documentation", "documentation/validation", False),
 ]
-DOC_FILES = ["README.md", "DATA-DICTIONARY.md", "CHANGELOG.md", "decision-log.md", "docs/data-card.md"]
+CODE_FILES = ["pyproject.toml", "uv.lock", "_targets.R", "DESCRIPTION", "renv.lock", "Snakefile", "config.yaml"]
+DOC_FILES = ["README.md", "CHANGELOG.md", "decision-log.md", "docs/data-dictionary.md", "docs/data-card.md"]
+# Multi-pipeline repositories: every pipelines/<name>/ contributes its code and processed data.
+if (root / "pipelines").is_dir():
+    for p in sorted(x for x in (root / "pipelines").iterdir() if x.is_dir()):
+        DATA_DIRS += [
+            (p / "scripts", "Code", "code/pipelines/%s/scripts" % p.name, False),
+            (p / "src", "Code", "code/pipelines/%s/src" % p.name, False),
+            (p / "data" / "processed", "Data", "data/processed/%s" % p.name, RESTRICT_DATA),
+        ]
 
 print("Target: %s" % BASE_URL)
 if BASE_URL == DEMO_URL:
@@ -123,14 +139,14 @@ def draft_file_ids():
     # filename -> dataFile id for the current draft, so an existing file is replaced in place, not duplicated.
     if DRY_RUN or not pid:
         return {}
-    url = "%s/api/datasets/:persistentId/versions/:draft/files?persistentId=%s" % (BASE_URL, pid)
+    url = "%s/api/datasets/:persistentId/versions/:latest/files?persistentId=%s" % (BASE_URL, pid)
     out = {}
     try:
         for f in requests.get(url, headers={"X-Dataverse-key": TOKEN}, timeout=30).json().get("data", []):
             df = f.get("dataFile", {})
             name = df.get("filename") or f.get("label")
             if name and df.get("id") is not None:
-                out[name] = df["id"]
+                out[(f.get("directoryLabel") or "", name)] = df["id"]
     except Exception:
         pass
     return out
@@ -138,6 +154,7 @@ def draft_file_ids():
 
 def upload_file(api, existing, path, category, label, restrict):
     name = path.name
+    key = (label, name)
     df = Datafile() if not DRY_RUN else None
     if df is not None:
         df.set({
@@ -145,15 +162,28 @@ def upload_file(api, existing, path, category, label, restrict):
             "categories": [category], "directoryLabel": label, "restrict": restrict,
             "tabularTagIngest": ingest_flag(path),
         })
-    if name in existing:
-        print("  ~ [%s] %s (replace #%s)" % (category, name, existing[name]))
+    if key in existing:
+        print("  ~ [%s] %s (replace #%s)" % (category, name, existing[key]))
         if not DRY_RUN:
-            api.replace_datafile(str(existing[name]), str(path), df.json(), is_filepid=False)
+            api.replace_datafile(str(existing[key]), str(path), df.json(), is_filepid=False)
     else:
         print("  + [%s] %s" % (category, name))
         if not DRY_RUN:
             api.upload_datafile(pid, str(path), df.json())
     wait_for_locks()
+
+
+def release_type():
+    # The first publication is a major version (v1.0, which Dataverse requires); later refreshes
+    # publish as minor versions (v1.1, v1.2, ...) under the same DOI. --major forces a major one.
+    if force_major or DRY_RUN:
+        return "major"
+    url = "%s/api/datasets/:persistentId/versions?persistentId=%s" % (BASE_URL, pid)
+    try:
+        versions = requests.get(url, headers={"X-Dataverse-key": TOKEN}, timeout=30).json().get("data", [])
+    except Exception:
+        return "major"
+    return "minor" if any(v.get("versionState") == "RELEASED" for v in versions) else "major"
 
 
 def main():
@@ -193,8 +223,17 @@ def main():
             for path in sorted(d.rglob("*")):
                 if path.is_file() and path.name != ".gitkeep":
                     upload_file(api, existing, path, category, label, restrict)
+    for name in CODE_FILES:
+        p = root / name
+        if p.is_file():
+            upload_file(api, existing, p, "Code", "code", False)
+    if (root / "pipelines").is_dir():
+        for pdir in sorted(x for x in (root / "pipelines").iterdir() if x.is_dir()):
+            for name in ("pyproject.toml", "uv.lock"):
+                if (pdir / name).is_file():
+                    upload_file(api, existing, pdir / name, "Code", "code/pipelines/%s" % pdir.name, False)
     for doc in DOC_FILES:
-        p = here / doc
+        p = root / doc
         if p.is_file():
             upload_file(api, existing, p, "Documentation", "documentation", False)
 
@@ -216,9 +255,10 @@ def main():
             print("Non-interactive: left as DRAFT. Review, then re-run with --pid %s --publish." % pid)
             do_publish = "no"
     if do_publish == "yes":
-        print("Publishing %s (major, mints/updates the DOI)..." % pid)
+        release = release_type()
+        print("Publishing %s (%s version; the first publication mints the DOI)..." % (pid, release))
         if not DRY_RUN:
-            api.publish_dataset(pid, release_type="major")
+            api.publish_dataset(pid, release_type=release)
         print("Published: %s/dataset.xhtml?persistentId=%s" % (BASE_URL, pid))
     else:
         print("Left as DRAFT. Publish later: python %s --pid %s --publish" % (Path(__file__).name, pid))

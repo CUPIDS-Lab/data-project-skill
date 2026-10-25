@@ -4,27 +4,29 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        # No `lfs: true` — schema and unit tests run against checked-in
-        # fixtures, not raw LFS data. Saves bandwidth quota.
+      - uses: actions/checkout@v7
+        # No `lfs: true`: tests run on committed fixtures, which saves LFS bandwidth.
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
+          python-version: "3.13"
 
-      - name: Set up Python
-        run: uv python install 3.11
-
-      - name: Sync dependencies (incl. publish extras for sanity-check)
-        run: uv sync --extra publish
+      - name: Install
+        run: uv sync
 
       - name: Lint
         run: |
@@ -35,10 +37,16 @@ jobs:
         continue-on-error: true
         run: uv run mypy scripts
 
-      - name: Test
+      - name: Test (schema, build checks, generated numbers, vocabularies)
         run: uv run pytest -q
 
-      - name: Sanity-check CLI imports
+      - name: Command line loads
         run: |
           uv run python -m scripts.pipeline --help
-          uv run python -m scripts.publish --help
+          uv run python -m scripts.pipeline run --help
+
+      - name: Storage budget (no committed file near GitHub's 100 MB limit)
+        # LFS files are small pointers in git, so they pass; anything over 95 MiB
+        # belongs in Git LFS or external storage with its URL and sha256 in the manifest.
+        run: |
+          git ls-tree -r -l HEAD | awk '$4 != "-" && $4 > 99614720 { print "too large:", $4, $5; bad = 1 } END { exit bad }'

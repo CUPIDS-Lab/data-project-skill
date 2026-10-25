@@ -4,7 +4,7 @@ title: <Human-readable name>
 description: <One sentence on what this concept is and why it exists.>
 resource: <canonical URI for this concept, e.g. a dataset landing page or table URL>
 tags: [documented, transparent]
-timestamp: {{YEAR}}-01-01T00:00:00Z
+timestamp: {{DATE}}T00:00:00Z
 ---
 
 <!-- Generic OKF concept template. The ONLY required frontmatter field is `type` (a non-empty string such as "Dataset" or "Table"); everything else above (title, description, resource, tags, timestamp) is optional — keep what helps a reader, delete what you cannot fill in honestly. Group concepts in subdirectories by type (datasets/, tables/). Cross-links use bundle-relative paths beginning with `/` (rooted at the bundle's index.md), and the body sections below are conventional, not mandatory — right-size to the concept. -->
@@ -13,7 +13,7 @@ Open with a short prose summary of this concept: what it represents, its grain o
 
 # Schema
 
-Describe the structure — fields, types, and meanings — or, for a table concept, render it as a `Column | Type | Description` markdown table. Document the schema here rather than duplicating it across concepts, and point at the field-level `DATA-DICTIONARY.md` as the authority.
+Describe the structure — fields, types, and meanings — or, for a table concept, render it as a `Column | Type | Description` markdown table. Document the schema here rather than duplicating it across concepts, and point at the field-level `docs/data-dictionary.md` as the authority.
 
 # Examples
 

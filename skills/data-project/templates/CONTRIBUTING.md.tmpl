@@ -1,75 +1,48 @@
 # Contributing to {{PROJECT_NAME}}
 
-Thanks for working on {{PROJECT_NAME}}. This guide explains how to make changes here in a way that keeps the project reproducible, legible, and safe for the data it holds. Read `AGENTS.md` for the non-negotiables and `CODE_OF_CONDUCT.md` for community norms before you start.
+Thanks for working on {{PROJECT_NAME}}. This guide explains how changes get made here so the project stays reproducible, legible and safe for the people in its data. Read `AGENTS.md` first for the non-negotiables, and `CODE_OF_CONDUCT.md` for community norms.
 
-## Environment setup
-
-Reproducibility starts with a pinned environment so that another person — or another agent — gets the same results from the same inputs. Set it up once and recreate it whenever the lockfile changes.
+## Set up
 
 ```bash
 git clone {{REPO_URL}}
 cd {{PROJECT_SLUG}}
 ```
 
-<!-- IF:PIPELINE -->For the Python toolchain, create the environment and install the project so the pipeline's modules import:
+<!-- IF:PIPELINE -->Install and run the tests with uv (Python 3.12 or newer):
 
 ```bash
-conda env create -f environment.yml
-conda activate {{PROJECT_SLUG}}
-pip install -e .
+uv sync
+uv run pytest
+uv run python -m scripts.pipeline run   # regenerate data/processed/ from the originals
 ```
 
-For an R toolchain, restore the pinned environment instead with `renv::restore()` (see `renv-note.md`).<!-- /IF -->
+For the R variant, restore the pinned environment with `renv::restore()` (see `docs/renv.md`) and run `make pipeline`.<!-- /IF -->
 
-If you add or upgrade a dependency, update the environment file in the same change so the lock and the code never drift apart. Do not rely on packages that only exist on your machine.
+When you add or upgrade a dependency, update `pyproject.toml` and `uv.lock` (or `renv.lock`) in the same change.
 
-## Branch, PR, and review workflow
+## Making a change
 
-Work on a branch named for the change (e.g. `fix/reconcile-totals` or `data/2026-intake`), never directly on the default branch. Open a pull request early, even as a draft, so others can see where the work is going and weigh in before it hardens. Every PR needs a review from someone other than the author; `CODEOWNERS` routes each path to the role responsible for it, so request the owner of the files you touched. Keep PRs small and focused on one concern — a reviewer can reason about a tight change but not a sprawling one.
+1. Open or pick an issue, so the work is visible before it starts.
+2. Branch from `{{DEFAULT_BRANCH}}` with a name that says what the change is (`fix/reconcile-totals`, `source/2026-release`). Never commit directly to `{{DEFAULT_BRANCH}}`.
+3. Keep the pull request to one concern. Fill in the [pull request template](.github/PULL_REQUEST_TEMPLATE.md): what changed, why, what you checked, and what you left alone on purpose. Put `Closes #N` in the body when it finishes an issue.
+4. Update the docs in the same PR: `docs/data-dictionary.md` for any column change, `CHANGELOG.md` for anything a user would notice, and a dated `decision-log.md` entry for any non-obvious choice (a filter, a definition, a trade-off).
 
-## Commit messages explain WHY
+## Review
 
-Write commit messages that explain the reasoning behind a change, not just the mechanics of it — the diff already shows *what* changed, so the message should capture *why* it changed and what tradeoff was accepted. A future maintainer reading `git log` should understand a filtering rule or a definition choice without having to reconstruct it. For non-obvious design or data decisions, also add a dated entry to `decision-log.md`; the commit explains the change, the decision log explains the project's choices over time.
+<!-- IF:COLLAB -->Every pull request needs an approving review from someone other than its author before it merges; `CODEOWNERS` requests the owner of each path you touched. Branch protection on `{{DEFAULT_BRANCH}}` enforces this (the command and how to check it are in `docs/governance/GOVERNANCE.md`, "Decision-making"). If branch protection is ever off, the rule is not in force: say so in the PR and turn it back on.<!-- /IF -->
+<!-- IF:SOLO -->This is a single-steward project: {{PI_NAME}} reviews and merges their own changes, and there is no second reviewer. The PR body is the review record, so fill in every section of the template honestly, including what you did not check.<!-- /IF -->
 
-## The pipeline is the shared artifact
+## Data rules
 
-The thing this project shares is the **re-runnable, text-based pipeline**, not a cleaned snapshot of the data. When a source is re-released, sharing only the cleaned output guarantees redoing the work every vintage; sharing the pipeline means the next person regenerates the result. Keep pipeline definitions legible to the subject-matter experts who need to read them, not only to developers, and treat any derived data under `data/interim/` or `data/processed/` as reproducible output rather than a source of truth.
+- **Originals are immutable.** Never edit files under `data/original/`; fix problems in code and record them in `docs/data-dictionary.md` and `decision-log.md`.
+- **The pipeline is the shared artifact,** not a cleaned snapshot. Anything in `data/processed/` must be regenerable from the originals with one command.
+- **Notebooks are for exploration.** Move reusable logic into `scripts/` and keep notebook outputs out of version control.
+- **No secrets or sensitive data in the repository,** including notebook outputs and example configs. Read credentials from the environment. <!-- IF:SENSITIVE -->This project holds **{{SENSITIVITY_TIER}}** data: follow the access tiers in `docs/governance/GOVERNANCE.md` and the responsible-data checklist before ingesting or sharing anything.<!-- /IF -->
+- **Numbers in prose are generated** from the pipeline's audit outputs. Don't hand-type a row count or total into the README.
 
-## Notebooks stay in `exploratory/`
+<!-- IF:GH -->## How we track work
 
-Notebooks are playgrounds, not products. Explore freely in `exploratory/`, then package the reusable parts into scripts or modules under `src/` at the exploration boundary, so the project's logic lives in code that can be tested and re-run. Clear notebook outputs before committing — committed outputs bloat diffs, leak data, and quietly go stale; the repository's `.gitattributes`/`.gitignore` should strip them, but check before you push.
+`ROADMAP.md` shows each Outline section's status. When a section is in progress it has a GitHub issue labeled `section:<N>`, whose body is that section's "done when" test as a task list; discussion happens on the issue, and decisions are copied to `decision-log.md` with a link. Other labels: `type:*` (data, docs, pipeline, governance, infra), `blocking` (gates an action such as ingesting sensitive data or publishing; resolve it or record the accepted risk before that action), `good-first-issue` and `help-wanted`. Labels are defined in `.github/labels.yml`, and `.github/seed-github.sh` creates or updates the labels and section issues idempotently, so re-running it never duplicates them.<!-- /IF -->
 
-## Keep secrets and sensitive data out of the repo
-
-Credentials, tokens, and raw sensitive data never belong in version control, including inside notebook cells and their outputs. Read configuration and secrets from the environment or an ignored local file, and keep the example/template config free of real values. <!-- IF:SENSITIVE -->This project handles **{{SENSITIVITY_TIER}}** data: desensitize before anything leaves the controlled tier, follow the access tiers in `docs/governance/GOVERNANCE.md`, and complete the `docs/checklists/responsible-data-checklist.md` before ingesting or sharing data.<!-- /IF -->
-
-## Discoverability is a feature
-
-A data portal is poor at connecting people, so the burden of making this project and its contributors findable falls on its documentation. When you add a capability, update the `README.md`, the relevant role in `docs/governance/CHARTER.md`, and the schema in `DATA-DICTIONARY.md` so the next person can find and reuse what you built. Treat documentation that has fallen behind the code as a bug.
-
-## How we track work
-
-We keep the assignable checklist in `ROADMAP.md` and the handoff memo in `NEXT-STEPS.md`; those two files are enough to run the project on their own. The GitHub layer below mirrors them for teams.
-
-<!-- IF:GH -->**Issue → milestone → board.** Each task is one GitHub Issue — the smallest unit a person can be assigned and held accountable for. Issues for a maturity level are grouped under a per-level **milestone** (**{{MILESTONE_TITLE}}**), so "what does this level still owe" is one click away and closing the milestone marks the level done. <!-- IF:PROJECT -->Issues then surface on the **{{PROJECT_TITLE}}** Project board across board, table, and roadmap views.<!-- /IF -->
-
-**Label taxonomy.** Apply consistently so you can slice the work without reading every issue: `level:*` (which rung), `priority:*` (`high`/`med`/`low`), `size:*` (`s`/`m`/`l`), `type:*` (e.g. `type:data`, `type:docs`, `type:pipeline`, `type:governance`), and `blocking` (gates ingesting sensitive data, publishing, or climbing a level — must be closed or its risk explicitly accepted before the project does the thing it guards).
-
-**Source of truth and idempotent sync.** The `ROADMAP.md` checklist is the source of truth and GitHub is a projection of it. Edit the checklist first, then re-run `data-project track` (or `.github/seed-github.sh`) to create-or-update the labels, milestone, issues<!-- IF:PROJECT -->, and Project items<!-- /IF --> from it. The sync is **idempotent** — it matches existing issues and updates them rather than duplicating — so it is safe to re-run after every roadmap edit.
-
-**Access and scopes.** Automating this needs the right token scopes; the most common failure is that Projects v2 lives at org/user scope, not repo scope. See `.github/ACCESS.md` for the exact scopes each path needs (`gh` refresh, classic PAT, fine-grained PAT, or GitHub App) and the preflight that downgrades gracefully. When a CI workflow needs a Project or the wiki, supply a PAT/App token as a repository secret (referenced by its `secrets.PROJECTS_TOKEN` name); the default Actions token cannot modify org Projects or push the wiki.
-<!-- /IF -->
-
-<!-- IF:WIKI -->**Long-form docs live in the wiki.** Narrative/how-to that outgrows the README lives in this repo's wiki (a separate git repo with its own `Home`/`_Sidebar`), so the front-door docs stay short. By default only repository collaborators can edit it; keep the plan itself in `ROADMAP.md`.<!-- /IF -->
-
-## PR checklist
-
-Before requesting review, confirm:
-
-- [ ] Branched from the default branch; the PR describes the change and *why* it was made.
-- [ ] Derived data is regenerable from `data/raw/` via the pipeline; nothing under `data/raw/` was edited in place.
-- [ ] Reusable logic lives in `src/`; notebooks stay in `exploratory/` with outputs cleared.
-- [ ] No secrets or sensitive data in the diff (code, config, or notebook outputs).
-- [ ] Environment/lockfile updated if dependencies changed; results reproduce in a clean environment.
-- [ ] Docs updated (`README.md`, `DATA-DICTIONARY.md`, `decision-log.md`) for any user-visible or non-obvious change.
-- [ ] The right `CODEOWNERS` reviewer is requested.
+<!-- IF:PROJECT -->The issues also appear on the **{{PROJECT_TITLE}}** Project board, which syncs from the issues; don't track the same value in two places.<!-- /IF -->

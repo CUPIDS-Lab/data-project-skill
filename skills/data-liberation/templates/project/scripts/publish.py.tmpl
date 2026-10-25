@@ -11,7 +11,8 @@ Also generates `data/processed/metadata.yaml` from `docs/data-dictionary.md`
 so the per-column descriptions stay in sync between the hand-maintained
 reference and the published interface.
 
-See `references/toolchain-datasette.md` for the full Datasette toolchain.
+See `publishing.md` in the data-liberation skill for the Datasette toolchain:
+https://github.com/CUPIDS-Lab/data-skills/tree/main/skills/data-liberation/references/publishing.md
 """
 
 from __future__ import annotations
@@ -22,7 +23,6 @@ import shutil
 import subprocess
 import sys
 
-import structlog
 import yaml
 
 from scripts.config import (
@@ -32,14 +32,19 @@ from scripts.config import (
     PROCESSED_DB,
     PROVENANCE_CSV,
 )
+from scripts.schema import KEY_COLUMNS
 
-log = structlog.get_logger()
+
+def _log(event: str, **fields: object) -> None:
+    """One line per event on stderr: `event key=value ...`."""
+    print(event, *(f"{k}={v}" for k, v in fields.items()), file=sys.stderr)
+
 
 DATA_DICTIONARY_MD = DOCS / "data-dictionary.md"
 
 # Which columns to declare as the composite primary key on the main table.
 # Override if the canonical schema's key differs from the default observation key.
-PRIMARY_KEY: list[str] = ["source", "vintage", "observation_id"]
+PRIMARY_KEY: list[str] = KEY_COLUMNS
 
 # Columns to facet by default in Datasette. Override per project — typically
 # the categorical columns readers will filter on (source, vintage, geography).
@@ -50,8 +55,8 @@ FACET_COLUMNS: list[str] = ["source", "vintage"]
 FTS_COLUMNS: list[str] = []
 
 # Datasette plugins to install at deploy time. Override per project — the
-# defaults work for most civic-data tables. See references/toolchain-datasette.md
-# for the full plugin catalog.
+# defaults work for most civic-data tables; publishing.md in the data-liberation
+# skill lists more.
 DEPLOY_PLUGINS: list[str] = [
     "datasette-cluster-map",
     "datasette-render-markdown",
@@ -68,22 +73,22 @@ def build(force: bool = True) -> int:
     is a deterministic function of the canonical CSV.
     """
     if not PROCESSED_CSV.exists():
-        log.error(
+        _log(
             "build_no_processed_csv",
             path=str(PROCESSED_CSV),
-            hint="run `python -m scripts.pipeline clean` first",
+            hint="run `python -m scripts.pipeline run` first",
         )
         return 1
 
     if shutil.which("sqlite-utils") is None:
-        log.error("build_no_sqlite_utils", hint="install with `uv sync --extra publish`")
+        _log("build_no_sqlite_utils", hint="install with `uv sync --extra publish`")
         return 1
 
-    table = "{{PROJECT_SLUG}}"
+    table = "{{PKG_NAME}}"
 
     if force and PROCESSED_DB.exists():
         PROCESSED_DB.unlink()
-        log.info("removed_existing_db", path=str(PROCESSED_DB))
+        _log("removed_existing_db", path=str(PROCESSED_DB))
 
     # Main table — text dtypes by default; coerce explicit numeric columns
     # via `--type <col> INTEGER|REAL` in `sqlite-utils transform` afterward.
@@ -102,32 +107,17 @@ def build(force: bool = True) -> int:
                 str(PROVENANCE_CSV),
                 "--csv",
                 "--pk",
-                "source",
-                "--pk",
-                "vintage",
+                "artifact",
             ]
         )
-        # Foreign key — sqlite-utils raises if it already exists, so allow failure.
-        try:
-            _run_sqlite_utils(
-                [
-                    "add-foreign-key",
-                    str(PROCESSED_DB),
-                    table,
-                    "source",
-                    "provenance",
-                    "source",
-                ]
-            )
-        except subprocess.CalledProcessError:
-            pass
+        # The data table joins to provenance on (source, vintage).
 
     # Indexes for faceting performance.
     for col in FACET_COLUMNS:
         try:
             _run_sqlite_utils(["create-index", "--if-not-exists", str(PROCESSED_DB), table, col])
         except subprocess.CalledProcessError as exc:
-            log.warning("index_failed", column=col, error=str(exc))
+            _log("index_failed", column=col, error=str(exc))
 
     # Full-text search on narrative columns, if configured.
     if FTS_COLUMNS:
@@ -141,7 +131,7 @@ def build(force: bool = True) -> int:
             ]
         )
 
-    log.info("built_db", path=str(PROCESSED_DB), table=table)
+    _log("built_db", path=str(PROCESSED_DB), table=table)
 
     # Generate metadata.yaml from the data dictionary.
     generate_metadata()
@@ -151,7 +141,7 @@ def build(force: bool = True) -> int:
 def _run_sqlite_utils(args: list[str]) -> None:
     """Wrapper around `sqlite-utils <args>` that logs and surfaces errors."""
     cmd = ["sqlite-utils", *args]
-    log.info("sqlite_utils", cmd=" ".join(cmd))
+    _log("sqlite_utils", cmd=" ".join(cmd))
     subprocess.run(cmd, check=True)
 
 
@@ -174,19 +164,19 @@ def generate_metadata() -> None:
         "license": "CC-BY-4.0",
         "license_url": "https://creativecommons.org/licenses/by/4.0/",
         "source": "{{PROJECT_NAME}} pipeline",
-        "source_url": "https://github.com/example/{{PROJECT_SLUG}}",
+        "source_url": "https://github.com/{{OWNER}}/{{PROJECT_SLUG}}",
         "databases": {
-            "{{PROJECT_SLUG}}": {
+            "{{PKG_NAME}}": {
                 "description": "{{DESCRIPTION}}",
                 "tables": {
-                    "{{PROJECT_SLUG}}": {
+                    "{{PKG_NAME}}": {
                         "description": "Tidy long-form output of the {{PROJECT_NAME}} pipeline.",
                         "sort": "vintage",
                         "facets": FACET_COLUMNS,
                         "columns": {col: desc for col, desc in columns.items()},
                     },
                     "provenance": {
-                        "description": "Per-extract provenance: source URL, sha256, retrieval timestamp.",
+                        "description": "Per-extract provenance: one row per original file and parser run.",
                     },
                 },
             },
@@ -195,7 +185,7 @@ def generate_metadata() -> None:
 
     METADATA_YAML.parent.mkdir(parents=True, exist_ok=True)
     METADATA_YAML.write_text(yaml.safe_dump(metadata, sort_keys=False))
-    log.info("wrote_metadata", path=str(METADATA_YAML), columns=len(columns))
+    _log("wrote_metadata", path=str(METADATA_YAML), columns=len(columns))
 
 
 def _parse_data_dictionary() -> dict[str, str]:
@@ -245,7 +235,7 @@ def serve(port: int = 8001) -> int:
     if build() != 0:
         return 1
     if shutil.which("datasette") is None:
-        log.error("serve_no_datasette", hint="install with `uv sync --extra publish`")
+        _log("serve_no_datasette", hint="install with `uv sync --extra publish`")
         return 1
     cmd = [
         "datasette",
@@ -257,7 +247,7 @@ def serve(port: int = 8001) -> int:
         str(port),
         "-o",
     ]
-    log.info("serve", cmd=" ".join(cmd))
+    _log("serve", cmd=" ".join(cmd))
     subprocess.run(cmd)
     return 0
 
@@ -267,7 +257,7 @@ def deploy(provider: str = "vercel", project: str | None = None) -> int:
     if build() != 0:
         return 1
     if shutil.which("datasette") is None:
-        log.error("deploy_no_datasette", hint="install with `uv sync --extra publish`")
+        _log("deploy_no_datasette", hint="install with `uv sync --extra publish`")
         return 1
     cmd = ["datasette", "publish", provider, str(PROCESSED_DB), "--metadata", str(METADATA_YAML)]
     if provider == "vercel":
@@ -278,7 +268,7 @@ def deploy(provider: str = "vercel", project: str | None = None) -> int:
         cmd += ["--service", project or "{{PROJECT_SLUG}}"]
     for plugin in DEPLOY_PLUGINS:
         cmd += ["--install", plugin]
-    log.info("deploy", cmd=" ".join(cmd))
+    _log("deploy", cmd=" ".join(cmd))
     subprocess.run(cmd, check=True)
     return 0
 

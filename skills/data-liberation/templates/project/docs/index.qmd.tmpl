@@ -17,7 +17,7 @@ time it's regenerated, and published in three forms:
   [GitHub Releases](https://github.com/{{OWNER}}/{{PROJECT_SLUG}}/releases) page.
 - **Reproduce from scratch** by cloning the repository and running
   `uv run python -m scripts.pipeline run` — full instructions in the
-  [README](https://github.com/{{OWNER}}/{{PROJECT_SLUG}}#reproducibility).
+  [README](https://github.com/{{OWNER}}/{{PROJECT_SLUG}}#reproduce-it).
 
 ## What's where
 
@@ -26,17 +26,18 @@ time it's regenerated, and published in three forms:
 | [Data dictionary](data-dictionary.md) | Column-by-column reference, dtypes, value sets, caveats |
 | [Filter / pivot recipes](filter-pivot-recipes.md) | Python/pandas, R/tidyverse, SQL/DuckDB patterns for common questions |
 | [Methodology](methodology.qmd) | How each source is extracted, validated, and harmonized |
-| [Changelog](changelog.qmd) | Per-vintage changes, schema migrations, known issues |
+| [Changelog](../CHANGELOG.md) | Data and schema changes, corrections |
 
 ## Citation
 
 If you use this dataset, please cite:
 
 ```bibtex
-@misc{{{PROJECT_SLUG}},
+@misc{{{PKG_NAME}},
   author = {{{AUTHOR}}},
   title  = {{{{PROJECT_NAME}}}},
-  year   = {{2026}},
+  year    = {<year of the release you used>},
+  version = {<release tag>},
   url    = {{https://github.com/{{OWNER}}/{{PROJECT_SLUG}}}}
 }
 ```

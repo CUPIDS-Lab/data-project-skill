@@ -11,7 +11,7 @@ title: "Filter / pivot recipes"
 >
 > Recipes ship in three stacks — **Python/pandas**, **R/tidyverse**,
 > and **SQL/DuckDB** — all reading the same canonical CSV at
-> `data/processed/{{PROJECT_SLUG}}.csv`. Pick the one that matches
+> `data/processed/{{PKG_NAME}}.csv`. Pick the one that matches
 > the consumer audience (**{{CONSUMER_STACK}}** by default for this
 > project). Add more stacks as common downstream uses emerge.
 
@@ -23,7 +23,7 @@ title: "Filter / pivot recipes"
 import pandas as pd
 
 df = pd.read_csv(
-    "data/processed/{{PROJECT_SLUG}}.csv",
+    "data/processed/{{PKG_NAME}}.csv",
     dtype=str,  # safe default — coerce specific columns below
 )
 
@@ -37,7 +37,7 @@ df = pd.read_csv(
 library(readr); library(dplyr); library(tidyr)
 
 df <- read_csv(
-  "data/processed/{{PROJECT_SLUG}}.csv",
+  "data/processed/{{PKG_NAME}}.csv",
   col_types = cols(.default = col_character())
 )
 
@@ -58,7 +58,7 @@ df <- read_csv(
 CREATE OR REPLACE VIEW data AS
 SELECT *
 FROM read_csv(
-  'data/processed/{{PROJECT_SLUG}}.csv',
+  'data/processed/{{PKG_NAME}}.csv',
   -- Keep ID-like columns as text so leading zeros survive.
   types = {'observation_id': 'VARCHAR', 'vintage': 'VARCHAR', 'source': 'VARCHAR'}
 );
@@ -209,6 +209,7 @@ ORDER BY d.vintage, c.district;
 
 ---
 
+<!-- IF:MULTI_SOURCE -->
 ## Recipe 4 — Cross-source concept comparison
 
 *"For every observation_id where source A and source B both
@@ -258,6 +259,7 @@ USING first("<value_column>");
 ```
 
 ---
+<!-- /IF -->
 
 ## Why long-then-pivot, not wide-as-primary
 
@@ -276,6 +278,7 @@ The reasons:
   long, "null rate of `votes`" is the question, and any vintage
   imbalance shows up in source coverage.
 
-There are exceptions — see `references/data-modeling.md` ("When
-wide-as-primary is OK") in the data-liberation skill. CVR-style
+There are exceptions: see "When wide is the natural primary" in the
+data-liberation skill's
+[data-modeling.md](https://github.com/CUPIDS-Lab/data-skills/tree/main/skills/data-liberation/references/data-modeling.md). CVR-style
 ballot-image data is the canonical case. But the default is long.

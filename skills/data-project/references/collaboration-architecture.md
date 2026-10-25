@@ -7,7 +7,7 @@ tags: [collaboration, roles, governance, team-data-science, charter, anti-patter
 
 # Collaboration Architecture
 
-Read this when the project has more than one person, more than one institution, or contributed data — i.e. whenever you are at L3 or being asked about governance, roles, or partners. It supplies the typology that right-sizes governance, the roles a collaboration runs on, the data practices that make joint work possible, the decisions a charter must settle, and the workflow anti-patterns to design against.
+Read this when the project has more than one person, more than one institution, or contributed data, which is whenever Outline section 7 (Govern & collaborate) is in scope or the user asks about governance, roles or partners. The governance rules themselves (access tiers, review gates, remedy) are in `_shared/governance.md`; the values behind them are in `_shared/values-and-gates.md`. It supplies the typology that right-sizes governance, the roles a collaboration runs on, the data practices that make joint work possible, the decisions a charter must settle, and the workflow anti-patterns to design against.
 
 ## Collaboratory typology (sets governance weight)
 
@@ -58,7 +58,9 @@ Draw the charter (silently) from three interacting levels — organizational, po
 ## Workflow anti-patterns (frame as what to do)
 
 - **Pipeline-as-code is the shared artifact, not the cleaned snapshot.** When sources are re-released, share a text-based, re-runnable pipeline; sharing only the cleaned data guarantees redoing the work every vintage. Keep it legible to subject-matter experts, not only developers.
-- **Notebooks stay in `exploratory/`.** They are playgrounds, not products; package code into importable modules under `src/<pkg>/` (the repo-wide package location) at the exploration boundary, and keep notebook outputs out of version control (`nbstripout`).
-- **Reproducibility means pinned environments.** Capture dependencies so another person — or another agent — can re-run results; avoid binary blobs version control can't diff.
+- **Notebooks are thin drivers over tested code.** They are for exploration, not products; move reusable logic into `scripts/` (data-liberation's project shape) at the exploration boundary, and keep notebook outputs out of version control (`nbstripout`).
+- **Reproducibility means pinned environments.** Capture dependencies (`pyproject.toml` + `uv.lock`, or `renv.lock`) so another person or agent can re-run results; avoid binary blobs version control can't diff.
 - **Secrets and sensitive data never land in the repo.** Keep credentials out of code and notebooks; desensitize before anything leaves the controlled tier.
 - **Discoverability is a feature.** Data portals are poor at connecting people, so the README, roles, and charter carry the weight of making the project and its contributors findable.
+- **Solo is a real configuration, not a failure.** A one-person project names a single steward and records decisions in PR bodies and the decision-log; it does not invent a committee or claim review gates nothing enforces.
+- **Onboard with a tested tutorial, not more documents.** When several people join, a short series of tutorials whose every command has actually been run is a better single path in than a stack of governance files.

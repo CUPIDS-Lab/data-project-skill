@@ -1,7 +1,7 @@
 # Claude Code revision plan — `data-liberation` skill
 
 **Responds to:** the after-action report from the first real deployment of `data-liberation`
-(Colorado Environmental Data Hub → `pipelines/reservoir-storage/`, 2026-06-19).
+(a multi-pipeline environmental data project, 2026-06-19).
 **Skill baseline:** `v0.4.0` (six-level restructure; template pin
 `72b202020c12056f19c828bff0b619cda5aadf64`).
 **Parallel to:** `retro/data-project-skill-revision-plan.md` in the sibling `data-project` skill.
@@ -111,12 +111,12 @@ It must cover the exact traps the deployment hit:
 - **The probe-then-extract loop** (the headline discipline): pull a handful of records, decode the
   contract (field names, envelope shape, null/empty conventions, required params), *then* write the
   parser. Frame it as the API analog of "profile before you parse."
-- **Empty-vs-error conventions** — `404 = zero records` (CDSS), `200` with an empty body, `200` with
+- **Empty-vs-error conventions** — `404 = zero records` (one state agency API), `200` with an empty body, `200` with
   an unrelated default page. How to tell "no data" from "you asked wrong."
 - **Required-parameter quirks** — endpoints that need *both* `startDate` **and** `endDate` for full
   history (neither alone works); silently-defaulted filters (`locationId[]` / `search` returning an
   unrelated page).
-- **Field-name surprises** — the value field is `measValue`, not `value`; decode by probing, don't
+- **Field-name surprises** — the value field had an unexpected name, not `value`; decode by probing, don't
   assume.
 - **Pagination, centralized** — `links.next` / RFC 5988 `Link` headers, cursor, offset; **document
   hard caps** (e.g. a 10k-row ceiling) and the guard pattern; the "cached session returns empty body
@@ -170,7 +170,7 @@ It must cover the exact traps the deployment hit:
 
 Document **enumerating the entity universe behind an API** as a first-class, *separate* operation
 from vintage discovery. Vintage discovery answers "is there a new file?"; entity enumeration answers
-"what stations / reservoirs / institutions *exist* behind this endpoint?" (the CDSS station list; the
+"what stations / sensors / institutions *exist* behind this endpoint?" (an agency station list; the
 RISE catalog traversal; the hand-built `stations.py`).
 
 In `extract-api.md`: a short "Enumerate the entity universe" section — the relationship-traversal
@@ -219,7 +219,7 @@ Cross-link from `pipeline.md` step 3 (deduplication) and from the composite-key 
 ### WS-D (part 1) — validation granularity + dedup-before-validate *(prose; `pipeline.md`, `data-modeling.md`)*
 
 The deployment's worst bug: a handful of duplicate-date rows failed a **frame-uniqueness** check
-*inside a parser*, the SchemaError was caught at the artifact level, and the **entire reservoir**
+*inside a parser*, the SchemaError was caught at the artifact level, and the **entire source**
 (ruedi, turquoise, twin-lakes…) was dropped and logged — a few bad rows became missing sources,
 visible only by reading a JSON file.
 
@@ -349,7 +349,7 @@ package**, not logic-in-notebooks. The driver notebook runs the four stages
       green on both repos; `SKILL.md` + `project-template.md` document when to choose it.
 
 ### WS-J — reconcile `scripts/` ↔ `src/` with `data-project` *(skill + template)*
-Resolve the rigidity the AAR flagged (skill mandates `scripts/`; the build needed `src/reservoir/`
+Resolve the rigidity the AAR flagged (skill mandates `scripts/`; the build needed `src/<pkg>/`
 for testability/importability and parent-repo consistency). **Decision required — see §6.1.** Whatever
 is chosen, document the rationale and (if a flag) wire it through `scaffold.py`.
 - [ ] `project-template.md` "Conventions worth defending" no longer reads as an absolute bar on

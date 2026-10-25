@@ -1,43 +1,28 @@
-# Pipeline-as-code for {{PROJECT_NAME}}.
-# Pipelines, not cleaned snapshots, are the shared artifact: when raw data is
-# re-released, re-running this re-applies every transformation. Keep it legible
-# to subject-matter experts, not only developers. Preview with `snakemake -n`.
+# Optional Snakemake wrapper for {{PROJECT_NAME}}.
+# The pipeline itself is `python -m scripts.pipeline run` (data-liberation's project shape); this file
+# only lets people who prefer Snakemake drive it. CI never depends on it. Preview with `snakemake -n`,
+# run with `snakemake --cores 1`. Paths and the deliverable name live in config.yaml.
 
 configfile: "config.yaml"
 
 
-# Final targets the pipeline produces.
 rule all:
     input:
-        "data/processed/analysis_ready.parquet",
-        "results/tables/summary.csv",
+        config["deliverable"],
 
 
-# Ingest: copy/validate raw into interim. Raw is immutable — read, never edit in place.
-rule ingest:
-    input:
-        "data/raw/{{RAW_FILE}}",
+# discover -> fetch -> clean -> audit, in one step. Originals in data/original/ are immutable;
+# the pipeline reads them and writes data/processed/ and data/audit/.
+rule run:
     output:
-        "data/interim/ingested.parquet",
+        config["deliverable"],
     shell:
-        "python -m {{PKG_NAME}}.ingest {input} {output}"
+        "uv run python -m scripts.pipeline run"
 
 
-# Clean / tidy: one variable per column, one observation per row.
-rule clean:
+# Reconcile against the source's printed totals (opt-in in data-liberation's pipeline).
+rule reconcile:
     input:
-        "data/interim/ingested.parquet",
-    output:
-        "data/processed/analysis_ready.parquet",
+        config["deliverable"],
     shell:
-        "python -m {{PKG_NAME}}.clean {input} {output}"
-
-
-# Analyze: produce a summary table from the analysis-ready data.
-rule analyze:
-    input:
-        "data/processed/analysis_ready.parquet",
-    output:
-        "results/tables/summary.csv",
-    shell:
-        "python -m {{PKG_NAME}}.analyze {input} {output}"
+        "uv run python -m scripts.pipeline reconcile"

@@ -1,0 +1,150 @@
+# Which Outline section owns each reference and template.
+#
+# tools/validate.py fails unless every file under skills/<name>/references/ and
+# skills/<name>/templates/ (except vendored _shared/ copies) and every file in shared/
+# matches exactly one pattern here. Sections are 1–10, or "outline" for files that
+# serve the whole Outline. A feedback issue filed against a section is fixed in the
+# files mapped to it.
+#
+# Patterns are relative to the skill folder (or to shared/) and use pathlib
+# full_match semantics: "*" stays within one directory, "**" crosses directories.
+
+shared:
+  OUTLINE.md: outline
+  references/values-and-gates.md: 1
+  references/responsible-data.md: 1
+  references/quality-and-bulletproofing.md: 5
+  references/standards-and-fair.md: 6
+  references/governance.md: 7
+  references/practice-sources.md: outline
+  references/feedback.md: 10
+  templates/decision-log.md.tmpl: 6
+  templates/ROADMAP.md.tmpl: 10
+
+data-liberation:
+  references/lineage-and-landscape.md: 1
+  references/extract-web.md: 2
+  references/extract-api.md: 2
+  references/extract-pdf.md: 3
+  references/extract-images.md: 3
+  references/extract-documents.md: 3
+  references/extract-tabular.md: 3
+  references/data-modeling.md: 4
+  references/pipeline.md: 5
+  references/project-template.md: 5
+  references/publishing.md: 8
+  # Acquire
+  templates/project/scripts/source.py: 2
+  templates/project/scripts/fetch.py: 2
+  templates/project/scripts/discover.py: 2
+  templates/project/scripts/config.py.tmpl: 2
+  templates/project/data/original/.gitkeep: 2
+  templates/project/tests/test_source.py: 2
+  # Extract
+  templates/project/scripts/parsers/__init__.py: 3
+  templates/project/scripts/provenance.py: 3
+  templates/project/tests/fixtures/.gitkeep: 3
+  # Model & tidy
+  templates/project/scripts/schema.py.tmpl: 4
+  templates/project/scripts/clean.py: 4
+  templates/project/scripts/concepts.py: 4
+  templates/project/data/lookups/*: 4
+  templates/project/docs/data-dictionary.md.tmpl: 4
+  templates/project/docs/filter-pivot-recipes.md.tmpl: 4
+  templates/project/tests/test_schema.py: 4
+  templates/project/tests/test_clean.py: 4
+  templates/project/tests/test_concepts.py: 4
+  templates/project/tests/test_lookups.py: 4
+  # Pipeline & audit
+  templates/project/scripts/__init__.py.tmpl: 5
+  templates/project/scripts/__main__.py: 5
+  templates/project/scripts/pipeline.py.tmpl: 5
+  templates/project/scripts/audit.py: 5
+  templates/project/scripts/reconcile.py: 5
+  templates/project/scripts/runlog.py: 5
+  templates/project/data/processed/.gitkeep: 5
+  templates/project/data/audit/.gitkeep: 5
+  templates/project/tests/conftest.py: 5
+  templates/project/tests/test_reconcile.py: 5
+  templates/project/pyproject.toml.tmpl: 5
+  templates/project/.gitignore: 5
+  templates/project/.gitattributes.tmpl: 5
+  templates/project/.github/workflows/tests.yml: 5
+  # Document & cite
+  templates/project/README.md.tmpl: 6
+  templates/project/AGENTS.md.tmpl: 6
+  templates/project/CLAUDE.md: 6
+  templates/project/CHANGELOG.md.tmpl: 6
+  templates/project/LICENSE.tmpl: 6
+  templates/project/decision-log.md.tmpl: 6
+  templates/project/docs/methodology.qmd.tmpl: 6
+  templates/project/tests/test_generated_docs.py: 6
+  # Publish
+  templates/project/scripts/publish.py.tmpl: 8
+  templates/project/scripts/upload_documentcloud.py: 8
+  templates/project/_quarto.yml.tmpl: 8
+  templates/project/docs/index.qmd.tmpl: 8
+  templates/project/.github/workflows/publish.yml.disabled.tmpl: 8
+  templates/project/.github/workflows/gh-pages.yml.disabled: 8
+  # Maintain & feedback
+  templates/project/ROADMAP.md.tmpl: 10
+  templates/project/.github/workflows/refresh.yml.disabled: 10
+  templates/project/.github/ISSUE_TEMPLATE/data-correction.yml: 10
+
+data-project:
+  references/procedures/scope.md: 1
+  references/multi-pipeline.md: 5
+  references/collaboration-architecture.md: 7
+  references/procedures/deposit.md: 9
+  references/dataverse-deposit.md: 9
+  references/open-sharing-protocol.md: 9
+  references/agentic-resource-discovery.md: 9
+  references/okf-open-knowledge-format.md: 9
+  references/github.md: 10
+  references/procedures/tracking.md: 10
+  references/procedures/audit.md: outline
+  references/procedures/scaffold.md: outline
+  templates/directory-tree.md: outline
+  # Scope & gate
+  templates/scope-canvas.md.tmpl: 1
+  templates/responsible-data-checklist.md.tmpl: 1
+  # Acquire / pipeline stack (used when a project has no data-liberation pipeline yet)
+  templates/gitignore.tmpl: 5
+  templates/gitattributes.tmpl: 5
+  templates/ci/github-actions-ci.yml.tmpl: 5
+  templates/ci/pipelines-ci.yml.tmpl: 5
+  templates/python/*: 5
+  templates/r/*: 5
+  templates/pre-release-checklist.md.tmpl: 5
+  # Model & tidy
+  templates/data-dictionary.md.tmpl: 4
+  # Document & cite
+  templates/README.md.tmpl: 6
+  templates/AGENTS.md.tmpl: 6
+  templates/CHANGELOG.md.tmpl: 6
+  templates/CITATION.cff.tmpl: 6
+  templates/codemeta.json.tmpl: 6
+  templates/data-card.md.tmpl: 6
+  templates/decision-log.md.tmpl: 6
+  # Govern & collaborate
+  templates/GOVERNANCE.md.tmpl: 7
+  templates/CHARTER.md.tmpl: 7
+  templates/CODEOWNERS.tmpl: 7
+  templates/CONTRIBUTING.md.tmpl: 7
+  templates/CODE_OF_CONDUCT.md.tmpl: 7
+  templates/data-management-plan.md.tmpl: 7
+  templates/github/PULL_REQUEST_TEMPLATE.md.tmpl: 7
+  # Publish
+  templates/FAIR-CHECKLIST.md.tmpl: 8
+  templates/accessibility-checklist.md.tmpl: 8
+  # Deposit, share & discover
+  templates/dataverse/*: 9
+  templates/ci/dataverse-deposit.yml.tmpl: 9
+  templates/opensharing/*: 9
+  templates/ard/*: 9
+  templates/okf/*: 9
+  # Maintain & feedback
+  templates/ROADMAP.md.tmpl: 10
+  templates/github/ISSUE_TEMPLATE/*: 10
+  templates/github/labels.yml.tmpl: 10
+  templates/github/seed-github.sh.tmpl: 10

@@ -1,6 +1,10 @@
 # Normalize line endings so diffs stay clean across platforms
 * text=auto eol=lf
 
+# Originals are immutable: keep their exact bytes (no line-ending conversion) so their hashes
+# in provenance stay valid.
+data/original/** -text
+
 # Treat common data/binary types as binary (no line-ending munging, clearer diffs)
 *.parquet binary
 *.feather binary
@@ -11,10 +15,12 @@
 *.png binary
 *.jpg binary
 
-# Optional: track large data files with Git LFS instead of committing them directly.
+# Optional, per the storage budget (Outline section 2): track large files with Git LFS instead
+# of committing them directly.
 # Uncomment and run `git lfs install` + `git lfs track "..."` if you adopt LFS.
 # *.csv filter=lfs diff=lfs merge=lfs -text
-# data/processed/** filter=lfs diff=lfs merge=lfs -text
+# data/original/**/*.pdf filter=lfs diff=lfs merge=lfs -text
+# data/processed/*.parquet filter=lfs diff=lfs merge=lfs -text
 <!-- IF:NOTEBOOKS -->
 # Notebooks: strip executed outputs on stage/commit so diffs stay clean and outputs
 # never land in history. Requires a one-time `nbstripout --install` per clone (see

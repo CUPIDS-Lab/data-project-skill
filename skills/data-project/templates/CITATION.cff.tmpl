@@ -2,15 +2,16 @@ cff-version: 1.2.0
 message: "If you use this project or its data, please cite it."
 title: "{{PROJECT_NAME}}"
 abstract: "{{DESCRIPTION}}"
-# `dataset` is the primary citable artifact of a data project; the code is described in codemeta.json.
+# `dataset` is the primary citable artifact of a data project. A released software package is
+# described separately in codemeta.json (section 6, only when releasing a package).
 type: dataset
 authors:
-  # A person uses given-names + family-names; edit this entry (and add co-authors) accordingly.
+  # A person uses given-names + family-names (and an orcid); edit this entry and add co-authors.
   - name: "{{PI_NAME}}"
     affiliation: "{{LAB_NAME}}"
 repository-code: "{{REPO_URL}}"
 license: {{LICENSE}}
-# Set to the release date; the DOI (once minted at deposit) goes in `identifiers:` as a `doi`.
-date-released: "{{YEAR}}-01-01"
 keywords:
   - {{PROJECT_SLUG}}
+# At the first release, add `version:` and `date-released:` (YYYY-MM-DD of that release), and
+# once a DOI is minted at deposit, add it under `identifiers:` as `- type: doi`.

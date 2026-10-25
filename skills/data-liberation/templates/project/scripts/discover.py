@@ -1,57 +1,36 @@
-"""Enumerate what's available upstream, without downloading.
+"""Discover: list every artifact upstream and flag the ones not fetched yet.
 
-Walks every `Source.discover()` in the registry, reports artifacts to
-stdout, and writes a timestamped diff target at
-`data/audit/discovery-<ts>.txt` so consecutive runs are comparable.
+For a recurring source, a new vintage appearing here is the signal the refresh
+workflow acts on. Writes `data/audit/discovery.md` (committed; no timestamps, so
+the file changes only when the upstream list does). Make `artifacts()` in
+`scripts/source.py` scrape the publisher's index page when the list of files grows
+over time; keep it a static list when the URLs are predictable.
 
-A new vintage appearing in this output is the signal to fetch.
-
-See `references/discovery-and-audit.md` for the patterns this implements.
+Ephemeral sources (a page that only ever shows today's records) cannot be
+backfilled: a missed run is lost for good. For those, fetch on a schedule with a
+redundant second run, write one dated file per capture, and let this report show
+gaps in the dates; don't rely on one cron run being on time.
 """
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from scripts import source
+from scripts.config import DATA_AUDIT
 
-import structlog
-
-from scripts.config import DATA_AUDIT, SOURCES
-
-log = structlog.get_logger()
+DISCOVERY_MD = DATA_AUDIT / "discovery.md"
 
 
 def discover_all() -> int:
-    """Run discover() on every registered source. Returns process exit code."""
-    if not SOURCES:
-        log.info("discover_empty_registry", hint="see scripts/config.py::SOURCES")
-        print("No sources registered. Add classes to scripts/config.py::SOURCES.")
-        return 0
-
-    ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-    out_lines: list[str] = [f"# Discovery {ts}", ""]
-
-    for slug, cls in SOURCES.items():
-        out_lines.append(f"## {slug}")
-        try:
-            source = cls()
-            artifacts = list(source.discover())
-        except Exception as exc:  # noqa: BLE001
-            log.error("discover_failed", source=slug, error=str(exc))
-            out_lines.append(f"  (errored: {type(exc).__name__}: {exc})")
-            out_lines.append("")
-            continue
-
-        log.info("discovered", source=slug, count=len(artifacts))
-        out_lines.append(f"  {len(artifacts)} artifacts:")
-        for a in artifacts:
-            already = "✓" if a.local_path.exists() else " "
-            out_lines.append(f"    [{already}] {a.vintage}: {a.url}")
-        out_lines.append("")
-
-    text = "\n".join(out_lines)
-    print(text)
-
-    out_path = DATA_AUDIT / f"discovery-{ts}.txt"
-    out_path.write_text(text)
-    log.info("wrote_discovery", path=str(out_path))
+    arts = source.artifacts()
+    if not arts:
+        print("No artifacts configured: list them in scripts/source.py.")
+        return 2
+    new = [a for a in arts if not a.local_path.exists()]
+    lines = ["# Discovery", "", f"{len(arts)} artifacts upstream; {len(new)} not fetched yet.", ""]
+    lines += ["| vintage | artifact | fetched | url |", "| --- | --- | --- | --- |"]
+    for a in arts:
+        fetched = "no" if a in new else "yes"
+        lines.append(f"| {a.vintage} | `{a.rel}` | {fetched} | {a.url} |")
+    DISCOVERY_MD.write_text("\n".join(lines) + "\n")
+    print(f"discover: {len(arts)} artifacts upstream, {len(new)} new.")
     return 0

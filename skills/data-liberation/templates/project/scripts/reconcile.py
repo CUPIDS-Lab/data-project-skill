@@ -1,42 +1,36 @@
-"""Reconcile: top-line totals verification (opt-in).
+"""Reconcile: recompute the source's own printed totals from the processed rows.
 
-For high-stakes pipelines — election results, financial reports, agency
-budgets, anything that will be cited publicly — `reconcile.py` re-opens
-each original artifact, computes a small set of authoritative top-line
-totals, and compares them to what's in the processed deliverable. A
-mismatch is a regression: the run completes (don't lose the data), but
-CI fails on the reconcile job and the audit flags it.
+Opt-in per source, and worth it whenever the publisher prints totals or subtotals
+(statements of vote, financial reports, enrollment counts). Each reconciler re-reads the
+original independently of the parser, returns a `ReconcileResult`, and is listed
+in `RECONCILERS` below.
 
-Default: stub. Per source, register a callable that returns a
-`ReconcileResult` in `RECONCILE_REGISTRY` below.
+Reconcile at the finest grain both sides share (per office, per precinct, per
+page), not only the grand total: grand totals often cover different scopes (date
+windows, entity lists), so a top-line gap can be correct and a top-line match can
+hide offsetting errors. `compare_totals` compares the keys both sides have and
+reports keys present on only one side as a documented scope difference, not a
+mismatch. Each known mismatch is explained in the data dictionary's caveats.
 
-See `references/discovery-and-audit.md` for the rationale and the
-BoulderPublicData/Election-Results 149/150 example.
+Writes `data/audit/reconcile.md` (committed, deterministic) and `reconcile.json`.
+Exit code 2 when any check mismatches; the data written by `clean` stays.
 """
 
 from __future__ import annotations
 
 import json
-from collections.abc import Callable
-from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from collections.abc import Callable, Mapping
+from dataclasses import asdict, dataclass, field
 
-import structlog
-
-from scripts.config import DATA_AUDIT
-
-log = structlog.get_logger()
-
-RECONCILE_JSON = DATA_AUDIT / "reconcile.json"
+from scripts.config import RECONCILE_JSON, RECONCILE_MD
 
 
 @dataclass
 class Check:
     label: str
-    expected: float | int | str
-    actual: float | int | str
-    match: bool
-    delta: float | int | str = ""
+    expected: float | int | str | None
+    actual: float | int | str | None
+    status: str  # "match" | "mismatch" | "scope" (key on one side only)
     notes: str = ""
 
 
@@ -46,67 +40,66 @@ class ReconcileResult:
     checks: list[Check] = field(default_factory=list)
 
     @property
-    def passed(self) -> int:
-        return sum(1 for c in self.checks if c.match)
-
-    @property
-    def total(self) -> int:
-        return len(self.checks)
-
-    def to_dict(self) -> dict:
-        return {
-            "source": self.source,
-            "passed": self.passed,
-            "total": self.total,
-            "checks": [c.__dict__ for c in self.checks],
-        }
+    def mismatches(self) -> list[Check]:
+        return [c for c in self.checks if c.status == "mismatch"]
 
 
-# Add entries here as you write per-source reconciliation. Keep each
-# function fast — these run in CI on every merge.
-RECONCILE_REGISTRY: dict[str, Callable[[], ReconcileResult]] = {
-    # "boulder_county_sov": reconcile_boulder_sov,
-}
+def compare_totals(
+    expected: Mapping[str, float],
+    actual: Mapping[str, float],
+    *,
+    prefix: str = "",
+    tolerance: float = 0.005,
+) -> list[Check]:
+    """Compare per-key totals (printed vs recomputed) at their shared grain."""
+    checks = []
+    for key in sorted(set(expected) | set(actual)):
+        e, a = expected.get(key), actual.get(key)
+        if e is None or a is None:
+            side = "source" if a is None else "processed data"
+            checks.append(Check(f"{prefix}{key}", e, a, "scope", f"only in the {side}"))
+        else:
+            status = "match" if abs(float(e) - float(a)) <= tolerance else "mismatch"
+            checks.append(Check(f"{prefix}{key}", e, a, status))
+    return checks
+
+
+# One entry per source that prints totals, e.g. {"example_source": reconcile_example}.
+RECONCILERS: dict[str, Callable[[], ReconcileResult]] = {}
 
 
 def reconcile_all() -> int:
-    """Run every registered reconciliation. Returns process exit code."""
-    if not RECONCILE_REGISTRY:
-        log.info("reconcile_empty_registry", hint="see scripts/reconcile.py")
-        print(
-            "No reconcilers registered. To enable, define a function returning "
-            "a ReconcileResult and add it to RECONCILE_REGISTRY in scripts/reconcile.py."
-        )
+    if not RECONCILERS:
+        print("reconcile: no reconcilers registered (see scripts/reconcile.py); skipped.")
         return 0
-
-    ts = datetime.now(UTC).isoformat()
-    payload: list[dict] = []
-    any_mismatch = False
-
-    for slug, fn in RECONCILE_REGISTRY.items():
+    results: list[ReconcileResult] = []
+    failed = False
+    lines = ["# Reconciliation", ""]
+    for slug, fn in sorted(RECONCILERS.items()):
         try:
             result = fn()
-        except Exception as exc:  # noqa: BLE001
-            log.error("reconcile_errored", source=slug, error=str(exc))
-            payload.append({"source": slug, "error": str(exc), "error_type": type(exc).__name__})
-            any_mismatch = True
+        except Exception as exc:  # noqa: BLE001 — a crashed reconciler is a failure
+            failed = True
+            lines += [f"## {slug}: ERROR", "", f"`{type(exc).__name__}: {exc}`", ""]
             continue
-
-        d = result.to_dict()
-        payload.append(d)
-        log.info("reconcile_done", source=slug, passed=result.passed, total=result.total)
-        print(f"[{slug}] {result.passed}/{result.total} checks matched")
+        results.append(result)
+        n = {s: sum(c.status == s for c in result.checks) for s in ("match", "mismatch", "scope")}
+        failed |= bool(result.mismatches)
+        lines += [
+            f"## {slug}: {n['match']} match, {n['mismatch']} mismatch, {n['scope']} scope-only",
+            "",
+        ]
         for c in result.checks:
-            if not c.match:
-                print(
-                    f"    ✗ {c.label}: expected={c.expected!r} actual={c.actual!r} delta={c.delta!r}"
+            if c.status != "match":
+                lines.append(
+                    f"- {c.status}: `{c.label}` expected={c.expected} actual={c.actual} {c.notes}"
                 )
-                any_mismatch = True
-
-    RECONCILE_JSON.parent.mkdir(parents=True, exist_ok=True)
+        lines.append("")
+    RECONCILE_MD.write_text("\n".join(lines))
     RECONCILE_JSON.write_text(
-        json.dumps({"recorded_at": ts, "results": payload}, indent=2, default=str)
+        json.dumps([asdict(r) for r in results], indent=2, default=str) + "\n"
     )
-    log.info("wrote_reconcile_report", path=str(RECONCILE_JSON))
-
-    return 2 if any_mismatch else 0
+    print(
+        f"reconcile: {'mismatches found' if failed else 'all checks match'}; see {RECONCILE_MD.name}"
+    )
+    return 2 if failed else 0

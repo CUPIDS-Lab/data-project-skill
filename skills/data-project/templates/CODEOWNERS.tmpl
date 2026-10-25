@@ -1,34 +1,34 @@
 # CODEOWNERS — {{PROJECT_NAME}}
 #
-# This file maps repository paths to the roles responsible for reviewing them,
-# so that review responsibility is legible and every part of the project has an
-# owner. GitHub requests a review from the listed owners when a pull request
-# touches a matching path. The handles below are placeholders of the form
-# @org/<role> — replace them with the people or teams named in docs/governance/CHARTER.md.
-# Later entries win, so order from general to specific.
+# Maps repository paths to the people responsible for reviewing them, so every part of the
+# project has an owner. GitHub requests a review from the listed owners when a pull request
+# touches a matching path. On its own this file only *requests* reviews; it blocks nothing
+# unless branch protection on {{DEFAULT_BRANCH}} requires code-owner review (see
+# docs/governance/GOVERNANCE.md, "Decision-making", for the branch protection command).
+#
+# The handles below are placeholders of the form @org/<role>; replace them with the people or
+# teams named in docs/governance/CHARTER.md. Later entries win, so order general to specific.
 
 # Default owner: the project manager catches anything not matched below.
-*                       @org/project-manager
+*                         @org/project-manager
 
-# Data lives with the data engineer: source data, schema, identifiers, quality.
-/data/                  @org/data-engineer
-/DATA-DICTIONARY.md     @org/subject-matter-expert
+# Data, schema and lookups: the data engineer; meaning: the subject-matter expert.
+/data/                    @org/data-engineer
+/data/lookups/            @org/data-engineer @org/subject-matter-expert
+/docs/data-dictionary.md  @org/subject-matter-expert
 
-# Pipelines and reusable code are the developer's and engineer's shared ground:
-# the engineer owns the data flow, the developer owns the tooling around it.
-/pipelines/             @org/data-engineer @org/software-developer
-/src/                   @org/software-developer
+# Pipeline code: the engineer owns the data flow, the developer the tooling around it.
+/scripts/                 @org/data-engineer @org/software-developer
+/pipelines/               @org/data-engineer @org/software-developer
+/tests/                   @org/software-developer
 
 # Documentation carries meaning, so the subject-matter expert reviews it.
-# (The data dictionary above is the one exception they own outright.)
-/docs/                  @org/subject-matter-expert
+/docs/                    @org/subject-matter-expert
 
-# Governance, the charter (roles + collaboration protocol), and the data-management
-# plan set the project's terms: the project manager owns them under docs/governance/,
-# with legal as a second reviewer on the terms that bind partners.
-/docs/governance/       @org/project-manager @org/legal
+# Governance, the charter and the data-management plan set the project's terms.
+/docs/governance/         @org/project-manager @org/legal
 
-# Environment and CI affect reproducibility for everyone — the developer owns
-# them so the pinned environment and pipeline stay in sync.
-/environment.yml        @org/software-developer
-/.github/               @org/software-developer
+# Environment and CI affect reproducibility for everyone.
+/pyproject.toml           @org/software-developer
+/uv.lock                  @org/software-developer
+/.github/                 @org/software-developer

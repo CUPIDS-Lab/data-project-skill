@@ -8,12 +8,13 @@ map to it per vintage, and (c) the **caveats** documenting what is
 and is not comparable.
 
 A concept catalog is NOT a rename map. The caveats are the point.
-See `references/data-modeling.md#concept-catalogs` for the rationale
-and the IPEDS pipeline's `concepts.py` as the model.
+"Concept catalogs" in the data-liberation skill's `data-modeling.md` has the
+rationale:
+https://github.com/CUPIDS-Lab/data-skills/tree/main/skills/data-liberation/references/data-modeling.md
 
-This module is optional. Single-source projects can ignore it
-entirely; the `concept` column in the canonical schema stays nullable
-and unused.
+This module arrives with the second source, together with a nullable `concept`
+column in `scripts/schema.py` and `data/lookups/concepts.yaml`. `clean` fills the
+column with `concept_for(source, vintage, variable)`.
 """
 
 from __future__ import annotations

@@ -1,72 +1,69 @@
-# Opt-in: rename to refresh.yml to enable.
+# Opt-in: rename to refresh.yml once the pipeline runs cleanly by hand.
 #
-# Runs the pipeline on a schedule, opens a PR if data changed. Pair
-# with `publish.yml` and `gh-pages.yml` so merging the PR triggers a
-# re-deploy of the Datasette instance and the methodology site.
+# Runs the whole pipeline on a schedule and opens a pull request when anything
+# changed. The PR carries the data diff and the audit diff (data/audit/*.md and
+# headline.json are committed; see .gitignore), so review happens before merge.
+# If any stage fails (no rows, rows lost between stages, a fetch error) the job
+# fails and no PR opens: you get a failed-run notification instead of bad data.
 #
-# Default cadence: Mondays 13:00 UTC. Adjust the cron for sources
-# that publish on a different rhythm.
+# Scheduled runs can start late or be skipped. For a source that only shows the
+# current day's records, add a second cron a few hours later and check
+# data/audit/discovery.md for gaps; a missed capture cannot be backfilled.
 
 name: refresh
 
 on:
   schedule:
-    - cron: "0 13 * * 1"   # Mondays 13:00 UTC
-  workflow_dispatch:        # manual trigger from the Actions tab
+    - cron: "17 13 * * 1" # Mondays 13:17 UTC; trail the publisher's own cadence
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
 
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
-          lfs: true   # need raw data to rebuild
+          lfs: true # only needed when originals are LFS-tracked (storage budget)
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
+          python-version: "3.13"
 
-      - name: Set up Python
-        run: uv python install 3.11
+      - name: Install (add the extras the parsers need, e.g. --extra pdf)
+        run: uv sync
 
-      - name: Sync dependencies
-        run: uv sync --all-extras
+      - name: Run the pipeline
+        run: uv run python -m scripts.pipeline run --quiet
 
-      - name: Discover
-        run: uv run python -m scripts.pipeline discover
-
-      - name: Fetch
-        run: uv run python -m scripts.pipeline fetch
-
-      - name: Clean
-        run: uv run python -m scripts.pipeline clean --fail-on-empty
-
-      - name: Audit
-        run: uv run python -m scripts.pipeline audit
-
-      - name: Reconcile (advisory if registry empty)
-        continue-on-error: true
-        run: uv run python -m scripts.pipeline reconcile
-
-      - name: Open PR with refreshed data
-        uses: peter-evans/create-pull-request@v6
+      - name: Open a pull request with the refreshed data
+        uses: peter-evans/create-pull-request@v8
         with:
-          commit-message: "chore(refresh): scheduled data refresh"
-          title: "chore(refresh): scheduled data refresh"
-          body: |
-            Scheduled refresh from `.github/workflows/refresh.yml`.
-
-            Review the audit summary under `data/audit/` before merging.
-            Merging will trigger `publish.yml` and `gh-pages.yml` to
-            redeploy the Datasette instance and methodology site.
           branch: refresh/scheduled
+          commit-message: "Scheduled data refresh"
+          title: "Scheduled data refresh"
+          body: |
+            Scheduled refresh from `.github/workflows/refresh.yml`. Before merging, check in the diff:
+
+            - [ ] `data/audit/summary.md`: the row change is plausible; the error count and rejected rows are explained.
+            - [ ] `data/audit/reconcile.md` (if present): no new mismatch.
+            - [ ] `data/original/manifest.json`: any changed sha256 is an expected upstream revision.
+            - [ ] The spot-check sample in the summary matches the originals.
+            - [ ] `CHANGELOG.md` has an entry if a published number changed.
           add-paths: |
             data/original/**
-            data/processed/**
-            data/audit/**
+            data/processed/*.csv
+            data/audit/*.md
+            data/audit/headline.json
             docs/variables.md
             docs/variables.csv
+            README.md
+            AGENTS.md

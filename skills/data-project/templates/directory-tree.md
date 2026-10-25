@@ -1,74 +1,107 @@
-# Canonical project layout (structural source of truth)
+# Project layout by Outline section
 
-This file is read by the skill, not copied into the project. It defines the directory layout the orchestrator creates, annotated with the level at which each part appears. Prune to the chosen level; create empty data directories with a `.gitkeep`; document `data/raw` as immutable.
+This file is read by the skill, not copied into a project. It shows where each file lands and which Outline section adds it. A new project has only the five working files (plus `LICENSE`, `.gitignore`, `.gitattributes`); everything else appears when its section is *now* in `ROADMAP.md`. `references/procedures/scaffold.md` says which template produces each file and when.
+
+## Always: the five working files
 
 ```
 <project-slug>/
-├── README.md                 # L0  front door; links every other doc
-├── AGENTS.md                 # L0  repo-level guidance any agent reads first
-├── ROADMAP.md                # L0  deferred-work record (now vs. later)
-├── LICENSE                   # L0  (user adds; see LICENSE-NOTE at L5)
-├── .gitignore                # L0  data-aware ignore rules
-├── .gitattributes            # L0  line-ending normalization (+ optional LFS)
-├── data/
-│   ├── raw/        .gitkeep   # L0  original, immutable — never edited in place
-│   ├── interim/    .gitkeep   # L0  intermediate transforms
-│   ├── processed/  .gitkeep   # L0  final, analysis-ready
-│   └── external/   .gitkeep   # L0  third-party sources (optional)
-├── DATA-DICTIONARY.md        # L1  schema, grain, provenance, units, missingness, caveats
-├── decision-log.md           # L1  dated design/data decisions with rationale
-├── CHANGELOG.md              # L1  human-readable change history
-├── CITATION.cff              # L1  how to cite the project/dataset (Citation File Format)
-├── exploratory/    .gitkeep  # L2  notebooks live here only — never shipped to production
-├── Snakefile                 # L2  pipeline-as-code at the repo root (Python default); run `snakemake -n` from here
-├── config.yaml               # L2  pipeline parameters & paths, resolved relative to the repo root
-├── _targets.R                # L2  pipeline-as-code for the R variant (run via `targets::tar_make()`)
-├── src/<pkg>/                # L2  Python source: reusable, importable, tested code (pkg = PKG_NAME, the slug with underscores)
-├── R/                        # L2  R source: stage functions sourced by _targets.R (R projects use this instead of src/<pkg>/)
-├── codemeta.json             # L2  machine-readable software metadata (CodeMeta) — FAIR for the code
-├── pipelines/                # L2+ MULTI-pipeline monorepo (the data-liberation hand-off): one self-contained
-│   └── <name>/               #     pipeline per liberated source; each maps 1:1 to a tracked issue/sub-issue
-│       ├── Snakefile         #     this pipeline's own DAG + the CI discovery marker (single-pipeline projects keep the root Snakefile above)
-│       ├── config.yaml       #     this pipeline's parameters & paths
-│       ├── environment.yml   #     this pipeline's pinned env (or point CI at a shared root env)
-│       └── README.md         #     what it liberates, its sources, and its tidy output
-├── results/
-│   ├── figures/    .gitkeep  # L2  generated charts
-│   └── tables/     .gitkeep  # L2  generated tables
-├── tests/          .gitkeep  # L2  data/code validation
-├── docs/                       # L2  documentation home: rendered docs (Quarto/Markdown) + governance + checklists
-│   ├── data-card.md            # L4  per-dataset transparency card
-│   ├── FAIR-CHECKLIST.md       # L4  per-principle FAIR self-assessment (see references/fair-maturity.md)
-│   ├── governance/             # L3  who-may-touch-what + the team agreement
-│   │   ├── GOVERNANCE.md        #     access tiers, retention, escalation, transparency/privacy + values spine
-│   │   ├── CHARTER.md           #     purpose, partners, shared defs, roles, collaboration protocol, survives-the-pilot
-│   │   └── data-management-plan.md  # L4  storage, retention, sharing, backup, compliance + contributed-data intake
-│   └── checklists/             # L4  actionable stage-gates
-│       ├── responsible-data-checklist.md    # consent, minimization, harms, security
-│       ├── data-bulletproofing-checklist.md # pre-publication QA
-│       ├── data-quality-checklist.md        # known-issues checks (bad-data taxonomy)
-│       └── accessibility-checklist.md       # alt text, plain language, colorblind-safe viz
-├── CONTRIBUTING.md           # L3  workflow, review norms + how-we-track-work (issues/board)
-├── CODE_OF_CONDUCT.md        # L3  inclusive collaboration norms
-├── CODEOWNERS                # L3  paths → roles (defined in docs/governance/CHARTER.md)
-├── .skills/                  # L3  nested guidance skills for downstream agents/humans
-│   ├── data-intake/SKILL.md
-│   ├── documentation/SKILL.md
-│   └── release-and-share/SKILL.md
-├── ai-catalog.json           # L5  ARD manifest: agent-discoverable resources (repo scope; see DISCOVERY.md)
-├── DISCOVERY.md              # L5  what the catalog advertises + how to deploy it to host/registry (deferred)
-├── dataverse/                # L5  Dataverse deposit kit (archive data/code/docs → citable DOI)
-│   ├── dataset.json          #     citation metadata manifest (Native API format)
-│   ├── deposit-dataverse.sh  #     curl deposit (zero-dep); deposit_dataverse.py is the pyDataverse path
-│   └── DEPOSIT.md            #     what's deposited + how to run it (draft → confirm → publish)
-├── opensharing/              # L5  OpenSharing zero-copy share kit (share data/AI assets in place)
-│   ├── share.json            #     Share→Schema→Asset declaration (tables, volumes, .skills)
-│   ├── share-profile.example.json  # recipient profile; copy → share-profile.json (gitignored) + add token
-│   └── SHARING.md            #     what's shared + how to serve/consume it (governed by access tiers)
-└── knowledge/                # L5  OKF bundle (concept catalog) generated from the data dictionary
-    ├── index.md              #     bundle root; declares okf_version: "0.1"
-    ├── datasets/<name>.md
-    └── tables/<name>.md
+├── README.md         what and why (question, unit of observation, sources, partners, exclusions), how to use the data, license by layer
+├── AGENTS.md         how to work here: start here, non-negotiables, commands, task notes, dated project rules, sprint-end feedback
+├── CLAUDE.md         exactly "@AGENTS.md" (thin pointer files for other agent tools, if any, also point to AGENTS.md)
+├── ROADMAP.md        the ten sections as now / later / skip, each with its "done when" test and evidence; blocking items
+├── decision-log.md   dated decisions, tagged Assumed or Private, linking the issue or PR where each was made
+├── CHANGELOG.md      what changed and when
+├── LICENSE           the code license (data and docs licenses are in the README)
+├── .gitignore        data-aware ignores; curated-source carve-out
+└── .gitattributes    line endings; originals kept byte-exact; optional LFS
 ```
 
-Notes: `data/raw` is immutable (never edited in place); keep **bulk/external** raw out of version control (see `.gitignore`), but **track a small curated source-of-record** via a `.gitignore` carve-out and document it as immutable. The package directory under `src/<pkg>/` is named for the project and is the **repo-wide** location for reusable, importable, tested code (`R/` for the R variant); a nested `data-liberation` pipeline's own `scripts/` may stay local to its `pipelines/<name>/`. A **single-pipeline** project keeps `Snakefile`/`config.yaml` at the repo root (above); a repo hosting **several** liberated pipelines gives each its own `pipelines/<name>/` and maps each to a tracked issue/sub-issue — promote a root pipeline into `pipelines/<name>/` when a second one arrives, then land every subsequent pipeline by the ordered procedure in `references/landing-a-pipeline.md` (the monorepo CI `templates/ci/pipelines-ci.yml.tmpl` auto-discovers `pipelines/*/Snakefile`, so no workflow edit is needed per pipeline). Once the repo crosses ~3 pipelines, factor shared plumbing into a shared core — `src/<pkg>/` or a `pipelines/_core/` package — instead of copy-pasting it into each sibling (`references/stamping-and-shared-core.md`). Governance, the team `CHARTER` (which now carries roles + the collaboration protocol), the data-management plan, and the stage-gate checklists live under `docs/` (`docs/governance/`, `docs/checklists/`); the GitHub **community-health** files — `CONTRIBUTING`, `CODE_OF_CONDUCT`, `CODEOWNERS` — stay at the repo root, where GitHub auto-detects them, and `INSTALLED-BASE` folds into `docs/governance/GOVERNANCE.md`. At L0–L1 most of this collapses to the top-level docs plus `data/`. Everything above the chosen level belongs in `ROADMAP.md`, not on disk.
+## Section 1, Scope & gate
+
+```
+├── docs/scope-canvas.md                          optional: multi-partner design canvas
+├── docs/checklists/responsible-data-checklist.md sensitive or CARE data: filled now, from the scoping answers
+└── docs/governance/GOVERNANCE.md                 sensitive data: access tiers and remedy exist before sensitive features do
+```
+
+## Sections 2–5, Acquire, Extract, Model & tidy, Pipeline & audit (from data-liberation's project template)
+
+```
+├── pyproject.toml  uv.lock                        uv project, Python >= 3.12, CI on 3.13
+├── scripts/                                       the pipeline: `uv run python -m scripts.pipeline run`
+│   ├── pipeline.py  sources.py  fetch.py  ...     section 2 (acquire) and 3 (one parser per source)
+│   ├── schema.py                                  section 4: the schema contract
+│   └── audit.py  reconcile.py                     section 5
+├── tests/                                         section 5
+├── data/
+│   ├── original/     immutable originals, hashed, with provenance (section 2; storage budget decides what is committed)
+│   ├── processed/    tidy outputs + provenance.csv, regenerated by the pipeline
+│   ├── audit/        audit and reconcile reports
+│   └── lookups/      hand-maintained crosswalks and vocabularies (section 4)
+├── docs/data-dictionary.md                        section 4: every column (type, units, missingness, caveats)
+├── .github/workflows/tests.yml                    section 5: tests, audit, conservation check, token guard
+└── docs/checklists/pre-release-checklist.md       section 5: when a release, publication or deposit is planned
+```
+
+A project without a data-liberation pipeline (hand-curated data, the R variant) uses this skill's `data-dictionary.md.tmpl` and the same `data/original/` and `data/processed/` folders. The R variant adds `DESCRIPTION`, `_targets.R`, `R/`, `Makefile`, `renv.lock` and `docs/renv.md`. An optional Snakemake wrapper adds `Snakefile` and `config.yaml`; CI never depends on them.
+
+### Several pipelines (section 5, `references/multi-pipeline.md`)
+
+```
+├── pipelines/
+│   ├── _core/        shared package (pyproject.toml, src/, tests/), factored out at about three pipelines
+│   └── <name>/       one data-liberation project each: pyproject.toml, scripts/, tests/, data/, docs/data-dictionary.md
+└── .github/workflows/pipelines-ci.yml   discovers pipelines/*/pyproject.toml; uv sync && uv run pytest in each
+```
+
+## Section 6, Document & cite
+
+```
+├── CITATION.cff          how to cite the data (version, date and DOI added at release)
+├── docs/data-card.md     publishing or depositing
+└── codemeta.json         only when releasing a software package
+```
+
+## Section 7, Govern & collaborate (collaborators or sensitive data)
+
+```
+├── docs/governance/
+│   ├── GOVERNANCE.md            access tiers, retention, decision-making (single steward, or review gate + branch protection), oversight, remedy, values spine
+│   ├── CHARTER.md               purpose, partners and beneficiaries, shared definitions, roles and gap check, what survives the pilot
+│   └── data-management-plan.md  storage, sharing, access, retention, compliance, contributed-data intake
+├── CONTRIBUTING.md  CODE_OF_CONDUCT.md  CODEOWNERS   repository root, where GitHub finds them
+└── .github/PULL_REQUEST_TEMPLATE.md                 What changed / Why / What I checked / Left alone on purpose
+```
+
+Onboarding several people is better served by a short tested tutorial series than by more governance documents.
+
+## Section 8, Publish (public or embargoed only)
+
+```
+├── docs/checklists/FAIR-CHECKLIST.md
+├── docs/checklists/accessibility-checklist.md
+└── (the chosen surface's files, from data-liberation: Datasette, Quarto site, release assets, DocumentCloud)
+```
+
+## Section 9, Deposit, share & discover
+
+```
+├── dataverse/            dataset.json, deposit-dataverse.sh, deposit_dataverse.py, DEPOSIT.md, .dataverse-deposit.json (written by the scripts)
+├── .github/workflows/dataverse-deposit.yml   refreshed data only: scheduled draft re-deposit + review issue
+├── opensharing/          share.json, share-profile.example.json (the filled profile is gitignored), SHARING.md
+├── ai-catalog.json  DISCOVERY.md             ARD agent discovery
+└── knowledge/            OKF bundle: index.md, log.md, datasets/, tables/
+```
+
+## Section 10, Maintain & feedback (a team on GitHub)
+
+```
+└── .github/
+    ├── ISSUE_TEMPLATE/   config.yml, task.yml (Outline-section dropdown), data-issue.yml (data issue or correction)
+    ├── labels.yml        section:1 … section:10, type:*, blocking
+    ├── seed-github.sh    opens or updates one issue per now section, idempotently
+    └── engagement-sync.json   written by the seed script
+```
+
+Notebooks, when a project has them, are thin drivers over tested code in `scripts/`; their outputs are stripped (`nbstripout`) before commit.

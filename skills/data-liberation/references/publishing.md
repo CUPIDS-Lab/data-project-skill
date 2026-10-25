@@ -1,6 +1,22 @@
 # Publishing: Datasette, Quarto, Git LFS, and DocumentCloud
 
-A complete liberation project ships up to four deployment surfaces: the **queryable data interface** ([Datasette](#part-1-datasette--sqlite-utils)), the **documentation site** ([Quarto](#part-2-quarto--github-pages) on GitHub Pages), the **bulk-distribution layer** ([Git LFS](#part-3-git-lfs-for-large-datasets)), and the **source-document layer** ([DocumentCloud](#part-4-documentcloud)). This is the **Level 5** reference. Each surface plays to its strength — Datasette makes the data queryable, Quarto explains how to use it, LFS distributes raw artifacts as opaque downloads, and DocumentCloud renders source PDFs with OCR, embeds, and page-anchored permalinks. Pick the subset the project needs; a small dataset may use only one, a documents-heavy investigation may use all four.
+A complete liberation project ships up to four deployment surfaces: the **queryable data interface** ([Datasette](#part-1-datasette--sqlite-utils)), the **documentation site** ([Quarto](#part-2-quarto--github-pages) on GitHub Pages), the **bulk-distribution layer** ([Git LFS](#part-3-git-lfs-for-large-datasets)), and the **source-document layer** ([DocumentCloud](#part-4-documentcloud)). This is Outline section 8 (Publish), and it applies only when the project's visibility, decided in section 1, is public or embargoed. Each surface plays to its strength — Datasette makes the data queryable, Quarto explains how to use it, LFS distributes raw artifacts as opaque downloads, and DocumentCloud renders source PDFs with OCR, embeds, and page-anchored permalinks. Pick the subset the project needs; a small dataset may use only one, a documents-heavy investigation may use all four. Generate only the chosen surface's files from the template's `publish` file group (see [`project-template.md`](project-template.md#file-groups)). A citable, versioned deposit with a DOI (Harvard Dataverse, Zenodo) is a different last mile, Outline section 9, led by the data-project skill.
+
+## Contents
+
+- [Before publishing: visibility, embargo, and the checks](#before-publishing-visibility-embargo-and-the-checks)
+- [Part 1: Datasette + sqlite-utils](#part-1-datasette--sqlite-utils)
+- [Part 2: Quarto + GitHub Pages](#part-2-quarto--github-pages)
+- [Part 3: Git LFS for large datasets](#part-3-git-lfs-for-large-datasets)
+- [Part 4: DocumentCloud](#part-4-documentcloud)
+- [What to write in the AGENTS.md](#what-to-write-in-the-agentsmd)
+
+## Before publishing: visibility, embargo, and the checks
+
+- **Visibility first.** Publish only what the visibility and sensitivity decisions in the decision-log allow, and send nothing to a hosted service (Vercel, Fly, Cloud Run, DocumentCloud) that those decisions forbid it to see. The hard gates (privacy law, CARE) are in [`_shared/values-and-gates.md`](_shared/values-and-gates.md).
+- **Embargoed releases.** Stage everything (the built database, the rendered site, the release notes) with the release date and conditions written in the decision-log and a blocking row in `ROADMAP.md`, keep the repository and any preview deployments private, and publish nothing early. Leave the publish workflows disabled until the date.
+- **FAIR and accessibility checks** for public outputs: the FAIR self-check in [`_shared/standards-and-fair.md`](_shared/standards-and-fair.md), and an accessibility pass on the site (alt text on every figure, tables with header rows, sufficient color contrast, no information carried by color alone).
+- **Corrections.** The `publish` group ships the *Data correction* issue form; confirmed corrections are logged in `CHANGELOG.md` with the affected vintages.
 
 ---
 
@@ -49,7 +65,7 @@ Patterns worth memorizing:
 - **`--pk` declares the composite primary key.** Datasette uses this for clean per-row URLs and pagination.
 - **`--alter` lets a second insert append columns** — useful when a new vintage introduces new columns.
 - **`--ignore` / `--replace` handle re-runs.** `--ignore` skips rows whose PK already exists; `--replace` overwrites.
-- **Foreign keys connect tables.** `sqlite-utils add-foreign-key elections.db elections source provenance source` lets Datasette render the link as a clickable cross-table reference.
+- **Foreign keys connect tables** when the referenced column is unique: `sqlite-utils add-foreign-key elections.db elections precinct precincts id` lets Datasette render a clickable cross-table link to a lookup table. Provenance has one row per original file, so join data rows to it on `(source, vintage)` with a canned query rather than a foreign key.
 
 ### Indexes
 
@@ -97,15 +113,11 @@ def build():
         "--pk", "contest", "--pk", "candidate",
     ], check=True)
 
+    # One provenance row per original file and parser run; data rows join on (source, vintage).
     subprocess.run([
         "sqlite-utils", "insert", str(DB), "provenance", str(PROV), "--csv",
-        "--pk", "source", "--pk", "vintage",
+        "--pk", "artifact",
     ], check=True)
-
-    subprocess.run([
-        "sqlite-utils", "add-foreign-key", str(DB),
-        "elections", "source", "provenance", "source",
-    ], check=False)  # idempotent: ignore "already exists"
 
     for col in ("vintage", "source", "contest"):
         subprocess.run([
@@ -118,7 +130,7 @@ if __name__ == "__main__":
     build()
 ```
 
-Wire this into the pipeline driver as `uv run python -m scripts.publish build`. The `elections.db` file is then a reproducible artifact: any commit + uv environment regenerates an identical database file.
+The template's `scripts/publish.py` is this pattern plus metadata generation; run it as `uv run python -m scripts.pipeline publish build`. The `.db` file is then a reproducible artifact: any commit + uv environment regenerates an identical database file.
 
 ## Running Datasette locally
 
@@ -166,7 +178,7 @@ databases:
         sort: vintage
         facets: [vintage, source, contest]
         columns:
-          source: Source registry slug; joins to `provenance` for fetch metadata.
+          source: Source slug; joins to `provenance` for fetch metadata.
           vintage: Election cycle; string ("2024-general").
           precinct: Boulder County precinct ID. Leading zeros preserved.
           votes: Vote count. Nullable when source suppressed the count.
@@ -193,9 +205,9 @@ Three patterns to lean into:
 - **Use `facets` to pre-declare browsable categoricals.** Datasette will auto-detect facetable columns, but declaring them sets the default view readers see first.
 - **Write canned queries for the questions readers will ask.** Per-contest totals, year-over-year change, top-N. Each canned query gets a clean URL anyone can cite.
 
-This `metadata.yaml` is already a **DCAT** / **DCAT-US**-shaped catalog record (the project is a Catalog, the database a Dataset, the CSV/SQLite/JSON-API its Distributions). For a project that needs to federate into a `data.gov`-style catalog, `scripts/publish.py` can emit a `dcat-us.jsonld` record from the same dictionary — optional, covered in [`context.md`](context.md#crosswalk-standards--what-the-skill-already-builds). Background, never a publishing prerequisite.
+This `metadata.yaml` is already a **DCAT** / **DCAT-US**-shaped catalog record (the project is a Catalog, the database a Dataset, the CSV/SQLite/JSON-API its Distributions). For a project that needs to federate into a `data.gov`-style catalog, `scripts/publish.py` can emit a `dcat-us.jsonld` record from the same dictionary — optional, covered in [`_shared/standards-and-fair.md`](_shared/standards-and-fair.md#crosswalk-standards-to-what-the-skills-already-build). Background, never a publishing prerequisite.
 
-This matters most when the real audience is an **institutional portal** rather than a standalone site. Much of the world's government data is published through **CKAN** (the open-source platform behind data.gov and many national catalogs) or **Socrata**, both of which harvest DCAT records. A self-hosted Datasette is the right activist MVP; a DCAT record is the bridge when a city or agency open-data program wants the dataset in *their* catalog. The two are different endpoints — pick the one the audience actually uses. The portal/federation landscape is mapped in [`context.md`](context.md#institutional-publishing-the-portal-layer).
+This matters most when the real audience is an **institutional portal** rather than a standalone site. Much of the world's government data is published through **CKAN** (the open-source platform behind data.gov and many national catalogs) or **Socrata**, both of which harvest DCAT records. A self-hosted Datasette is the right activist MVP; a DCAT record is the bridge when a city or agency open-data program wants the dataset in *their* catalog. The two are different endpoints — pick the one the audience actually uses. The portal and federation landscape is mapped in [`lineage-and-landscape.md`](lineage-and-landscape.md#institutional-publishing-the-portal-layer).
 
 ### `metadata.yaml` vs `datasette.yaml` (Datasette 1.0a8+)
 
@@ -393,7 +405,7 @@ Datasette publishes the *data interface* — per-column metadata, faceted browsi
 | Content | Lives in | Reason |
 |---|---|---|
 | Per-column description, units, controlled vocabulary | Datasette `metadata.yaml` | Renders inline with the column; readers see it where they need it |
-| Long-form column rationale, vintage breakpoints, caveats | `docs/data-dictionary.qmd` | Too long for inline metadata; benefits from prose, links, examples |
+| Long-form column rationale, vintage breakpoints, caveats | `docs/data-dictionary.md` | Too long for inline metadata; benefits from prose, links, examples |
 | Canned queries with named parameters | Datasette `metadata.yaml` | Datasette renders these as forms; readers run them in the browser |
 | Methodology essays, reconciliation logs, change log | `docs/*.qmd` | Static prose; readers consume sequentially, not query-by-query |
 | The data itself | Datasette + CSV/Parquet downloads | The site is *about* the data, not a copy of it |
@@ -416,9 +428,9 @@ website:
     left:
       - href: index.qmd
         text: Home
-      - href: data-dictionary.qmd
+      - href: data-dictionary.md
         text: Data dictionary
-      - href: filter-pivot-recipes.qmd
+      - href: filter-pivot-recipes.md
         text: Recipes
       - href: methodology.qmd
         text: Methodology
@@ -442,10 +454,10 @@ execute:
 A small set of `.qmd` files in `docs/` becomes the site:
 
 - `docs/index.qmd` — landing page: what the dataset is, where to get it, who to cite, the Datasette URL, the bulk-download URL.
-- `docs/data-dictionary.qmd` — the long-form column-by-column reference.
-- `docs/filter-pivot-recipes.qmd` — Python/pandas + R/tidyverse + SQL/DuckDB recipes, with executable code blocks that run against a small sample of the data committed to the repo.
+- `docs/data-dictionary.md` — the long-form column-by-column reference (Quarto renders Markdown too).
+- `docs/filter-pivot-recipes.md` — Python/pandas + R/tidyverse + SQL/DuckDB recipes, with executable code blocks that run against a small sample of the data committed to the repo.
 - `docs/methodology.qmd` — how the data was extracted, what's known to be incomplete, the reconciliation log, the cross-source caveats from the concept catalog.
-- `docs/changelog.qmd` — what changed in each vintage, what schema migrations happened, what's deprecated.
+- `CHANGELOG.md` (rendered into the site) — what changed in each vintage, which schema changes happened, what was corrected.
 
 This is the documentation a journalist or researcher reads *before* opening the CSV.
 
@@ -482,16 +494,16 @@ jobs:
     permissions:
       contents: write          # required to push to gh-pages
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           lfs: true            # pull LFS pointers (see Part 3: Git LFS)
 
       - uses: quarto-dev/quarto-actions/setup@v2
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
+          python-version: "3.13"
 
       - name: Install Python and project dependencies
         run: uv sync --extra publish
@@ -608,7 +620,7 @@ This works out to a clean three-deployment architecture: Pages serves the docume
 Workflows that need the actual data files must pull LFS in checkout:
 
 ```yaml
-- uses: actions/checkout@v4
+- uses: actions/checkout@v7
   with:
     lfs: true            # pull LFS-tracked files, not just pointers
 ```
@@ -638,7 +650,7 @@ This counts against the repo's LFS bandwidth quota. For projects with heavy CI a
 
 | If the source artifacts are… | And readers will… | Then |
 |---|---|---|
-| Born-digital PDFs in `data/original/` (statements of vote, budget books, annual reports) | Want to verify a number by looking at the original page it came from | **Yes** — DocumentCloud's page-permalink + text-selection-permalink is the affordance |
+| Born-digital PDFs in `data/original/` (statements of vote, annual reports, inspection reports) | Want to verify a number by looking at the original page it came from | **Yes** — DocumentCloud's page-permalink + text-selection-permalink is the affordance |
 | Scanned PDFs that need OCR before they're searchable | Want to search the corpus by phrase, not just by filename | **Yes** — DocumentCloud OCRs every upload and exposes the text via search |
 | FOIA responses (often hundreds of documents per request) | Want a single browsable, citable corpus | **Yes** — `Project` model groups documents; the project has its own URL |
 | Multi-gigabyte raw archives, ZIPs, parquet files | Want a tarball download, not a reader | **No** — use [Part 3: Git LFS](#part-3-git-lfs-for-large-datasets) or GitHub Releases |
@@ -723,7 +735,7 @@ project.document_list = docs   # attach uploaded documents
 project.put()
 ```
 
-The project structure should mirror the source registry in `scripts/config.py::SOURCES` — one DocumentCloud project per source registry slug, or one project per (source × vintage) for long-running series. Document this convention in `AGENTS.md` under *Deployment surface*.
+The project structure should mirror the sources in `data/original/` — one DocumentCloud project per source slug, or one project per (source × vintage) for long-running series. Document this convention in `AGENTS.md` under *Deployment surface*.
 
 ## Embedding in the Quarto site
 
@@ -873,7 +885,7 @@ Search results respect the document's access level — anonymous queries see onl
 
 [DocumentCloud Add-ons](https://www.documentcloud.org/help/add-ons/) (GitHub-hosted Python scripts that run server-side against documents in a user's account) extend the platform with custom processing: redaction, entity extraction, language detection, classification, OCR-cleanup. Civic-data projects rarely need to author add-ons, but two existing add-ons are useful as upload-time hooks:
 
-- [`documentcloud-scraper-addon`](https://github.com/MuckRock/documentcloud-scraper-addon) — periodically scrapes a publisher's site and uploads new artifacts to a project. Pair with `discover.py` to keep the DocumentCloud project in sync with the source registry.
+- [`documentcloud-scraper-addon`](https://github.com/MuckRock/documentcloud-scraper-addon) — periodically scrapes a publisher's site and uploads new artifacts to a project. Pair with `discover.py` to keep the DocumentCloud project in sync with the source.
 - [`documentcloud-scraper-cron-addon`](https://github.com/MuckRock/documentcloud-scraper-cron-addon) — cron-driven version of the above for daily/weekly auto-refresh.
 
 For projects with a custom ETL hook (entity extraction, redaction-on-upload), authoring a project-specific add-on can move processing off the project's CI infrastructure and onto DocumentCloud's, which scales better for large corpora.
@@ -894,9 +906,9 @@ For projects with a custom ETL hook (entity extraction, redaction-on-upload), au
 
 | Operation | Lives in |
 |---|---|
-| Initial bulk upload of an existing corpus | A one-off script under `scripts/` (e.g., `scripts/upload_to_documentcloud.py`); not part of the recurring pipeline |
+| Initial bulk upload of an existing corpus | `scripts/upload_documentcloud.py` (publish group), run by hand; not part of the recurring pipeline |
 | Per-refresh upload of newly-fetched documents | A new step in `refresh.yml` running after `fetch`, OR a DocumentCloud scraper add-on configured against the source URL |
-| Project URL + access level | `provenance.csv` (extended schema) + `AGENTS.md` *Deployment surface* table |
+| Project URL + access level | `data/lookups/documentcloud_projects.yaml`, `provenance.csv` (extended schema) and a dated decision-log entry |
 | Embed iframes for the Quarto site | `docs/_includes/<source>_<vintage>_embed.html` partials referenced from the relevant `.qmd` pages |
 | Credentials | `.env` (gitignored) + GitHub Actions secrets (`DOCUMENTCLOUD_USERNAME`, `DOCUMENTCLOUD_PASSWORD`) |
 
@@ -930,8 +942,8 @@ DocumentCloud is the fourth publishing surface; it sits next to Datasette, Quart
 
 **DocumentCloud (source documents):**
 
-- **The DocumentCloud project URL(s)** — one per source registry slug, with the convention named.
-- **Access level per source** — what's `public`, what's `organization`, what's `private`, and why. The justification is a governance decision per [`project-template.md#governance`](project-template.md#governance); document it where the access-level choice lives.
+- **The DocumentCloud project URL(s)** — one per source slug, with the convention named.
+- **Access level per source** — what's `public`, what's `organization`, what's `private`, and why. The justification is a governance decision (see [`_shared/governance.md`](_shared/governance.md)); document it where the access-level choice lives.
 - **Upload-trigger policy** — does new content reach DocumentCloud automatically (via an add-on, or a step in `refresh.yml`) or manually? If automatic, where the credentials live (`.env`, GitHub secret) and which workflow uses them.
 - **Quarto embed convention** — how the methodology pages reference DocumentCloud documents (direct iframe; partial-include of an iframe HTML file; jump-to-page links). Pick one and stick to it so the site reads consistently.
 - **Provenance schema extensions** — `documentcloud_url` + `documentcloud_access` columns in `provenance.csv`; how the chain-of-custody is documented when a downstream reader follows a CSV row back to the source page.

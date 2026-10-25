@@ -6,7 +6,7 @@
 #
 # Prerequisites:
 #   1. `uv sync --extra publish` succeeds locally
-#   2. A first manual `uv run python -m scripts.publish deploy --provider vercel`
+#   2. A first manual `uv run python -m scripts.pipeline publish deploy vercel`
 #      has succeeded and configured the Vercel project
 #   3. A `VERCEL_TOKEN` secret is set in the repo (Settings → Secrets)
 #
@@ -29,17 +29,14 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           lfs: true   # processed Parquet/.db may be LFS-tracked
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-
-      - name: Set up Python
-        run: uv python install 3.11
+          python-version: "3.13"
 
       - name: Sync dependencies (publish extras)
         run: uv sync --extra publish
@@ -54,4 +51,4 @@ jobs:
         # Cloud Run instead.
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: uv run python -m scripts.publish deploy vercel --project {{PROJECT_SLUG}}
+        run: uv run python -m scripts.pipeline publish deploy vercel --project {{PROJECT_SLUG}}

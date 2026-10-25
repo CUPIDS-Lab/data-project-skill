@@ -2,93 +2,60 @@
 title: "Data dictionary"
 ---
 
-# Data Dictionary — {{PROJECT_NAME}}
+# Data dictionary — {{PROJECT_NAME}}
 
-> **Hand-maintained.** The canonical record of what each column means,
-> where it comes from, and what's weird about it. The auto-generated
-> column profile (dtype, distinct count, null rate, sample values) is
-> at [`variables.md`](variables.md) — that's the *mechanical* counterpart;
-> this is the *human* one.
->
-> **If `variables.csv` and this dictionary disagree on a dtype or
-> meaning, one of them is wrong.** Resolve it before merging.
+Hand-maintained: what each column means, where it comes from, and what is surprising about it. The generated column profile (dtype, distinct values, null rate, samples) is [`variables.md`](variables.md); if the two disagree about a type, one of them is wrong, usually the parser, so resolve it before merging.
 
-## How to read this file
+Each column has a level-2 heading with its name in backticks, and these lines:
 
-Each column gets its own H2 heading. Sections:
-
-- **Type** — the canonical dtype after schema validation.
-- **Source(s)** — which upstream artifacts contribute this column.
-- **Description** — a sentence or two of plain English.
-- **Known caveats** — quirks the user must know to avoid mistakes.
-- **Cross-walks** — which `data/lookups/` file(s) this column joins to.
-
-The CU Salaries project's `DATA_DICTIONARY.md` is the model. Especially
-valuable are caveats like *"2022's roster ID format changed from
-R###### to R21-######, so roster IDs are not safely comparable across
-that boundary"* — that kind of note is what makes the dictionary worth
-maintaining.
+- **Type:** one of `string`, `Int64`, `Float64`, `boolean`, `date`, `datetime`.
+- **Description:** one or two plain sentences.
+- **Source(s):** which source and which field or page region it comes from.
+- **Vocabulary / units:** the allowed values in backticks for a categorical column (kept identical to `data/lookups/vocab_<column>.csv` when there is one, which a test checks), the units for a number, or the code system for a code.
+- **Missing values:** what an empty cell means here: not collected, does not apply, or unknown whether it exists; and which publisher sentinels (`-9`, `9999`) were converted to empty.
+- **Known caveats:** vintage breakpoints, definition changes, ID format changes, who is over- or under-represented and why. For example: *"Permit numbers changed from `P######` to `P22-######` in 2022, so they can't be joined across that boundary."*
+- **Crosswalks:** lookup tables in `data/lookups/` this column joins to.
 
 ---
 
 ## `source`
 
 - **Type:** `string`
-- **Source(s):** Pipeline-assigned; not from upstream data.
-- **Description:** Source registry slug. Maps 1:1 to entries in
-  `scripts.config.SOURCES`. Joins to `data/processed/provenance.csv`
-  for retrieval URL, sha256, and extraction-quality flags.
-- **Known caveats:** None. This is a controlled vocabulary; values
-  are stable across vintages.
-- **Cross-walks:** N/A (controlled in `scripts/config.py`).
+- **Description:** Short name of the source the row came from. Joins to `data/processed/provenance.csv`.
+- **Source(s):** Assigned by the pipeline (`SOURCE_SLUG` in `scripts/config.py`).
+- **Vocabulary / units:** `example_source`
+- **Missing values:** Never empty.
+- **Known caveats:** None.
+- **Crosswalks:** None.
 
 ## `vintage`
 
 - **Type:** `string`
-- **Source(s):** Pipeline-assigned from `Artifact.vintage`.
-- **Description:** Year or version of the source artifact (e.g.,
-  `"2024"`, `"2024-Q1"`, `"2024-11-05"`). String, not int —
-  vintages aren't always years, and even when they are, treating
-  them as strings prevents accidental arithmetic.
-- **Known caveats:** Format varies by source. Document the format
-  this project uses for each source under the source's own column.
-- **Cross-walks:** N/A.
+- **Description:** The period the original file covers, such as `2024`, `2024Q1` or `2024-11`. A string, because vintages are not always years.
+- **Source(s):** Read from the original file's own name or content, never from where or when it was published.
+- **Vocabulary / units:** Format: _state the format this project uses._
+- **Missing values:** Never empty.
+- **Known caveats:** _Note any period the source skipped or published late._
+- **Crosswalks:** None.
 
 ## `observation_id`
 
 - **Type:** `string`
-- **Source(s):** Replace this row with the column(s) that uniquely identify a row within a source × vintage.
-- **Description:** The natural-key identifier for this observation. The composite key `(source, vintage, observation_id)` is unique across the entire processed CSV.
-- **Known caveats:** Format may shift across vintages — document any breakpoints here so downstream consumers don't try to join across them naively.
-- **Cross-walks:** None by default; add joins to `data/lookups/` files here.
+- **Description:** Placeholder for the natural key: replace this entry with the column(s) that identify a row within a source and vintage.
+- **Source(s):** _Which field of the original._
+- **Vocabulary / units:** Not applicable.
+- **Missing values:** Never empty: a row with an empty key is rejected.
+- **Known caveats:** _Document format changes across vintages here, so nobody joins across them by accident._
+- **Crosswalks:** None.
+<!-- IF:MULTI_SOURCE -->
 
 ## `concept`
 
-- **Type:** `string` (nullable)
-- **Source(s):** Harmonization-as-a-column. Pipeline-assigned per
-  the cross-source field-map in `data/lookups/concepts.yaml`.
-- **Description:** When ≥2 sources measure the same underlying thing
-  under different names (e.g., "total enrollment" in source A and
-  "headcount" in source B both → `concept = "enrollment"`), this
-  column carries the harmonized label. Null when the row does not
-  participate in cross-source harmonization.
-- **Known caveats:** Concepts are added as cross-source comparisons
-  are actually needed — not preemptively. If a concept is missing,
-  add it to `data/lookups/concepts.yaml` and re-run `clean`.
-- **Cross-walks:** `data/lookups/concepts.yaml`.
-
----
-
-## _(Add project-specific columns below this line.)_
-
-Use this template:
-
-```markdown
-## `<column_name>`
-
-- **Type:** `<dtype>` _(`string` | `int` | `float` | `bool` | `date` | `datetime`)_
-- **Source(s):** _Which upstream artifacts contribute this column._
-- **Description:** _One or two sentences in plain English._
-- **Known caveats:** _Edge cases, vintage breakpoints, definitional shifts._
-- **Cross-walks:** _Joining lookup tables in `data/lookups/`, if any._
-```
+- **Type:** `string`
+- **Description:** The harmonized concept a row measures when more than one source measures it under different names.
+- **Source(s):** Assigned by the pipeline from `data/lookups/concepts.yaml`.
+- **Vocabulary / units:** The concept names in `data/lookups/concepts.yaml`.
+- **Missing values:** Empty when the row takes part in no cross-source comparison.
+- **Known caveats:** Read each concept's caveats in `concepts.yaml` before comparing sources: a shared concept is not a claim that the sources agree.
+- **Crosswalks:** `data/lookups/concepts.yaml`.
+<!-- /IF -->

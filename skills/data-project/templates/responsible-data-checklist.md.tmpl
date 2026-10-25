@@ -1,6 +1,10 @@
 # Responsible data checklist — {{PROJECT_NAME}}
 
-Work through the rights and risks of the people this data is about, at each stage of its life rather than once at the start. The checklist is organized by lifecycle stage — design, getting, understanding, sharing, closure — because a harm introduced at intake is cheapest to prevent there and most expensive to undo at release. Right-size it to what this project holds, but treat two things as hard gates that cannot be waived: **privacy and data-protection law** (GDPR, CCPA, FERPA/HIPAA where relevant) and the **CARE Principles for Indigenous Data Governance** (collective benefit, authority to control, responsibility, ethics). Everything else is advisory; those two redirect what may be collected, linked, retained, or published.
+Work through the rights and risks of the people this data is about, at each stage of its life rather than once at the start. The checklist is organized by lifecycle stage — design, getting, understanding, sharing, closure — because a harm introduced at intake is cheapest to prevent there and most expensive to undo at release. Right-size it to what this project holds, but treat two things as hard gates that cannot be waived: **privacy and data-protection law** (GDPR, CCPA, FERPA/HIPAA where relevant) and the [**CARE Principles for Indigenous Data Governance**](https://www.gida-global.org/careprinciples) (collective benefit, authority to control, responsibility, ethics). Everything else is advisory; those two redirect what may be collected, linked, retained, or published.
+
+Fill the design and getting stages now, from the scoping conversation (Outline section 1), before any sensitive feature exists; revisit the later stages at the gate each one governs. Record answers and harm ratings in `decision-log.md` in the same PR that ticks the boxes.
+
+Owner: `<name>` · Last reviewed: `<YYYY-MM-DD>`
 
 <!-- IF:SENSITIVE -->This project handles **{{SENSITIVITY_TIER}}** data, so this checklist is load-bearing rather than optional. Every identifier and retention affordance must be paired with the access tiers and remedy/escalation process in `docs/governance/GOVERNANCE.md` — affordances without duties are theater. Center the people whose data this is, not an abstract public, and record whose risks are being carried.<!-- /IF -->
 
@@ -16,14 +20,14 @@ Work through the rights and risks of the people this data is about, at each stag
 - [ ] **Consent is real:** freely given, specific, informed, and revocable; the purpose, retention, sharing, and people's rights are stated in terms they can understand, and consent is tracked over time.
 - [ ] **Data minimization & purpose limitation:** collected and kept only what the stated purpose needs; nothing gathered "just in case."
 - [ ] Confirmed the authority and license to use, transform, and share each source before ingesting it.
-- [ ] Recorded provenance and chain of custody on ingestion (see `DATA-DICTIONARY.md`), and kept raw sensitive data and credentials out of the repository.
+- [ ] Recorded provenance and chain of custody on ingestion (see `docs/data-dictionary.md`), and kept sensitive originals and credentials out of the repository.
 
 ## Understanding
 
 - [ ] **Harms assessment by stage:** enumerated the foreseeable harms — re-identification, profiling, discrimination, misuse — for this stage and the next, rated each for likelihood and severity, and recorded a mitigation and monitoring plan for the ones that matter.
 - [ ] Checked re-identification risk specifically: assessed whether individuals could be singled out by combining quasi-identifiers or by linking to outside data.
 - [ ] Brought in the subject-matter knowledge needed to interpret the data so categories and patterns are not misread in ways that harm the people behind them.
-- [ ] Documented known limitations and biases so downstream users are not surprised (mirror `DATA-DICTIONARY.md` and `docs/checklists/data-quality-checklist.md`).
+- [ ] Documented known limitations and biases so downstream users are not surprised (mirror `docs/data-dictionary.md` and `docs/checklists/pre-release-checklist.md`).
 
 ## Sharing
 

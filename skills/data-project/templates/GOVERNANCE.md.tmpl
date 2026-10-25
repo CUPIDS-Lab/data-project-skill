@@ -1,6 +1,6 @@
 # Governance — {{PROJECT_NAME}}
 
-This file says who may touch what, how long we keep things, how decisions get made, and how a documented problem becomes a correction. It exists because public-interest data infrastructure sits under chronic pressure to be enclosed, exempted from scrutiny, and quietly eroded; the answers below are how {{PROJECT_NAME}} resists each. Read it with `docs/governance/CHARTER.md` (the roles who hold these responsibilities, and what survives the pilot). This project's sensitivity is **{{SENSITIVITY_TIER}}** and its openness posture is **{{OPENNESS}}**.
+This file says who may touch what, how long we keep things, how decisions get made, and how a documented problem becomes a correction. It exists because public-interest data infrastructure sits under chronic pressure to be enclosed, exempted from scrutiny, and quietly eroded; the answers below are how {{PROJECT_NAME}} resists each. Read it with `docs/governance/CHARTER.md` (the roles who hold these responsibilities, and what survives the pilot). This project's sensitivity is **{{SENSITIVITY_TIER}}** and its visibility is **{{VISIBILITY}}**. Keep this file short and true: a rule nobody follows or enforces is worse than no rule.
 
 ## Access tiers
 
@@ -9,16 +9,29 @@ Access is documented and tiered so that visibility is legitimate rather than amb
 | Tier | What it covers | Who may access | How access is granted |
 | --- | --- | --- | --- |
 | Public | Processed, non-sensitive outputs and documentation released in open formats. | Anyone. | No request needed. |
-| Restricted | Interim data, partner-shared data, or anything not cleared for public release. | Named project members and approved collaborators. | Request to the project manager; logged. |
+| Restricted | Originals, partner-shared data, or anything not cleared for public release. | Named project members and approved collaborators. | Request to the project manager; logged. |
 | Sensitive | Identifiable, regulated, or otherwise sensitive traces. | A named, minimal set of accountable intermediaries only. | Documented approval; access logged and time-bound. |
 
 ## Retention schedule
 
-State how long each class of data is kept and what happens at the end of its life, because data held without a reason becomes a liability rather than an asset. Record the retention period for raw, interim, and sensitive data; the disposal or wipeout method; and who is responsible for carrying it out. Review the schedule on a stated cadence so it does not drift into indefinite retention by default.
+State how long each class of data is kept and what happens at the end of its life, because data held without a reason becomes a liability rather than an asset. Record the retention period for originals, processed outputs, and sensitive data; the disposal or wipeout method; and who is responsible for carrying it out. Review the schedule on a stated cadence so it does not drift into indefinite retention by default.
 
 ## Decision-making
 
-Describe how decisions get made and recorded so that authority is legible rather than improvised. State who decides routine matters (typically the role owning the affected path in `CODEOWNERS`), how larger decisions are made (consensus among core roles, with the project manager breaking ties), and how disagreements are resolved. Record non-obvious decisions in `decision-log.md` so the project's reasoning is reviewable by people who join later.
+<!-- IF:SOLO -->This is a single-steward project. **{{PI_NAME}}** makes the decisions, and there is no second reviewer, so nothing here claims one. The record is the PR body (*What changed / Why / What I checked / Left alone on purpose*) and a dated entry in `decision-log.md` for every non-obvious choice. If a second person joins, replace this paragraph with the review rules below and turn on branch protection.<!-- /IF -->
+<!-- IF:COLLAB -->Routine changes are decided by the role that owns the affected path in `CODEOWNERS`; larger decisions (scope, definitions, access, releases) by consensus among the core roles in `docs/governance/CHARTER.md`, with the project manager breaking ties. Record non-obvious decisions in `decision-log.md`, linking the issue or PR where they were made.
+
+**Review gate, and what enforces it.** Every change to `{{DEFAULT_BRANCH}}` arrives by pull request with an approving review from someone other than its author, and changes under `docs/governance/` or `data/` need a review from their code owners. This rule is real only while branch protection enforces it, so turn it on when the repository is created and keep it on:
+
+```sh
+gh api -X PUT repos/{{REPO_SLUG}}/branches/{{DEFAULT_BRANCH}}/protection --input - <<'JSON'
+{"required_status_checks": null, "enforce_admins": true,
+ "required_pull_request_reviews": {"required_approving_review_count": 1, "require_code_owner_reviews": true},
+ "restrictions": null}
+JSON
+```
+
+Check it with `gh api repos/{{REPO_SLUG}}/branches/{{DEFAULT_BRANCH}}/protection`. Branch protection on a private repository needs a paid GitHub plan; if it is not available, delete the review-gate sentence above and describe review as a practice instead, rather than claiming a gate nothing enforces. A gate also needs a second person with write access who can review; until there is one, the project is single-steward.<!-- /IF -->
 
 ## Contestable oversight
 
@@ -40,8 +53,8 @@ The rules above are not bureaucracy for its own sake — they operationalize the
 - **Exemption → Oversight.** Powerful actors carve out exemptions from scrutiny. Make oversight routine and testable: reviewable change logs and version history, a reporting cadence where one is warranted, and a named role authorized to interpret and contest the evidence (see *Contestable oversight* above).
 - **Erosion → Ownership.** These projects erode quietly when grants, pilots, or semesters end. Carry stewardship obligations that survive turnover — named custodians, the retention schedule above, and a migration plan (recorded in `docs/governance/CHARTER.md`, "what survives the pilot").
 
-Held as concrete repo requirements, the spine is six **installed-base elements**: (1) *jurisdictional linkability* — stable identifiers and documented crosswalks (`DATA-DICTIONARY.md`); (2) *provenance-in-practice* — reviewable provenance, change logs, and version history (`DATA-DICTIONARY.md`, `decision-log.md`, `CHANGELOG.md`); (3) *stewardship continuity* — retention, redundancy, migration, and named custodians (the retention schedule above plus `docs/governance/CHARTER.md`); (4) *legitimate visibility / tiered access* — the access tiers above; (5) *contestable oversight* — logging, audit rights, and an authorized role (the contestable-oversight section above plus the roles in `docs/governance/CHARTER.md`); (6) *remedy / escalation* — the remedy-and-escalation pathway above. This is not a license to over-build: for a public, non-sensitive dataset most elements collapse to a sentence in `README.md` and a line in `ROADMAP.md`; the weight scales with sensitivity and the kind of collaboration. The one place sensitivity overrides leanness is the coupling below.
+Held as concrete repo requirements, the spine is six **installed-base elements**: (1) *jurisdictional linkability* — stable identifiers and documented crosswalks (`docs/data-dictionary.md`); (2) *provenance-in-practice* — reviewable provenance, change logs, and version history (`docs/data-dictionary.md`, provenance, `decision-log.md`, `CHANGELOG.md`); (3) *stewardship continuity* — retention, redundancy, migration, and named custodians (the retention schedule above plus `docs/governance/CHARTER.md`); (4) *legitimate visibility / tiered access* — the access tiers above; (5) *contestable oversight* — logging, audit rights, and an authorized role (the contestable-oversight section above plus the roles in `docs/governance/CHARTER.md`); (6) *remedy / escalation* — the remedy-and-escalation pathway above. This is not a license to over-build: for a public, non-sensitive dataset most elements collapse to a sentence in `README.md` and a line in `ROADMAP.md`; the weight scales with sensitivity and the kind of collaboration. The one place sensitivity overrides leanness is the coupling below.
 
 <!-- IF:SENSITIVE -->## Sensitive data — affordances ship with duties
 
-This project handles **{{SENSITIVITY_TIER}}** data, where the coupling above is load-bearing and not optional. Every linkability and retention affordance — a stable identifier, a crosswalk, a preserved record, an audit log — must ship together with the access tier that limits who can reach it and the remedy pathway that lets its use be contested. Affordances without duties are surveillance dressed as service, so do not add an identifier scheme, a retention extension, or new logging without simultaneously updating the access tiers and escalation process here. Where Indigenous data is implicated, apply CARE principles alongside these tiers.<!-- /IF -->
+This project handles **{{SENSITIVITY_TIER}}** data, where the coupling above is load-bearing and not optional. Every linkability and retention affordance — a stable identifier, a crosswalk, a preserved record, an audit log — must ship together with the access tier that limits who can reach it and the remedy pathway that lets its use be contested. Affordances without duties are surveillance dressed as service, so do not add an identifier scheme, a retention extension, or new logging without simultaneously updating the access tiers and escalation process here. Where Indigenous data is implicated, apply the [CARE Principles](https://www.gida-global.org/careprinciples) alongside these tiers.<!-- /IF -->

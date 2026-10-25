@@ -1,0 +1,49 @@
+name: Data correction
+description: Report a value in the dataset that looks wrong, missing or mislabeled.
+title: "Data correction: "
+labels: ["data-correction"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. Corrections are checked against the original documents, fixed in a pull request, and recorded in CHANGELOG.md with the affected vintages; earlier values are never rewritten silently. Please don't paste personal information about anyone in the data: point to the row instead.
+  - type: input
+    id: where
+    attributes:
+      label: Which row
+      description: The source, vintage and key columns of the row (or a query that finds it).
+      placeholder: "source=example_source, vintage=2024, observation_id=A-1021"
+    validations:
+      required: true
+  - type: textarea
+    id: wrong
+    attributes:
+      label: What is wrong
+      description: The value in the dataset, and what you believe it should be.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Where the correct value comes from, such as the original document and page, or another authoritative source.
+    validations:
+      required: true
+  - type: dropdown
+    id: about-me
+    attributes:
+      label: Does this concern you or someone you represent?
+      description: People represented in the data may ask for a correction or for removal; tell us so we can follow the project's remedy path.
+      options:
+        - "No"
+        - "Yes: correction"
+        - "Yes: I'm asking for removal or redaction"
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Before you submit
+      options:
+        - label: I have not included personal information beyond what is needed to find the row.
+          required: true

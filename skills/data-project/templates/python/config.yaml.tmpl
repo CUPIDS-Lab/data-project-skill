@@ -1,19 +1,13 @@
-# Pipeline configuration for {{PROJECT_NAME}}.
-# Keep parameters and paths here, not hard-coded in scripts. Override on the CLI
-# with e.g. `snakemake --config seed=123`.
+# Snakemake wrapper configuration for {{PROJECT_NAME}}.
+# The pipeline's own settings live in scripts/config.py; keep only what the wrapper needs here.
 
 project: "{{PROJECT_SLUG}}"
 
+# The tidy deliverable the pipeline writes; Snakemake uses it to decide whether to re-run.
+deliverable: "data/processed/{{PROJECT_SLUG}}.csv"
+
 paths:
-  raw: "data/raw"
-  interim: "data/interim"
+  original: "data/original"     # immutable originals; never edited in place
   processed: "data/processed"
-  results: "results"
-
-# Reproducibility: set a seed for any stochastic step.
-seed: 42
-
-# Analysis parameters (examples — replace with the project's real knobs).
-params:
-  min_year: null
-  max_year: null
+  audit: "data/audit"
+  lookups: "data/lookups"

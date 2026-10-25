@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: Open Knowledge Format (OKF)
-description: A vendor-neutral format for representing knowledge as plain Markdown files with YAML frontmatter, organized into "bundles" of linked concepts — the project's L5 knowledge/publish layer.
+description: A vendor-neutral format for representing knowledge as plain Markdown files with YAML frontmatter, organized into "bundles" of linked concepts — the project's open-knowledge layer in Outline section 9 (Deposit, share & discover).
 resource: https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf
 tags: [accessible, transparent, documented, fair, knowledge]
 ---
@@ -12,7 +12,7 @@ A universal, vendor-neutral format (from Google Cloud's knowledge-catalog projec
 
 ## In one paragraph
 
-OKF turns a project's knowledge into a "bundle": a directory tree of Markdown "concept" files, each with light YAML frontmatter and a prose body, linked into a graph. It is deliberately minimal and permissive, which makes it a good open, durable knowledge layer for a published dataset — the L5 artifact this skill emits from the data dictionary, and the shared hand-off point with the `data-liberation` skill's concept catalogs. Where the **OpenSharing** share kit shares the *data and AI assets themselves* zero-copy (`references/open-sharing-protocol.md`), OKF shares the *understanding* — complementary L5 surfaces, and an OKF bundle can itself be shared as an OpenSharing Volume.
+OKF turns a project's knowledge into a "bundle": a directory tree of Markdown "concept" files, each with light YAML frontmatter and a prose body, linked into a graph. It is deliberately minimal and permissive, which makes it a good open, durable knowledge layer for a published dataset — the section 9 artifact this skill emits from the data dictionary, and the shared hand-off point with the `data-liberation` skill's concept catalogs. Where the **OpenSharing** share kit shares the *data and AI assets themselves* zero-copy (`open-sharing-protocol.md`), OKF shares the *understanding* — complementary section 9 surfaces, and an OKF bundle can itself be shared as an OpenSharing Volume.
 
 ## Key practices (sampleable units)
 
@@ -24,12 +24,12 @@ OKF turns a project's knowledge into a "bundle": a directory tree of Markdown "c
 
 ## Artifacts it implies
 
-- → `templates/okf/{index,log,concept,dataset,table}.md.tmpl`, generated into the project's `knowledge/` directory from `DATA-DICTIONARY.md`. The toolkit's own `references/` are themselves OKF-conformant (every file has a `type`), so they double as a worked example.
+- → `templates/okf/{index,log,concept,dataset,table}.md.tmpl`, generated into the project's `knowledge/` directory from `docs/data-dictionary.md` when the `OKF` flag is set. The toolkit's own `references/` are themselves OKF-conformant (every file has a `type`), so they double as a worked example.
 
 ## When most relevant
 
-Publishing a dataset as open knowledge, building a concept catalog/crosswalk, or pursuing FAIR. Strong signal on "open knowledge," "OKF," "concept catalog," "knowledge graph," "publish the dataset." L5; pairs with the Data Card and the OpenSharing share kit (OpenSharing shares the data; OKF documents it).
+Publishing a dataset as open knowledge, building a concept catalog/crosswalk, or pursuing FAIR. Strong signal on "open knowledge," "OKF," "concept catalog," "knowledge graph," "publish the dataset." Section 9; pairs with the Data Card and the OpenSharing share kit (OpenSharing shares the data; OKF documents it).
 
 ## Caveats / conflicts
 
-It is a knowledge-layer format, not a pipeline or a schema validator — it documents and links, it does not transform. The table-lookup crosswalk in `INDEX.md` scales to dozens of frameworks; OKF bundles scale similarly, but very large catalogs may want tooling to generate indices and the graph view.
+It is a knowledge-layer format, not a pipeline or a schema validator — it documents and links, it does not transform. Very large catalogs may want tooling to generate the bundle index and the graph view. When auditing a bundle, check that every non-reserved `.md` has parseable frontmatter with a non-empty `type` and that the root `index.md` declares `okf_version` (`procedures/audit.md`).

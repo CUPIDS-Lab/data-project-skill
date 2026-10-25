@@ -6,21 +6,20 @@ How {{PROJECT_NAME}} is built, validated, and kept current.
 
 ## The pipeline at a glance
 
-The project's CLI runs four phases in sequence; publishing is a separate
-step (and a separate workflow) so a routine refresh doesn't deploy
-without human review.
+One command, `uv run python -m scripts.pipeline run`, runs the stages in
+order and stops at the first failure. Publishing is a separate step (and a
+separate workflow), so a routine refresh never deploys without review.
 
 ```
-discover → fetch → clean → audit         (the `run` subcommand)
-                                  ↓
-                              publish     (separate; see `scripts/publish.py`)
+discover → fetch → clean → audit → reconcile     (the `run` command)
+                                       ↓
+                                   publish       (separate: `pipeline publish`)
 ```
 
-This maps to the data-liberation skill's six-phase workflow as follows:
-*Survey* and *Scaffold* happen once per project (outside the CLI);
-*Extract* + *Tidy* are what `clean.py` does; *Audit* and *Publish* are
-the last two CLI subcommands. `scripts/pipeline.py` is the entry point;
-each phase is independently invokable.
+`clean` parses each original, removes duplicate keys, validates against the
+schema, and sets rejected rows aside with a reason. It checks that every
+parsed row was written, dropped as a duplicate or rejected, and fails the build
+otherwise; it never writes an empty or partial table over a good one.
 
 ## Source artifacts
 
@@ -39,17 +38,16 @@ each phase is independently invokable.
 
 ## Extraction pipeline
 
-`scripts/sources.py` defines a `Source` ABC with two methods:
+`scripts/source.py` defines two functions:
 
-- `discover()` — enumerates what's available upstream, returning
-  `Artifact` records. Cheap, no downloads. Idempotent.
-- `ingest(artifact)` — reads a previously-fetched local file and
-  returns a canonical-schema DataFrame. Per-vintage parsers in
-  `scripts/parsers/` do the actual parsing work.
+- `artifacts()` lists what is available upstream as `Artifact` records
+  (vintage, URL, local path). Cheap, no downloads.
+- `parser_for(artifact)` picks the parser module for a file; each module
+  in `scripts/parsers/` reads one layout era and declares its extraction
+  method and tools, which are recorded in `provenance.csv`.
 
-The split is deliberate: discovery is an *online* question; ingest is
-an *offline* question; separating them makes parsers unit-testable
-against fixtures without network access.
+Listing is an online question and parsing an offline one; keeping them
+apart makes parsers testable against fixtures without network access.
 
 ## Canonical schema
 
@@ -67,13 +65,13 @@ See `docs/data-dictionary.md` for the full column-by-column reference.
 ## Reconciliation
 
 For sources with authoritative top-line totals (vote totals, enrollment
-counts, budget line items), `scripts/reconcile.py` re-opens each
+counts, line-item totals), `scripts/reconcile.py` re-opens each
 original file, independently computes those totals, and compares to
 what's in the processed deliverable. Mismatches are regressions: the
 pipeline run completes, but CI fails on the reconcile job.
 
 Reconcilers are opt-in per source; the project's reconcile registry is
-in `scripts/reconcile.py::RECONCILE_REGISTRY`.
+in `RECONCILERS` in `scripts/reconcile.py`; it compares at the finest grain both sides share and reports keys present on one side only as scope differences.
 
 ## Caveats and known issues
 
@@ -90,9 +88,9 @@ in `scripts/reconcile.py::RECONCILE_REGISTRY`.
 
 For any specific number that matters:
 
-1. Look up the row in `data/processed/{{PROJECT_SLUG}}.csv`.
-2. Join to `provenance.csv` on `(source, vintage)` to get the source
-   URL, retrieval timestamp, and file sha256.
+1. Look up the row in `data/processed/{{PKG_NAME}}.csv`.
+2. Join to `provenance.csv` on `(source, vintage)` to get the original
+   file, its URL and sha256, and the parser and tools that read it.
 3. Cross-check against the corresponding original under
    `data/original/<source>/<vintage>/`.
 

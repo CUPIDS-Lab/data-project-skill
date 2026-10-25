@@ -35,20 +35,17 @@ jobs:
     permissions:
       contents: write   # required to push to gh-pages branch
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           lfs: true   # pull LFS so we can embed sample data in docs
 
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-
-      - name: Set up Python
-        run: uv python install 3.11
+          python-version: "3.13"
 
       - name: Sync dependencies (publish extras for any docs code blocks)
         run: uv sync --extra publish

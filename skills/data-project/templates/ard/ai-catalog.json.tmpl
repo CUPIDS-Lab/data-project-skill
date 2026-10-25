@@ -7,17 +7,17 @@
   },
   "entries": [
     {
-      "identifier": "urn:ai:{{ARD_HOST_DOMAIN}}:skills:{{PROJECT_SLUG}}",
-      "displayName": "{{PROJECT_NAME}} — project skills",
-      "type": "application/ai-skill+md",
+      "identifier": "urn:ai:{{ARD_HOST_DOMAIN}}:datasets:{{PROJECT_SLUG}}",
+      "displayName": "{{PROJECT_NAME}}",
+      "type": "text/csv",
       "url": "{{REPO_URL}}",
       "description": "{{DESCRIPTION}}",
-      "capabilities": ["data-intake", "documentation", "release-and-share"],
+      "tags": ["dataset", "{{PROJECT_SLUG}}"],
       "representativeQueries": [
-        "intake a new contributed dataset for {{PROJECT_NAME}}",
-        "document a table in the {{PROJECT_NAME}} data dictionary"
+        "where can I get the {{PROJECT_NAME}} data",
+        "what does one row of {{PROJECT_NAME}} represent"
       ],
-      "updatedAt": "{{YEAR}}-01-01T00:00:00Z"
+      "updatedAt": "{{DATE}}T00:00:00Z"
     }
   ]
 }

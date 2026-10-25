@@ -1,38 +1,160 @@
-# Pipeline: cleaning, discovery, audit, and reconciliation
+# Pipeline: acquisition, cleaning, audit, reconciliation, and refresh
 
-This reference covers the processing-and-verification layer of a liberation pipeline: the parser-time cleaning pipeline (the Level 2 "how to process" — what to do during a parser to make a row conform to the canonical schema without losing the trail of what changed) plus discovery, audit, and reconciliation (how to verify that what came in matches the truth). Cleaning work happens between fetching the immutable original and writing the validated CSV — i.e. inside `scripts/parsers/<source>_<vintage>.py` and `scripts/clean.py`; the three "watchful" steps then find what's available upstream (`discover.py`), report on what came in (`audit.py`), and verify the output against authoritative top-line totals (`reconcile.py`). What to *produce* — tidy shape, the canonical schema, the data dictionary, concepts, and the quality dimensions — lives in [`data-modeling.md`](data-modeling.md). The discovery/audit patterns here are distilled from BoulderPublicData/Election-Results (where `reconcile.py` originated), the IPEDS pipeline (which formalized the `discover.py` self-refresh), and ProPublica's [data-bulletproofing guide](https://github.com/propublica/guides/blob/master/data-bulletproofing.md).
+This reference covers the processing and verification layer of a liberation project, Outline sections 2 (Acquire) and 5 (Pipeline & audit), with the parser-time cleaning that sits inside section 3. It explains how originals arrive (probing, discovery, storage, records requests), what a parser does to make rows conform to the schema without losing the trail of what changed, and the watchful steps that catch what went wrong: audit, conservation, reconciliation, and the recurring refresh. What to *produce* (tidy shape, the schema contract, the dictionary, provenance, concepts) is in [`data-modeling.md`](data-modeling.md); the skeleton and every file in it are in [`project-template.md`](project-template.md); the checks every build runs and the human bulletproofing pass are in [`_shared/quality-and-bulletproofing.md`](_shared/quality-and-bulletproofing.md). The patterns here come from BoulderPublicData/Election-Results (where `reconcile.py` originated), the IPEDS pipeline (`discover.py` self-refresh), ProPublica's [data-bulletproofing guide](https://github.com/propublica/guides/blob/master/data-bulletproofing.md), and the projects these skills have served.
 
-The skill commits to seven principles:
+## Contents
 
-- **Originals are immutable.** Never write back to `data/original/`. Every cleaning operation reads from there and writes to `data/processed/` (or `data/audit/`).
-- **Profile before you parse.** Inspect dtypes, distinct counts, null patterns, distributions *before* writing any coercion code.
-- **Errors are durable, not fatal.** Malformed rows go to a *reject port* (`data/audit/rejected.csv`) with a reason; the rest of the pipeline keeps running.
-- **Coerce explicitly.** Pandas's silent dtype inference is the source of most leading-zero bugs. Declare types at the boundary.
-- **Document every transform.** A cleaning log (`data/audit/cleaning-log-<ts>.json`) records before/after counts per operation. Reproducibility is the property that distinguishes liberation from cleaning-by-spreadsheet.
-- **Imputation is opt-in.** The default civic-data stance is to preserve missingness (NA) and document it, not to fill it. Imputation lives behind an explicit decision logged in `AGENTS.md`.
-- **Redact PII at the boundary of `data/processed/`.** The originals retain whatever the publisher published; the processed CSV obeys the project's redaction policy.
+- [Principles](#principles)
+- [Part 1: Acquire](#part-1-acquire)
+  - [Probe the live source before writing a parser](#probe-the-live-source-before-writing-a-parser)
+  - [Vintage keys come from the file, not the publish path](#vintage-keys-come-from-the-file-not-the-publish-path)
+  - [Discovery](#discovery)
+  - [Fetching: idempotent, verified, refreshable](#fetching-idempotent-verified-refreshable)
+  - [Storage budget](#storage-budget)
+  - [Ephemeral sources](#ephemeral-sources)
+  - [When the source path is a records request (FOIA, sunshine laws)](#when-the-source-path-is-a-records-request-foia-sunshine-laws)
+- [Part 2: Cleaning and standardization](#part-2-cleaning-and-standardization)
+  - [The cleaning steps](#the-cleaning-steps)
+  - [1. Initial assessment: profile before you parse](#1-initial-assessment-profile-before-you-parse)
+  - [2. Structural fixes](#2-structural-fixes)
+  - [3. Deduplication](#3-deduplication)
+  - [4. Missing-value treatment](#4-missing-value-treatment)
+  - [5. Outlier detection](#5-outlier-detection)
+  - [6. Standardization and normalization](#6-standardization-and-normalization)
+  - [7. Validation and the reject file](#7-validation-and-the-reject-file)
+  - [8. PII redaction](#8-pii-redaction)
+  - [9. The row ledger and the conservation check](#9-the-row-ledger-and-the-conservation-check)
+  - [Where this lives in the project](#where-this-lives-in-the-project)
+- [Part 3: Audit, reconciliation, and refresh](#part-3-audit-reconciliation-and-refresh)
+  - [Audit: what came in](#audit-what-came-in)
+  - [The error log](#the-error-log)
+  - [Reconciliation](#reconciliation)
+  - [The recurring-refresh pattern](#the-recurring-refresh-pattern)
+  - [Common failure modes](#common-failure-modes)
+  - [What to write in AGENTS.md](#what-to-write-in-agentsmd)
 
-# Part 1 — Cleaning and standardization
+## Principles
 
-## The cleaning pipeline
+- **Originals are immutable.** Nothing writes back to `data/original/`. Every cleaning step reads from there and writes to `data/processed/` or `data/audit/`.
+- **Probe before you parse.** Open real files from every era of the live source, and profile their columns, before writing coercion code.
+- **Errors are durable, not fatal, and never silent.** An artifact that fails is recorded in a per-run error log that starts empty; a row that fails validation goes to the reject file with a reason; the rest of the run continues, and the audit summary reports both counts.
+- **Fail loudly on empty or degenerate output.** An empty extraction, or one whose key columns are all null, is an error. If nothing survives, nothing is written over the last good output. No step substitutes sample, synthetic or cached data for a failed download or parse.
+- **Count every row.** Each stage boundary keeps a ledger, and rows that disappear without being counted fail the build.
+- **Coerce explicitly.** pandas's silent dtype inference causes most leading-zero bugs; declare types at the boundary.
+- **Deterministic outputs.** The same originals produce byte-identical CSVs, provenance and audit reports: stable sort orders, no wall-clock time in content. Run times live in a separate, ignored `data/audit/run.json`.
+- **Imputation is opt-in.** Preserve missingness and document it; fill only after an explicit decision in the decision-log.
+- **Redact PII at the boundary of `data/processed/`.** Originals keep what the publisher published; the processed data obeys the project's policy.
 
-Every parser does three things — *extract from a source*, *transform what's there*, *publish to a sink* — and the 9 steps below group cleanly into those three roles. Naming the role a step plays sharpens diagnosis: a *source-extraction* failure (encoding wrong, sentinel missed, dtype mis-inferred) calls for fixes in the parser's `read_*` calls; a *transformation* failure (consistency, dedup logic, missingness handling) belongs in the middle of the parser; a *sink-publication* failure (PII leaked, format unified inconsistently, output didn't match the schema contract) belongs at the end or in `publish.py`.
+---
 
-| Step | Role | Goal | Output |
-|---|---|---|---|
-| 1. Initial assessment | Source-extraction | Know what you have | Profile report; structural-issues note |
-| 2. Structural fixes | Source-extraction | Make the shape canonical | Standardized column names, dtypes, no fully-empty rows/cols |
-| 3. Deduplication | Transformation | Remove redundant rows | Deduplicated frame + dropped-rows log |
-| 4. Missing-value treatment | Transformation | Decide per-mechanism, document | Frame with NA preserved or imputed with rationale |
-| 5. Outlier detection | Transformation | Catch the impossible and the suspicious | Outlier flag column (`outlier_method`, `outlier_reason`) |
-| 6. Standardization / normalization | Transformation | Make values uniform | Casing, encoding, formats unified |
-| 7. Validation + reject port | Transformation | Gate the canonical output against the [schema contract](data-modeling.md#the-canonical-schema) | Valid rows → `data/processed/`; invalid → `data/audit/rejected.csv` |
-| 8. PII redaction | Sink-publication | Apply policy at the publish boundary | Redacted columns in `data/processed/` only |
-| 9. Documentation | Sink-publication | Log what changed | `data/audit/cleaning-log-<ts>.json` |
+# Part 1: Acquire
 
-Run them in order — earlier steps surface issues that change how later steps behave. Skipping forward means redoing later. The rest of this part unpacks each step with concrete tools and the integration point in this skill's project layout.
+## Probe the live source before writing a parser
 
-## 1. Initial assessment — profile before you parse
+Before writing any parser, fetch one real file from *each* era you believe the source has, open several pages or sheets of each, and write down what you found as numbered findings in the decision-log. Every later cleaning rule should be able to cite a finding.
+
+- **The live source, not a description of it.** Papers, notebooks, earlier pipelines and landing pages describe the source as it was. Publishers silently re-export: a series once served in several heterogeneous formats may now be served in one uniform format, or the reverse. One project built a parser for each of several historical schemas and then discarded all five when the live files turned out to be uniform; one download per claimed era would have cost minutes.
+- **Every structural cohort, not one specimen.** A parser validated on one convenient file can fail silently on a file whose internal structure differs (another project's PDF adapter produced empty output on volumes with a different cross-reference layout). Validate on at least one file from every era and format variant, and run the reconcile gate across the whole corpus, not only the file it was developed on.
+- **Embedded OCR is a claim, not a fact.** Compare an embedded text layer in a scanned PDF against the page image before trusting it; such layers were unusable several times in the projects reviewed.
+- **Find the documentation and the contact.** The publisher's codebook, methodology or mandating statute, and a records officer or other person to ask when something is strange. Not finding them is itself a finding for the README's caveats.
+- **Check the source against itself:** record counts against the publisher's claim (watch for truncation at 65,536 or 1,048,576 rows and other round limits), printed totals against the sum of rows, the date and geography range against what is claimed, and every categorical column grouped to surface spelling drift. Format-native error markers (`#REF!`, `#DIV/0!`, `#N/A` in spreadsheets, `null` in required JSON fields) originated with the publisher: count them and record them as caveats rather than silently coercing them to missing.
+
+The full pre-release bulletproofing pass and its checklist are in [`_shared/quality-and-bulletproofing.md`](_shared/quality-and-bulletproofing.md).
+
+## Vintage keys come from the file, not the publish path
+
+Derive each artifact's vintage (the period it covers) from its file name or its content, never from the directory, URL path or date it was published under. Publishers routinely post a period's file later (fourth-quarter data the following February, an annual report in the next year's folder), and a discovery scan keyed on the publish path silently mislabels vintages. `scripts/source.py` has `vintage_from_filename()` and the template's `tests/test_source.py` pins a publish-directory case; add one for your source's naming pattern. When a document covers several periods, record both the printed period and the page it came from.
+
+## Discovery
+
+Discovery answers "is there a vintage we don't have yet?" without downloading anything. In the template, `artifacts()` in `scripts/source.py` lists everything upstream; `discover.py` (refresh group) reports which artifacts are new and writes `data/audit/discovery.md`. Two patterns:
+
+**Static list.** For publishers with predictable URLs (`https://example.gov/annual-report/2024.pdf`, `…/2025.pdf`), list them, or generate them from a year range:
+
+```python
+# scripts/source.py
+ARTIFACTS = [(str(year), f"https://example.gov/annual-report/{year}.pdf") for year in range(2010, 2026)]
+```
+
+A year that hasn't been published yet fails at fetch with a 404 in the error log; extend the range deliberately rather than guessing ahead.
+
+**Index page.** For publishers with a landing page that lists what is available, scrape it and read each vintage from the link's file name:
+
+```python
+# scripts/source.py
+import httpx
+from selectolax.parser import HTMLParser
+
+INDEX_URL = "https://example.gov/elections/historical-results/"
+
+
+def artifacts() -> list[Artifact]:
+    html = httpx.get(INDEX_URL, headers={"User-Agent": USER_AGENT}, timeout=60).text
+    out = []
+    for link in HTMLParser(html).css("a[href$='.pdf']"):
+        url = link.attributes["href"]
+        vintage = vintage_from_filename(url.rsplit("/", 1)[-1])
+        if vintage is None:
+            continue  # not a results file: log it if unsure
+        out.append(Artifact(SOURCE_SLUG, vintage, url, DATA_ORIGINAL / SOURCE_SLUG / vintage / "sov.pdf"))
+    return sorted(out, key=lambda a: (a.vintage, a.rel))
+```
+
+Save a copy of the index page as a test fixture, so a redesign that breaks the selector fails a test rather than producing an empty list. Discovery that suddenly finds zero artifacts is a regression, not a quiet month.
+
+## Fetching: idempotent, verified, refreshable
+
+`fetch.py` downloads what is missing into `data/original/<source>/<vintage>/` and records each file in `data/original/manifest.json` (URL, sha256, size, fetch time). It is idempotent: a re-run downloads nothing and changes nothing. It retries with exponential backoff on connection errors and 429 or 5xx responses only, never caches an error response, and rejects an empty body or an HTML error page served where a PDF was expected. It identifies itself with a user agent that carries a contact, and prints throttled progress (`[i/n] fetch …`) so a long run shows it is alive.
+
+**Forced refetch.** A cached original can go stale when a publisher revises a file at the same URL. `fetch --fresh` (or `run --fresh`) bypasses the HTTP cache and re-downloads everything. Identical bytes change nothing; changed bytes replace the file, keep the old hash in `previous_sha256`, and are reported, so the revision shows in the refresh PR's manifest diff and the change can be explained in `CHANGELOG.md`. Without `--fresh`, a re-download that doesn't match the recorded hash is an error. Cleaning also re-hashes each original and reports any file that no longer matches its manifest entry.
+
+**Scraper hygiene.** Back off on 429 and 503; expect a CI runner's IP to be blocked where a laptop isn't, and plan a local capture; use the Wayback Machine's timemap when its CDX endpoint is overloaded; never disable TLS verification (complete the certificate chain instead); and keep an error page's status and title as evidence, not its text as data. `extract-web.md` and `extract-api.md` cover the details.
+
+## Storage budget
+
+Decide per source where the originals live, and record it in the decision-log: committed to git (small text and tabular files), Git LFS (large binaries such as PDF volumes and scans), or outside git with the URL and sha256 kept in the committed manifest (files too large or too many for LFS, or restricted from redistribution). CI fails on any committed file over 95 MiB, short of GitHub's 100 MB limit, because a file over the limit can't be pushed and removing it from history is painful. When processed data is too large to commit, the committed audit reports and `headline.json` are the shared record that every regeneration must reproduce. The mechanics are in [`project-template.md`](project-template.md#storage-budget).
+
+## Ephemeral sources
+
+Some sources show only the current state (today's list of open cases, this week's inspections), so a missed capture is lost for good and cannot be backfilled. For them:
+
+- **Write once per capture:** one dated file per run under `data/original/<source>/<YYYY-MM-DD>/`, never overwritten.
+- **Don't trust a single scheduled run.** GitHub's scheduled workflows start late or are skipped under load. Schedule a second, redundant run a few hours later (the second finds the day's file already present and does nothing), and keep a run log.
+- **Detect gaps:** the discovery report lists capture dates, and a missing date is reported as a gap, with the cause recorded when known.
+- **Say what can't be recovered.** The dictionary's caveats and the README name the first capture date and every known gap.
+
+## When the source path is a records request (FOIA, sunshine laws)
+
+If the data has to be requested rather than downloaded, the request is part of acquisition, and a few process choices change what comes back:
+
+- **Ask for data, not narrative.** Request the underlying records in their native machine-readable format ("the database export, or the spreadsheet behind this report"), not "a report about X". Agencies often default to printing to PDF; naming the format avoids a second request.
+- **Know the clock and the fees.** Federal FOIA runs about 20 business days, often longer; fee categories differ for commercial, news-media or educational, and other requesters, and public-interest waivers exist. State open-records laws vary; the records officer is the contact, and `FOIA.gov` routes federal requests.
+- **Treat redactions as findings.** A heavily redacted or truncated release can still carry usable tables; record what was withheld and the claimed exemption in the dictionary's caveats and the decision-log. An excessive redaction is itself a transparency story.
+- **Decide what the project will not liberate.** "Available to extract" is not "responsible to publish." Where a release contains personal data that privacy law protects, or where a likely downstream use is one the project disavows, that judgment belongs in Outline section 1, before parsing: see [`_shared/values-and-gates.md`](_shared/values-and-gates.md). The wider transparency-law landscape is in [`lineage-and-landscape.md`](lineage-and-landscape.md).
+
+---
+
+# Part 2: Cleaning and standardization
+
+## The cleaning steps
+
+Every parser does three things: extract from a source, transform what is there, and publish to a sink. Naming the role a step plays sharpens diagnosis: a *source-extraction* failure (wrong encoding, a missed sentinel, a mis-inferred dtype) is fixed in the parser's read calls; a *transformation* failure (consistency, dedup logic, missingness) in the middle of the parser; a *sink-publication* failure (leaked PII, inconsistent formats, output that breaks the schema contract) at the end, or in `clean.py` and the publish code.
+
+| Step | Role | Goal | Where it happens |
+| --- | --- | --- | --- |
+| 1. Initial assessment | Source-extraction | Know what you have | while probing; `docs/variables.*` on every audit |
+| 2. Structural fixes | Source-extraction | Make the shape canonical | the parser |
+| 3. Deduplication | Transformation | Remove repeated keys before validation | `clean.py` (`schema.dedupe`); fuzzy matching in the parser |
+| 4. Missing-value treatment | Transformation | Decide per mechanism, document | the parser and the dictionary |
+| 5. Outlier detection | Transformation | Catch the impossible and the suspicious | the parser, or schema checks |
+| 6. Standardization | Transformation | Make values uniform | the parser; vocabularies in `data/lookups/` |
+| 7. Validation and the reject file | Transformation | Gate output against the [schema contract](data-modeling.md#the-canonical-schema) | `clean.py` (`schema.split_valid`) → `data/audit/rejected.csv` |
+| 8. PII redaction | Sink-publication | Apply policy at the processed boundary | the parser or publish code |
+| 9. Row ledger and conservation | Sink-publication | Account for every row | `clean.py` → `run.json`, `summary.md` |
+
+Run them in order: earlier steps surface issues that change how later ones behave.
+
+## 1. Initial assessment: profile before you parse
 
 Three things, every time, before writing any coercion code:
 
@@ -63,13 +185,13 @@ The profile produced *at this step* gets persisted: `audit.py`'s auto-generated 
       return s
   df.columns = [snake(c) for c in df.columns]
   ```
-- **Dtype casting** with `pandas.to_numeric(..., errors='coerce')`, `pandas.to_datetime(..., errors='coerce')`, and explicit `dtype="string"` for ID-like columns. The `errors='coerce'` flag turns un-parseable values into `NaT`/`NaN` instead of raising — combined with the reject port (step 7), this is how the pipeline routes parser failures without crashing.
+- **Dtype casting** with `pandas.to_numeric(..., errors='coerce')`, `pandas.to_datetime(..., errors='coerce')`, and explicit `dtype="string"` for ID-like columns. The `errors='coerce'` flag turns un-parseable values into `NaT`/`NaN` instead of raising — combined with schema validation (step 7), this is how values that won't parse reach the reject file instead of crashing the parser.
 - **Split or merge columns** as the schema requires — e.g. an "Address" column → `street`, `city`, `state`, `zip`; or a `first_name` + `last_name` → `full_name`. Document either direction in the data dictionary.
 - **Drop fully empty rows and columns:** `df.dropna(how='all')` for rows; `df.dropna(axis=1, how='all')` for columns. Fully empty *and not previously documented* is a structural artifact (Excel padding, export bug), not data.
 
 ## 3. Deduplication
 
-Two kinds of duplicates, two different operations:
+Deduplicate *before* validating, so validation reports real violations rather than duplicates it cannot drop. `clean.py` removes rows that repeat the natural key (`KEY_COLUMNS`) with `schema.dedupe`, keeping the last reading (the latest correction wins), and counts them in the ledger. Inside a parser, two kinds of duplicates call for two different operations:
 
 ### Exact duplicates
 
@@ -118,7 +240,7 @@ Output a *similarity score* with every match, and persist the pair-with-score ta
 
 ## 4. Missing-value treatment
 
-The default is **preserve NA** and document the mechanism. Imputation is opt-in and requires an explicit AGENTS.md decision.
+The default is **preserve NA** and document the mechanism. Imputation is opt-in and requires an explicit, dated decision in the decision-log.
 
 Classify the missingness mechanism (Rubin's framework):
 
@@ -179,7 +301,7 @@ A row whose value violates physical or definitional limits isn't outlier-suspici
 | US ZIP | regex `^\d{5}(-\d{4})?$` | preserve as string |
 | US phone | digits-only length 10, or E.164 `+1\d{10}` | |
 
-Decision policy per outlier: **correct** (if you can verify), **cap** (winsorize to the plausible bound), **remove** (route to reject port), or **keep with flag** (an `outlier_method` column). Pick one per column, document it.
+Decision policy per outlier: **correct** (if you can verify), **cap** (winsorize to the plausible bound), **remove** (route to the reject file), or **keep with flag** (an `outlier_method` column). Pick one per column, document it.
 
 ## 6. Standardization and normalization
 
@@ -193,45 +315,39 @@ Different sources will have spelled the same value many ways. Unify at parser ti
 - **Phone numbers.** Normalize to E.164 (`+1\d{10}` for US). The [`phonenumbers`](https://github.com/daviddrysdale/python-phonenumbers) library handles parsing across countries.
 - **Addresses.** USPS-standardized form for US addresses ([`usaddress`](https://github.com/datamade/usaddress) for parsing; [`scourgify`](https://github.com/EdgewiseSolutions/scourgify) for normalization). For non-US, `libpostal` is the more general option.
 - **Categorical canonicalization.** A `data/lookups/normalize_<column>.yaml` mapping raw values to canonical ones — `{"Mr.": "Mr", "Mister": "Mr", "MR": "Mr"}` — applied at parse time. This is a one-way crosswalk; see the *concept catalog* in [`data-modeling.md#concept-catalogs`](data-modeling.md#concept-catalogs) for the multi-way cross-source case.
-- **Regex / string transforms.** Lift common patterns into named functions in `scripts/parsers/_normalize.py` and import them per-parser. Examples: strip trailing `.` from name initials; collapse `St.` and `Street`; extract a leading numeric ID from `"R21-007: Description..."`.
+- **Regex / string transforms.** Name common patterns as functions (strip trailing `.` from initials; collapse `St.` and `Street`; extract a leading numeric ID from `"R21-007: Description..."`) and share them between parsers once a second parser needs them.
 
-## 7. Validation and the reject port
+## 7. Validation and the reject file
 
-The **reject port** pattern: any row that fails a parser's validation rules goes to `data/audit/rejected.csv` with a `reject_reason` column and the original row content preserved. The pipeline keeps running. The reject port is a first-class audit artifact, not a debug file.
+`clean.py` validates the deduplicated frame against the pandera contract in `scripts/schema.py` with `split_valid`: rows that fail a row-level check (a null key, a value outside its declared range, a type that won't coerce) go to `data/audit/rejected.csv` with their original values, the artifact they came from and a `reject_reason`; valid rows go on. A failure not tied to specific rows (a missing or unexpected column) fails the whole artifact, which is recorded in the error log. The reject file is rewritten every run, is gitignored (it can hold personal data), and its count by reason appears in the audit summary, which is committed.
 
 ```python
-def parse(path: Path) -> pd.DataFrame:
-    raw = pd.read_csv(path, dtype=str)
-    raw['_row_num'] = raw.index
+# scripts/schema.py — the contract carries the row-level rules
+class CanonicalLong(pa.DataFrameModel):
+    precinct: Series[str]
+    votes: Series[pd.Int64Dtype] = pa.Field(ge=0, nullable=True)
+    ...
 
-    # apply structural fixes, normalization...
-
-    valid_mask = (
-        raw['age'].astype(float).between(0, 120) &
-        raw['email'].str.match(EMAIL_RE) &
-        raw['zip'].str.match(ZIP_RE)
-    )
-    rejected = raw.loc[~valid_mask].assign(
-        reject_reason=lambda d: _reason_for_each(d),
-        source_file=path.name,
-    )
-    rejected.to_csv(REJECT_PORT, mode='a', header=not REJECT_PORT.exists(), index=False)
-
-    return raw.loc[valid_mask].drop(columns=['_row_num'])
+    class Config:
+        strict = True
+        coerce = True
+        unique = KEY_COLUMNS
 ```
 
-Beyond per-record validation:
+Beyond per-row checks:
 
-- **Schema validation** via `pandera` at the boundary of `clean.py` (covered in [`data-modeling.md#validation`](data-modeling.md#validation)).
-- **Cross-field validation** — `start_date < end_date`; `diastolic_bp < systolic_bp`; `child_age < parent_age`; `total = sum_of_parts`. These are pandera `Check` callables, or explicit assertions in `clean.py` that route violations to the reject port.
-- **Referential integrity** — values in a column must appear in a lookup table. E.g. every `precinct` in the data must appear in `data/lookups/precincts.csv`. Mismatches are usually new precincts (or typos) and warrant a review.
-- **Business rules** — domain-specific assertions a stakeholder names. Capture them in a `scripts/validators.py` registry so the rule set is inspectable in one place.
+- **Cross-field rules** (`start_date < end_date`, `total = sum of parts`) are pandera dataframe-level checks (`@pa.dataframe_check`) in `schema.py`, so they report the failing rows and route them to the reject file like any other check.
+- **Referential integrity:** values in a column must appear in a lookup table (every `precinct` in `data/lookups/precincts.csv`). Mismatches are usually new entities or typos and deserve review.
+- **Controlled vocabularies:** a `data/lookups/vocab_<column>.csv` per categorical column, which `tests/test_lookups.py` checks against the dictionary and the data.
+- **Business rules** a stakeholder names live in the same schema module, so the full rule set is inspectable in one place.
+
+A jump in rejected rows between runs (from 22 to 4,200) means the parser broke or the source changed; the refresh PR's summary diff shows it.
 
 ## 8. PII redaction
 
 A liberation project is publishing data; whatever PII was in the original *and is not load-bearing for the public-interest analysis* should be redacted from `data/processed/` outputs. The original retains the source's content; the processed outputs obey the project's policy.
 
-Redaction is the *mechanical* step; the *decision* it implements lives one level up. Whether a dataset should be published at all under privacy law (GDPR Art. 17, CCPA) or the CARE principles is a governance gate — one of the few places in this skill that can mean *do not publish, or publish differently* — covered in [`project-template.md`](project-template.md#governance) and framed in [`context.md`](context.md). Apply the gate first; redaction carries out its verdict, it doesn't substitute for it.
+Redaction is the *mechanical* step; the *decision* it implements lives one level up. Whether a dataset should be published at all under privacy law (GDPR Art. 17, CCPA) or the CARE principles is a governance gate — one of the few places in this skill that can mean *do not publish, or publish differently* — covered in [`_shared/values-and-gates.md`](_shared/values-and-gates.md) and [`_shared/governance.md`](_shared/governance.md). Apply the gate first; redaction carries out its verdict, it doesn't substitute for it.
 
 Common PII patterns and a regex starter set (use as a baseline; combine with a real library for production):
 
@@ -257,458 +373,124 @@ The decision matrix:
 | Identifier never needed downstream | Drop the column entirely |
 | Identifier needed for joins but not display | Hash with a project-secret salt; document the hash function in the dictionary |
 | Identifier needed for display but not full precision | Generalize (ZIP → ZIP3; DOB → birth year; address → census tract) |
-| Identifier load-bearing for accountability (elected officials' salaries, public-record case parties) | Keep, with the legal basis documented in the dictionary |
+| Identifier load-bearing for accountability (elected officials' official acts, public-record case parties) | Keep, with the legal basis documented in the dictionary |
 
 **Never** redact PII in `data/original/`. The hash manifest assumes those files are byte-identical to what the publisher published. Redaction is a publish-time transform.
 
-## 9. Documentation
+## 9. The row ledger and the conservation check
 
-Every cleaning run writes one structured log: `data/audit/cleaning-log-<ts>.json`. Minimum content:
+`clean.py` keeps a ledger for every run: rows parsed, duplicates dropped, rows rejected, rows written. It must balance (`parsed = duplicates_dropped + rejected + written`) or the build fails with exit code 3; `audit.py` then checks that the processed CSV holds exactly the rows `clean` reported writing. The ledger goes to `data/audit/run.json` (with the run's start and end times, ignored by git) and into the committed summary and `headline.json`. Per-artifact counts (`rows_parsed`, `rows_out`, `rows_rejected`) are in `provenance.csv`, so an artifact that suddenly yields a fraction of its usual rows stands out.
 
-```json
-{
-  "run_ts": "2026-05-25T18:00:00Z",
-  "source": "boulder_county_sov",
-  "vintage": "2024-general",
-  "parser": "boulder_sov_2024.py@a1b2c3d",
-  "rows_in": 14823,
-  "rows_out": 14801,
-  "rows_rejected": 22,
-  "transforms": [
-    {"step": "snake_case_columns", "columns_renamed": 17},
-    {"step": "sentinel_to_na", "column": "votes", "values_replaced": 142},
-    {"step": "drop_exact_duplicates", "keys": ["precinct", "contest", "candidate"], "dropped": 8},
-    {"step": "outlier_flag", "column": "votes", "method": "IQR", "flagged": 3},
-    {"step": "pii_redact", "column": "voter_email", "strategy": "drop_column"}
-  ],
-  "reject_port": "data/audit/rejected.csv"
-}
-```
-
-This log is what reviewers read on the refresh PR. The per-vintage diff between two runs surfaces silent drift — e.g., a sudden jump from 22 rejected rows to 4,200 means the parser broke or the source changed.
+Where a transformation inside a parser drops or merges rows on purpose (dropping footnote rows, merging continuation lines), count what it removed and say so in the parser's `NOTES` or the dictionary's caveats, so the gap between the source's row count and `rows_parsed` is explained. Where meaningful, conserve a key amount as well as the row count: a total that changes between stages is as loud a signal as a missing row.
 
 ## Where this lives in the project
 
 | Operation | Lives in |
-|---|---|
-| Per-source parser logic (steps 1–7) | `scripts/parsers/<source>_<vintage>.py` |
-| Shared normalization helpers | `scripts/parsers/_normalize.py` |
-| Cross-source orchestration | `scripts/clean.py` |
-| Validators (cross-field rules, business rules) | `scripts/validators.py` |
-| PII redaction policy (per column) | `scripts/publish.py` (applied to the published artifact only) |
-| Lookup tables (categorical canonicalizations, FK targets) | `data/lookups/` |
-| Reject-port output | `data/audit/rejected.csv` |
-| Per-run cleaning log | `data/audit/cleaning-log-<ts>.json` |
-| Schema enforcement (pandera) at the boundary | `scripts/schema.py` (see [`data-modeling.md#validation`](data-modeling.md#validation)) |
+| --- | --- |
+| Per-era parser logic (steps 1–6, 8) | `scripts/parsers/<source>_<era>.py` |
+| Routing artifacts to parsers | `scripts/source.py` (`parser_for`) |
+| Dedup, validation, reject file, ledger, writing | `scripts/clean.py` with `scripts/schema.py` |
+| The schema contract and row-level rules | `scripts/schema.py` (see [`data-modeling.md`](data-modeling.md#validation)) |
+| Lookup tables (vocabularies, crosswalks, entity seeds) | `data/lookups/` |
+| Reject file | `data/audit/rejected.csv` (per run, ignored) |
+| Error logs | `data/audit/extraction_errors.json`, `data/audit/fetch_errors.json` (per run, ignored) |
+| Ledger and run times | `data/audit/run.json` (per run, ignored); counts in `summary.md` (committed) |
 
-The cleaning pipeline runs once per vintage at parser time. The reject port and cleaning log are first-class audit artifacts, reviewed on every refresh PR. Drift in any of the per-transform counts is usually the earliest signal that the upstream source changed.
+When two parsers need the same helper (strip trailing periods from initials, collapse `St.` and `Street`), lift it into a shared module under `scripts/parsers/` then, not before.
 
-# Part 2 — Discovery, audit, and reconciliation
+---
 
-The "watchful" steps. Where Part 1 describes *what to do* during a parser, Part 2 describes *what's wrong* and how to catch it — together, they make a pipeline *trustworthy* rather than just *runnable*.
-
-## Pre-extraction bulletproofing
-
-Before writing a single parser, vet the source itself. ProPublica's data-bulletproofing guide distills this practice; the checklist below adapts it for the liberation workflow. Most of these are five-minute checks; skipping them buys hours of debugging later.
-
-Each check below corresponds to a specific [data-quality dimension](data-modeling.md#data-quality) — naming the dimension makes the check defensible to engineers, and using the engineer's framework keeps the journalist honest about what's being measured. The five quality dimensions themselves are defined canonically in [`data-modeling.md#data-quality`](data-modeling.md#data-quality); the table below maps each check to one of them rather than re-defining them here:
-
-| Check | Dimension it serves |
-|---|---|
-| Record count verification (watch for the 65,536-row Excel ceiling, powers of two) | Completeness |
-| Top-line totals match the publisher's claim | Accuracy |
-| Date and geography range checks | Timeliness; Relevance |
-| `GROUP BY` every categorical field to surface spelling drift | Consistency |
-| Find the publisher's codebook / methodology / statute | Usability (Documentation, Metadata) |
-| Identify the records officer / contact | Usability (Credibility) |
-| Discriminate blanks from sentinel values (`-9`, `9999`, `1900-01-01`) | Completeness (with the three-way *exists-but-unknown* / *does-not-exist* / *unknown-whether-exists* distinction in the data dictionary) |
-| Demand questionnaires for survey-derived data | Usability (Credibility) |
-| Cross-source corroboration | Consistency |
-| Random-sample physical spot-check | Auditability |
-
-The documentation-and-contact checks are *state reconstruction* — the under-rotated, highest-leverage phase that happens before any measurement code is written. See [`data-modeling.md#pipeline-shape`](data-modeling.md#pipeline-shape).
-
-This checklist parallels the quality, provenance, and metadata best practices in the W3C **Data on the Web Best Practices** — DWBP is a useful published yardstick to skim once if you want an external "did we miss anything?" list, but the journalistic checklist here is the operational form. See [`context.md`](context.md#a-meta-synthesis-four-lenses-on-open-data) for the framing; it's background, not an added gate.
-
-### Source-level checks
-
-- **Record count.** Confirm the total matches what the publisher claims (or what an independent count says it should be). Watch for *suspicious round limits* — 65,536 rows in an Excel export, 1,048,576 rows, exactly 10,000 rows, powers of two — they often mean the export was truncated upstream.
-- **Top-line totals.** If the source publishes a "Total" line, sum the rows and compare. A mismatch here is either an arithmetic error in the source (document it explicitly in `docs/data-dictionary.md` under "Known mismatches" — see [reconciliation](#reconciliation)) or evidence the export is incomplete.
-- **Date and geography ranges.** Does the data actually cover the years and jurisdictions the publisher claims? A "1980–present" dataset that has zero records before 1995 needs explaining.
-- **Categorical field consistency.** `GROUP BY` every important categorical column and read the result. Spelling variations (`"Main St"` vs `"Main Street"` vs `"MAIN ST."`), trailing whitespace, and case differences are how dirty data hides.
-- **Blank values.** Determine whether blanks are *real values* (the publisher genuinely didn't measure this) or *import errors* (the column dropped during export). The two cases require different treatment in the parser.
-- **Suspicious sentinel values.** `-9`, `9999`, `99999999`, `-1`, `1900-01-01`, the empty string — government datasets use ALL of these for "missing." Document the ones this source uses and convert them to NA in the parser, not silently in the pipeline. See [4. Missing-value treatment](#4-missing-value-treatment) above for the Rubin MCAR/MAR/MNAR framework and treatment choices.
-- **Format-native error markers are quality signals, not noise.** When the source format encodes its own failure states — `#REF!`, `#DIV/0!`, `#VALUE!`, `#N/A`, `#NAME?` in spreadsheets; `null` in JSON columns the schema says are required; `<missing>` placeholders in HTML tables — those errors *originated with the publisher*, not the parser, and they're worth surfacing as audit findings rather than silently coerced to NA. The principle generalizes past spreadsheets: any format-native "this value is broken" marker is a publisher-side data-quality issue worth a row in `data/audit/source_errors.csv` so the count can be trended over time. Silently converting them to NA loses the signal that the *source* has a problem.
-
-### Methodology and provenance checks
-
-- **Find the original documentation.** The publisher's codebook, methodology PDF, statute or regulation mandating the publication. Read it before parsing. If you can't find one, that's a finding worth recording in `AGENTS.md` "Known limitations."
-- **Identify the contact.** Records officer, FOIA liaison, the journalist who last covered this beat, the academic who maintains a derivative dataset. Make the introduction early; you'll need them when something is weird.
-- **Demand questionnaires/methodologies for survey-derived data.** Refusal to share methodology is a red flag worth naming. Identify non-scientific methods (web-based panels, self-selection) and bake that caveat into the dictionary.
-- **Cross-source corroboration.** Find an independent source for the same underlying phenomenon — a federal mirror of state data, an aggregator (Census, BLS), a watchdog dataset that audits the original. Two sources that match build confidence; two that diverge surface a story.
-
-### When the source path is a records request (FOIA / sunshine laws)
-
-If the data has to be *requested* rather than downloaded, the request itself is part of the Survey. A few process notes that change what you get back:
-
-- **Ask for data, not narrative.** Request the underlying records in their native machine-readable format ("the database export / the spreadsheet behind this report," not "a report about X"). Agencies often default to printing-to-PDF; naming the format you want up front avoids a re-request.
-- **Know the clock and the fee tiers.** Federal FOIA runs ~20 business days (often longer); fee categories differ for commercial vs. news-media/educational vs. other requesters, and waivers exist for public-interest requests. State **sunshine / open-records laws** vary — the records officer is the contact, and `FOIA.gov` routes federal requests.
-- **Treat redactions as findings, not just obstacles.** A heavily-redacted or truncated release can still carry usable tables; record what was withheld and the claimed exemption in `AGENTS.md` "Known limitations." An *excessive* redaction is itself a transparency story worth naming, not silently absorbing.
-- **Decide what the project will not liberate.** "Available to extract" is not the same as "responsible to publish." Where a release contains personal data that privacy law protects, or where the downstream use is one the project considers out of scope, that judgment belongs in the Survey, not after publication — see the governance section of [`project-template.md`](project-template.md#governance). The wider transparency-law and records-request landscape is catalogued in [`context.md`](context.md).
-
-### Cognitive checks worth naming
-
-- *"If something doesn't seem right, it probably isn't."* The 50% year-over-year jump that doesn't appear in the press? Almost always an extraction bug, not a real spike.
-- *"Avoid false precision."* Reporting "52.18%" when the underlying counts have ±30 of margin invents accuracy. The data dictionary should declare which columns have meaningful precision and which round to integers.
-- *"Set a cutoff date."* Organic datasets that grow during your reporting will rewrite history under you. Pick a freeze date, document it, and don't reach past it except for explicit corrections.
-- *"Spot-check physically."* For a small sample (say, 10 records), open the original source artifact and verify each cell of the processed CSV by eye. This catches column-shift bugs that no automated check finds.
-
-### A practitioner's prep list
-
-The colleagues quoted in ProPublica's guide each contributed one durable practice; the union is the working baseline:
-
-- **Maintain a work log.** A `docs/notebook.md` recording each cleaning decision, why, and when. The IPEDS pipeline's `AGENTS.md` is the maximalist version; a chronological log is the minimum.
-- **Document SQL.** Every non-trivial query in the audit or reconcile modules gets a comment explaining why this aggregation/filter, not just what it does.
-- **Write the alternate query.** For top-line numbers that will be published, derive the same value via a different code path. Two queries that agree raise confidence by more than two queries that look similar.
-- **Random-sample validation.** Pull 50 rows at random from the processed CSV; verify each against the original. Repeat after every significant parser change.
-- **Pre-publication review.** Show findings to the subject before publishing them. Errors caught at this stage are corrections; errors caught after are retractions.
-
-### How this fits the workflow
-
-| Workflow phase | Bulletproofing checks that belong here |
-|---|---|
-| **Survey** | Source-level checks against publisher's own summary; methodology/provenance fact-finding; identifying the contact |
-| **Extract** | Sentinel-value handling in parsers; categorical consistency; physical spot-checks of the first parser's output |
-| **Tidy** | Date and geography range verification post-normalization; cross-source corroboration setup |
-| **Audit** | `audit.py` automates the easy checks (null rates, distinct values, suspicious counts); see [Audit](#audit-what-came-in) below |
-| **Reconcile** | Top-line totals against the source's own published total; see [Reconciliation](#reconciliation) below |
-
-The Survey-phase checks are the cheapest and the most under-done. Lean into them.
-
-## Discovery
-
-**Discovery's job:** answer the question "is there a vintage we don't have yet?" without downloading anything. A correctly-implemented `discover()` is cheap, idempotent, and a precondition for any recurring-refresh workflow.
-
-Two patterns, depending on how the upstream publishes.
-
-### Static-list discovery
-
-For sources where new vintages appear at predictable URLs — say, an agency that publishes `https://example.gov/annual-report/2024.pdf`, `…/2025.pdf` annually — the `discover()` implementation is a static URL pattern plus a year range:
-
-```python
-# scripts/sources.py (excerpt)
-from datetime import datetime
-from scripts.sources import Source, Artifact
-
-
-class AgencyAnnualReport(Source):
-    name = "agency_annual"
-    label = "Example Agency Annual Report"
-    URL_PATTERN = "https://example.gov/annual-report/{year}.pdf"
-
-    def discover(self):
-        current = datetime.now().year
-        for year in range(2010, current + 1):
-            yield Artifact(
-                source=self.name,
-                vintage=str(year),
-                url=self.URL_PATTERN.format(year=year),
-                local_path=Path(f"data/original/{self.name}/{year}/report.pdf"),
-                metadata={"year": year},
-            )
-```
-
-The corresponding `fetch.py` is responsible for HEAD-checking each artifact (so a year that hasn't been published yet doesn't get downloaded). Discovery is the catalog; fetch is the gate.
-
-### Index-page discovery
-
-For publishers with an index page that lists what's available — most agencies' "Reports" landing pages, most secretary of state election archives — `discover()` scrapes the index and yields one artifact per linked PDF/XLSX/CSV:
-
-```python
-import httpx
-from selectolax.parser import HTMLParser
-
-
-class BoulderCountySoV(Source):
-    name = "boulder_county_sov"
-    label = "Boulder County Statement of Vote"
-    INDEX_URL = "https://bouldercounty.gov/elections/historical-results/"
-
-    def discover(self):
-        with httpx.Client() as client:
-            html = client.get(self.INDEX_URL).text
-        tree = HTMLParser(html)
-        for link in tree.css("a[href$='.pdf']"):
-            href = link.attributes.get("href", "")
-            text = link.text(strip=True)
-            vintage = self._parse_vintage(text)
-            if vintage is None:
-                continue
-            yield Artifact(
-                source=self.name,
-                vintage=vintage,
-                url=href,
-                local_path=Path(f"data/original/{self.name}/{vintage}/sov.pdf"),
-                metadata={"link_text": text},
-            )
-
-    @staticmethod
-    def _parse_vintage(link_text: str) -> str | None:
-        """Extract `2009` from `'2009 General Election - Statement of Vote (PDF)'`."""
-        import re
-        m = re.search(r"\b(20\d{2})\b", link_text)
-        return m.group(1) if m else None
-```
-
-This is what makes the pipeline self-updating: a cron run of `discover → fetch → clean → audit` automatically picks up a new vintage when the publisher posts it. The recurring-refresh pattern below depends on this.
-
-### Standalone discovery script
-
-`scripts/discover.py` runs every source's `discover()` and prints what's available, optionally filtering to "what's not yet in `data/original/`":
-
-```bash
-$ uv run python -m scripts.pipeline discover
-boulder_county_sov: 12 artifacts available, 11 already fetched, 1 NEW
-  NEW  2024: https://bouldercounty.gov/.../2024-sov.pdf
-co_secretary_of_state: 8 artifacts available, 8 already fetched
-```
-
-Output also written to `data/audit/discovery-<ts>.txt`. The diff between consecutive runs is a useful change signal: a new vintage appearing is the trigger to fetch.
+# Part 3: Audit, reconciliation, and refresh
 
 ## Audit: what came in
 
-**Audit's job:** answer "does what we just produced look right?" Run after every `clean.py` pass. The artifact is `data/audit/summary-<ts>.md`, scannable in 30 seconds by a maintainer reviewing a refresh PR.
-
-What goes in the audit (this is what `audit.py` writes to `data/audit/summary-<ts>.md`):
+Audit answers "does what we just produced look right?" and runs after every `clean`. It writes `data/audit/summary.md`, a stable file name with no timestamp inside, so it can be committed and each refresh PR shows exactly what changed. A maintainer should be able to scan it in thirty seconds.
 
 | Section | What it tells you |
-|---|---|
-| **Row count** | Total rows in the processed CSV. Headline number for refresh diffs. |
-| **Source coverage** | Rows per `(source, vintage)`. Should match expectations: every registered source × vintage should be non-zero. |
-| **Null rates per column** | Catches schema drift (a column suddenly all-null usually means a layout change broke a parser). |
-| **Distinct values for low-cardinality columns** | Sanity check for categorical columns: did the controlled vocabulary just gain or lose a value? |
-| **Empty sources / vintages** | Explicit flagged section. A registered source returning zero rows is almost always a regression. |
-| **Extraction errors** | Summary of `data/audit/extraction_errors.json` — which artifacts failed to parse, with the exception type and the first line of the error. |
+| --- | --- |
+| **Headline** | Rows, columns, sources, vintages and their range, duplicates and rejects: the same block that is generated into the README and AGENTS. |
+| **Row ledger** | Parsed, duplicates dropped, rejected, written. |
+| **Rows per source and vintage** | Every expected source and vintage should be non-zero. |
+| **Artifacts that produced no rows** | An artifact with zero rows out is almost always a regression. |
+| **Extraction methods** | Counts of `extraction_method` × `extraction_quality`, so degraded extractions are visible. |
+| **Null rate per column** | A column that is suddenly all null usually means a layout change broke a parser. |
+| **Small vocabularies** | Distinct values of columns with at most 30 of them: did a controlled vocabulary gain or lose a value? |
+| **Errors this run** | Every fetch and extraction error from this run's fresh logs, with the count in the heading. |
+| **Rejected rows** | Count by reason. |
+| **Spot-check sample** | Ten rows chosen by hashing the natural key, to check by eye against their originals. |
 
-The Markdown format is deliberate. Auto-generated reports that nobody reads are wasted effort; Markdown renders inline in a GitHub PR diff and is what a human reviewer actually sees.
+The spot-check sample is drawn on a **stable key**: rows are ranked by a hash of their natural-key values, not by row number or a seeded shuffle of row order, so the sample survives the publisher re-sorting or renumbering its records (one project's seeded sample changed when an agency renumbered its record IDs) and new rows rarely displace old ones. Never key a sample, or a dedup, on an upstream row number or object ID.
 
-### A minimal audit implementation
+`audit` also writes `docs/variables.{md,csv}`, the mechanical column profile (dtype, distinct count, null rate, sample values) beside the hand-kept dictionary; if the profile says `object` and the dictionary says `Int64`, one of them is wrong, usually the parser. And it writes `data/audit/headline.json` and refreshes the generated blocks in README and AGENTS; a test fails when those blocks are stale (see [`project-template.md`](project-template.md#generated-numbers-in-docs)).
 
-```python
-# scripts/audit.py
-from datetime import datetime, timezone
-from pathlib import Path
+## The error log
 
-import pandas as pd
-import structlog
-
-from scripts.config import DATA_AUDIT, PROCESSED_CSV
-
-log = structlog.get_logger()
-
-
-def audit_all() -> int:
-    if not PROCESSED_CSV.exists():
-        log.error("audit_no_processed_csv", path=str(PROCESSED_CSV))
-        return 1
-
-    df = pd.read_csv(PROCESSED_CSV, dtype=str)
-    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    out = DATA_AUDIT / f"summary-{ts}.md"
-
-    lines = [f"# Audit Summary — {ts}", "", f"Rows: **{len(df):,}**", ""]
-    lines.extend(_section_source_coverage(df))
-    lines.extend(_section_null_rates(df))
-    lines.extend(_section_low_cardinality(df))
-    lines.extend(_section_empty_sources(df))
-    lines.extend(_section_extraction_errors())
-
-    out.write_text("\n".join(lines))
-    variables_report(PROCESSED_CSV)
-    return 0
-
-
-def _section_source_coverage(df):
-    coverage = (
-        df.groupby(["source", "vintage"], dropna=False)
-        .size().rename("rows").reset_index()
-        .sort_values(["source", "vintage"])
-    )
-    return ["## Source coverage", "", coverage.to_markdown(index=False), ""]
-```
-
-### `docs/variables.{md,csv}` — the long-form column report
-
-The same `audit.py` (or a sibling function) emits the long-form per-column summary that complements the hand-maintained `docs/data-dictionary.md`:
-
-```python
-def variables_report(processed_csv: Path) -> None:
-    df = pd.read_csv(processed_csv)
-    rows = []
-    for col in df.columns:
-        s = df[col]
-        rows.append({
-            "column": col,
-            "dtype": str(s.dtype),
-            "distinct": int(s.nunique(dropna=True)),
-            "null_rate": float(s.isna().mean()),
-            "min": s.min() if pd.api.types.is_numeric_dtype(s) else "",
-            "max": s.max() if pd.api.types.is_numeric_dtype(s) else "",
-            "sample_values": ", ".join(str(v) for v in s.dropna().unique()[:5]),
-        })
-    rep = pd.DataFrame(rows)
-    rep.to_csv("docs/variables.csv", index=False)
-    Path("docs/variables.md").write_text(
-        "# Variables (auto-generated)\n\n" + rep.to_markdown(index=False)
-    )
-```
-
-If `variables.csv` says a column is `object` and `docs/data-dictionary.md` says it's `Int64`, the dictionary is wrong or the parser is. Treat their agreement as a precondition — see `references/data-modeling.md` for the rationale.
-
-### Recording extraction errors
-
-`audit.py` also defines `record_extraction_error()`, called from `clean.py` when an individual artifact's parse fails. The pipeline doesn't stop — the failure appends to `data/audit/extraction_errors.json` and the next vintage proceeds:
-
-```python
-def record_extraction_error(*, source: str, artifact, error: Exception) -> None:
-    EXTRACTION_ERRORS_JSON.parent.mkdir(parents=True, exist_ok=True)
-    existing = json.loads(EXTRACTION_ERRORS_JSON.read_text()) if EXTRACTION_ERRORS_JSON.exists() else []
-    existing.append({
-        "recorded_at": datetime.now(timezone.utc).isoformat(),
-        "source": source,
-        "artifact_url": artifact.url,
-        "artifact_vintage": artifact.vintage,
-        "error_type": type(error).__name__,
-        "error_message": str(error),
-        "traceback": "".join(traceback.format_exception(type(error), error, error.__traceback__)),
-    })
-    EXTRACTION_ERRORS_JSON.write_text(json.dumps(existing, indent=2, default=str))
-```
-
-This is the "durable, not fatal" pattern: a parser failure on one vintage doesn't block the eleven other vintages from refreshing. The audit summary flags it next run; a human investigates on their own schedule.
+Each run's errors start from an empty log: `fetch` and `clean` delete the previous `fetch_errors.json` and `extraction_errors.json` before writing new ones. A log that appends across runs lets old failures mask new ones and grows until nobody reads it. Each record names the stage, source, vintage, artifact, URL, error type and message (plus a traceback); the summary lists them all, and `clean --strict` (for CI) exits non-zero when there are any. A parser failure on one artifact never blocks the others: that is "durable, not fatal". An empty or degenerate extraction is a failure like any other, not a silent gap.
 
 ## Reconciliation
 
-For high-stakes pipelines (anything that will be cited publicly — election results, financial reports, agency budgets), re-open each original file independently and compute a small set of authoritative top-line totals, then compare to the processed output. Mismatches are regressions: the pipeline run completes (don't lose the data), but CI fails on the reconcile job and the audit flags it.
+When the source prints totals (statements of vote, financial statements, statistical tables), recompute them from the processed rows and compare. A mismatch is a regression: the run completes, so data isn't lost, but `reconcile` exits 2 and the refresh PR shows the mismatch in `data/audit/reconcile.md`.
 
-[BoulderPublicData/Election-Results' `reconcile.py`](https://github.com/BoulderPublicData/Election-Results) is the canonical example. It currently has 149 of 150 cross-checks matching exactly. The one mismatch is documented in `docs/data-dictionary.md` with the upstream-error explanation (a Statement of Vote PDF that itself contained an arithmetic error in one precinct subtotal). That kind of *known and documented* mismatch is what "safe scrutiny" looks like at a pipeline level — not zero mismatches, but every mismatch accounted for.
+[BoulderPublicData/Election-Results' `reconcile.py`](https://github.com/BoulderPublicData/Election-Results) is the model: 149 of 150 cross-checks match exactly, and the one mismatch is documented with its upstream cause (the source PDF had an arithmetic error in one precinct subtotal). Every mismatch accounted for, not zero mismatches, is what safe scrutiny looks like.
 
-### The skeleton
+**Reconcile at the finest grain both sides share.** Compare per office, per precinct, per page or per line item, not only the grand total. Grand totals often cover different scopes (a different date window, a different list of entities, inclusion rules), so a large top-line gap can be correct and a top-line match can hide offsetting errors. One project spent days chasing a large grand-total gap that turned out to be a documented scope difference, while the per-entity totals matched to the cent. Compare the keys both sides have; report keys present on only one side as a documented scope difference, not a mismatch. `compare_totals` in `scripts/reconcile.py` does exactly this:
 
 ```python
 # scripts/reconcile.py
-from dataclasses import dataclass, field
-from typing import Callable
-
-import pandas as pd
-
-
-@dataclass
-class Check:
-    label: str
-    expected: int | float
-    actual: int | float
-    match: bool
-    delta: int | float = 0
-    notes: str = ""
+def reconcile_example() -> ReconcileResult:
+    df = pd.read_csv(PROCESSED_CSV, dtype={"votes": "Int64"})
+    checks = []
+    for pdf in sorted((DATA_ORIGINAL / "example_source").rglob("*.pdf")):
+        vintage = pdf.parent.name
+        printed = read_printed_contest_totals(pdf)  # independent of the parser's path
+        recomputed = df.query("vintage == @vintage").groupby("contest")["votes"].sum().to_dict()
+        checks += compare_totals(printed, recomputed, prefix=f"{vintage}:", tolerance=0)
+    return ReconcileResult("example_source", checks)
 
 
-@dataclass
-class ReconcileResult:
-    source: str
-    checks: list[Check] = field(default_factory=list)
-
-
-def reconcile_boulder_sov() -> ReconcileResult:
-    """Sum votes per contest from each original PDF; compare to processed CSV."""
-    df = pd.read_csv("data/processed/boulder_election_results.csv")
-    checks: list[Check] = []
-    for original_pdf in sorted(Path("data/original/boulder_county_sov").rglob("*.pdf")):
-        vintage = original_pdf.parent.name
-        pdf_totals = _extract_totals_from_pdf(original_pdf)  # parser-specific
-        csv_totals = (
-            df.query("source == 'boulder_county_sov' and vintage == @vintage")
-              .groupby("contest")["votes"].sum().to_dict()
-        )
-        for contest, expected in pdf_totals.items():
-            actual = csv_totals.get(contest, 0)
-            checks.append(Check(
-                label=f"{vintage}:{contest}",
-                expected=expected, actual=actual,
-                match=(expected == actual),
-                delta=actual - expected,
-            ))
-    return ReconcileResult(source="boulder_county_sov", checks=checks)
-
-
-RECONCILE_REGISTRY: dict[str, Callable[[], ReconcileResult]] = {
-    "boulder_county_sov": reconcile_boulder_sov,
-}
+RECONCILERS = {"example_source": reconcile_example}
 ```
 
-### When to turn reconciliation on
+Turn reconciliation on whenever the source prints totals and the data will be cited or is contested. Skip it only when there is no independent total to compare against, and say so in the dictionary. Document what the reconcile checks (which totals, at which grain, against which originals) and every known mismatch with its explanation in the dictionary's caveats, so a future maintainer knows which numbers are authoritative.
 
-Default: off. Reconciliation costs developer time to write per-source logic and CI time on every run.
+## The recurring-refresh pattern
 
-Turn it on when:
+For sources that publish on a cadence, the refresh group's `.github/workflows/refresh.yml.disabled` (renamed to enable) runs `pipeline run` on a schedule and opens a pull request when anything changed. Four decisions matter:
 
-- The data will be cited publicly.
-- The data is contested (election results, salary databases, anything where someone has motivation to dispute the numbers).
-- The publisher publishes top-line totals separately from the per-row data, *and* those totals are authoritative (the published total is the ground truth, not just a side-effect).
-
-Don't turn it on for:
-
-- Exploratory pipelines.
-- Sources where you don't have an independent total to compare against.
-- One-shot extractions that won't be re-run.
-
-When you do turn it on, document the reconciliation logic in `AGENTS.md` so a future maintainer knows which totals are the authoritative ones to check against. Boulder Election-Results does this clearly: the AGENTS.md section "What reconcile.py checks" enumerates the four authoritative totals per Statement of Vote and explains why each is independent of the per-precinct rows.
-
-### Reconcile output
-
-`scripts/reconcile.py` writes `data/audit/reconcile.json` with the full per-check results and prints a summary:
-
-```
-$ uv run python -m scripts.pipeline reconcile
-[boulder_county_sov] 149/150 checks matched
-    ✗ 2009:BOULDER COUNTY COMMISSIONER DISTRICT 1: expected=23456 actual=23457 delta=1
-       (known: precinct 042 subtotal in source PDF has +1 arithmetic error;
-        see docs/data-dictionary.md "Known mismatches")
-```
-
-Non-matching checks return a non-zero exit code, which fails the CI reconcile job. The pipeline `run` workflow continues; the reconcile failure is a separate signal.
-
-## The recurring-refresh pattern (cron + PR)
-
-For recurring sources (annual statements of vote, monthly FOIA logs, weekly compensation pulls), wire a GitHub Actions cron that runs `discover → fetch → clean → audit` and opens a PR with the new data and audit report. The template ships a ready-to-rename `refresh.yml.disabled`; the canonical pattern is captured there. Three decisions matter:
-
-**Cadence — slightly trail the publisher.** Faster than the publisher updates wastes compute and pollutes the audit history; lagging is fine because `workflow_dispatch` covers the impatient case.
+**Cadence: slightly trail the publisher.** Running more often than the publisher updates wastes compute and fills the history with noise; `workflow_dispatch` covers the impatient case. Pick a minute other than `:00`, when GitHub's scheduler is busiest.
 
 | Publisher cadence | Cron |
-|---|---|
-| Annual (post-certification) | `"0 13 1 11 *"` — Nov 1, 13:00 UTC |
-| Monthly | `"0 13 1 * *"` — 1st of each month |
-| Weekly | `"0 13 * * 1"` — Mondays |
-| On-demand | Omit `schedule:`; keep `workflow_dispatch:` |
+| --- | --- |
+| Annual (after certification) | `"17 13 1 11 *"`: November 1, 13:17 UTC |
+| Monthly | `"17 13 1 * *"`: the first of each month |
+| Weekly | `"17 13 * * 1"`: Mondays |
+| On demand | omit `schedule:`; keep `workflow_dispatch:` |
 
-**PR, not commit-to-main.** Auto-commits make a silent change to published data. A PR forces a human pass on four signals: does the row-count delta in `data/audit/summary-*.md` match expectations? Any new entries in `extraction_errors.json`? Any new "Empty sources" flags? Did `reconcile.py` (if enabled) newly mismatch? Mature pipelines with strong reconcile coverage sometimes relax this to commit-to-main with audit-driven rollback; PR is the safer default and what BoulderPublicData, PUDL, and IPEDS-pipeline actually use.
+**Pull request, not a commit to main.** An automatic commit silently changes published data. A PR forces a human pass over the signals in its diff: the row change in `summary.md`, new errors and rejected rows, a changed sha256 in `manifest.json`, a new reconcile mismatch, the spot-check sample. Some mature pipelines with strong reconcile coverage relax this to commit-to-main with audit-driven rollback; the PR is the safer default.
 
-**Path-scoped commits.** Stage `data/original/**`, `data/processed/**`, `data/audit/**`, and the auto-generated `docs/variables.*` files. Anything outside that scope means the workflow misbehaved.
+**Commit what reviewers need, and only that.** The PR stages `data/original/**` (under the storage budget), `data/processed/*.csv`, `data/audit/*.md`, `data/audit/headline.json`, `docs/variables.*`, and the regenerated README and AGENTS blocks; `.gitignore` agrees, so nothing staged is ignored and nothing reviewed is missing. Anything outside that list means the workflow misbehaved.
+
+**Fail instead of shipping bad data.** If a stage fails (no rows survive, rows are lost between stages, a fetch fails), the job fails and no PR opens; the failed-run notification is the signal. For ephemeral sources, see [Ephemeral sources](#ephemeral-sources).
 
 ## Common failure modes
 
 | Symptom | Likely cause | Fix |
-|---|---|---|
-| `discover.py` reports zero artifacts | Index page redesigned; CSS selector no longer matches | Update the selector; commit a recorded HTTP cassette in `tests/fixtures/` so the test catches the next breakage |
-| Audit shows null rates of 1.0 for a previously-working column | Parser broke silently on a layout change | Look at the most recent vintage in `data/original/`; compare to the prior vintage's layout |
-| `extraction_errors.json` accumulates across runs without anyone noticing | Audit summary doesn't surface error count prominently enough | Add an early-section "⚠️ N extraction errors" line to the audit Markdown |
-| Reconcile passed for years and now fails on one check | (a) Genuine regression in a new parser, OR (b) upstream arithmetic error in the source PDF | Re-open the source PDF; compute the totals by hand on one precinct. If the source PDF itself is wrong, document in `docs/data-dictionary.md` "Known mismatches" and adjust the expected total. |
-| Cron runs daily and the publisher updates annually | Cadence mismatch; audit history is mostly noise | Move cron to annual; use `workflow_dispatch` for impatient refreshes |
-| PR from cron sits unreviewed for months | No notification or human accountability | Add a `CODEOWNERS` entry; configure GitHub notifications; or move to commit-to-main with strong audit-driven rollback |
+| --- | --- | --- |
+| Discovery finds zero artifacts | The index page was redesigned and the selector no longer matches | Update the selector; keep the saved index page as a test fixture so the next redesign fails a test |
+| A vintage is labeled a year late | The vintage was read from the publish path | Read it from the file name or content; add a test for that case |
+| An artifact suddenly yields far fewer rows, or none | The parser broke on a layout change, or the file is truncated | Compare the newest original's layout with the previous era's; check `rows_out` in `provenance.csv` and the error log |
+| A column's null rate jumps to 1.0 | A layout change broke one field | As above; add a fixture from the new layout |
+| Old errors keep appearing | The error log appends across runs | Start each run's log empty, as the template does |
+| A stale original survives a refresh | The file existed, so fetch skipped it | `fetch --fresh`; the manifest records the old and new hashes |
+| Reconcile passed for years and now fails on one check | A regression in a new parser, or an arithmetic error in the source | Recompute that total by hand from the original. If the source is wrong, document it in the dictionary's caveats and adjust the expected value with a note |
+| The grand total is far off but every per-entity total matches | The two files cover different scopes | Reconcile at the shared grain; document the scope difference |
+| The cron runs daily for an annual publisher | Cadence mismatch | Move the cron; use `workflow_dispatch` for impatient refreshes |
+| A refresh PR sits unreviewed for months | Nobody is accountable for it | Name the reviewer in AGENTS.md and set up notifications (and `CODEOWNERS` with branch protection when there is a team) |
 
-## What to write in the AGENTS.md
+## What to write in AGENTS.md
 
-- **Refresh cadence** — the cron expression (if `refresh.yml` is enabled) and which day of the publication cycle it trails.
-- **Discovery surface** — what `discover.py` checks per source (URL pattern, index page, year range). First place to look when a publisher redesigns.
-- **Reconcile scope** (if enabled) — which authoritative totals are checked against which originals, plus a "Known mismatches" subsection with each entry's explanation.
-- **Audit invariants** the summary alone can't express, e.g., "source X should always be non-empty for vintages ≥ 2010" or "null rate on `precinct` must stay ≤ 0.01."
+- **Refresh cadence:** the cron expression, if refresh is enabled, and which part of the publication cycle it trails.
+- **Discovery surface:** what `artifacts()` checks (URL pattern, index page, year range); the first place to look after a publisher redesign.
+- **Storage budget:** where each source's originals live.
+- **Reconcile scope:** which totals are checked at which grain against which originals, with a pointer to the known mismatches in the dictionary.
+- **Audit invariants** the summary can't express on its own, such as "source X is non-empty for every vintage from 2010" or "the null rate of `precinct` stays at or below 0.01".

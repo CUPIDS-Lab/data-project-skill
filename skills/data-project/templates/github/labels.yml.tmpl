@@ -1,69 +1,62 @@
-# Declarative label set consumed by seed-github.sh (create-or-update; never deletes).
-# Each entry: name (the label, which carries the meaning on its own — never rely on color alone),
-# color (6-digit hex, no leading '#'), description (what the label asserts).
-# Edit here and re-run the seed script to reconcile labels in the repo.
+# Label set read by seed-github.sh (create or update; never deletes).
+# Each entry: name (the label carries its meaning in words; never rely on color alone),
+# color (6-digit hex, no '#'), description. Edit here and re-run the seed script.
+# Priority and size are not labels: they live in the issue body and, if a board exists, in
+# Project fields.
 
-- name: priority:high
+- name: section:1
+  color: 5319e7
+  description: Outline section 1, Scope & gate.
+- name: section:2
+  color: 1d76db
+  description: Outline section 2, Acquire.
+- name: section:3
+  color: 0e8a16
+  description: Outline section 3, Extract.
+- name: section:4
+  color: 006b75
+  description: Outline section 4, Model & tidy.
+- name: section:5
   color: b60205
-  description: Pick this up before lower-priority work.
-- name: priority:med
-  color: d93f0b
-  description: Normal priority; schedule after high-priority items.
-- name: priority:low
+  description: Outline section 5, Pipeline & audit.
+- name: section:6
   color: fbca04
-  description: Nice to have; do when capacity allows.
-
-- name: size:s
-  color: c2e0c6
-  description: Small effort estimate (hours).
-- name: size:m
-  color: 7ac142
-  description: Medium effort estimate (a day or a few).
-- name: size:l
-  color: 1d7637
-  description: Large effort estimate (multiple days); consider breaking into sub-issues.
-
-- name: level:L0
-  color: ededed
-  description: Belongs to escalation level L0 (sane repo skeleton).
-- name: level:L1
-  color: d4d4f5
-  description: Belongs to escalation level L1.
-- name: level:L2
-  color: b8b8ef
-  description: Belongs to escalation level L2 (reproducible pipeline).
-- name: level:L3
-  color: 9c9ce8
-  description: Belongs to escalation level L3 (collaboration and governance).
-- name: level:L4
-  color: 7e7ee0
-  description: Belongs to escalation level L4.
-- name: level:L5
-  color: 5a5ad6
-  description: Belongs to escalation level L5 (governed, FAIR, published OKF bundle).
+  description: Outline section 6, Document & cite.
+- name: section:7
+  color: d93f0b
+  description: Outline section 7, Govern & collaborate.
+- name: section:8
+  color: c5def5
+  description: Outline section 8, Publish.
+- name: section:9
+  color: 0052cc
+  description: Outline section 9, Deposit, share & discover.
+- name: section:10
+  color: 5f5f5f
+  description: Outline section 10, Maintain & feedback.
 
 - name: type:data
   color: 0e8a16
-  description: A data-quality problem or known dataset limitation.
+  description: A data-quality problem, correction request or known limitation.
 - name: type:docs
   color: 1d76db
-  description: Documentation, data dictionary, or narrative work.
+  description: Documentation, data dictionary or narrative work.
 - name: type:pipeline
   color: 5319e7
-  description: The reproducible pipeline, scripts, or modules under src/.
+  description: The pipeline code under scripts/ or pipelines/.
 - name: type:governance
   color: b60205
-  description: Roles, access tiers, charter, responsible-data, or ethics work.
+  description: Roles, access tiers, charter, responsible-data or ethics work.
 - name: type:infra
   color: 333333
-  description: Environment, CI, tooling, or repository plumbing.
+  description: Environment, CI, tooling or repository plumbing.
 
 - name: blocking
   color: e11d21
-  description: Gates other work or a guarded action; resolve before that action or before climbing a level.
+  description: Gates other work or a guarded action; resolve it, or record the accepted risk, before that action.
 - name: good-first-issue
   color: 7057ff
-  description: Well-scoped and approachable for a new contributor.
+  description: Well scoped and approachable for a new contributor.
 - name: help-wanted
   color: 008672
   description: Maintainers are actively seeking help on this.

@@ -1,8 +1,11 @@
 """Upload source documents to DocumentCloud and write the URLs back into provenance.
 
-The fourth publishing surface, alongside Datasette / Quarto / LFS. See
-`references/toolchain-documentcloud.md` in the data-liberation skill for the
-full design.
+The source-document surface, alongside Datasette, Quarto and Git LFS. Part 4 of
+`publishing.md` in the data-liberation skill has the design:
+https://github.com/CUPIDS-Lab/data-skills/tree/main/skills/data-liberation/references/publishing.md
+
+Upload only what the project's visibility and sensitivity decisions allow a hosted
+service to see (`decision-log.md`); `access` defaults to `private` for that reason.
 
 Usage
 -----
@@ -15,17 +18,16 @@ Usage
     uv sync --extra documentcloud
 
     # Upload everything under data/original/<source>/ to its DocumentCloud project
-    uv run python -m scripts.upload_documentcloud --source boulder_county_sov
+    uv run python -m scripts.upload_documentcloud --source example_source
 
-    # Or, upload all registered sources at once:
+    # Or, upload every source under data/original/ at once:
     uv run python -m scripts.upload_documentcloud --all
 
-Convention: one DocumentCloud project per source-registry slug. Project IDs
+Convention: one DocumentCloud project per source slug. Project IDs
 live in `data/lookups/documentcloud_projects.yaml` — create the project once
 via the web UI, record its ID here, and the script does the rest. Documents
-the script uploads default to `access="public"` (the right default for
-liberated public-record corpora); set per-source access in the same YAML
-when a source needs `organization` or `private`.
+the script uploads default to `access="private"`; set `public` per source in the
+same YAML once the project's visibility decision allows it.
 
 The script is idempotent: a file already present in DocumentCloud (matched
 by sha256) is skipped rather than re-uploaded.
@@ -34,17 +36,22 @@ by sha256) is skipped rather than re-uploaded.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from pathlib import Path
 
 import pandas as pd
-import structlog
 import yaml
 
-from scripts.config import DATA_LOOKUPS, DATA_ORIGINAL, PROVENANCE_CSV, SOURCES
+from scripts.config import DATA_LOOKUPS, DATA_ORIGINAL, MANIFEST_JSON, PROVENANCE_CSV
 
-log = structlog.get_logger()
+
+def _log(event: str, **fields: object) -> None:
+    """One line per event on stderr: `event key=value ...`."""
+    print(event, *(f"{k}={v}" for k, v in fields.items()), file=sys.stderr)
+
+
 PROJECTS_YAML = DATA_LOOKUPS / "documentcloud_projects.yaml"
 
 
@@ -90,7 +97,7 @@ def _already_uploaded(client, sha256: str, project_id: int | None) -> str | None
     try:
         hits = client.documents.search(q)
     except Exception as exc:  # noqa: BLE001 — DocumentCloud transient errors
-        log.warning("documentcloud_search_failed", error=str(exc))
+        _log("documentcloud_search_failed", error=str(exc))
         return None
     return hits[0].canonical_url if hits else None
 
@@ -100,11 +107,11 @@ def upload_source(slug: str, force: bool = False) -> int:
     projects = _load_projects()
     meta = projects.get(slug, {})
     project_id = meta.get("project_id")
-    access = meta.get("access", "public")
+    access = meta.get("access", "private")
     source_label = meta.get("source_label", slug)
 
     if not project_id:
-        log.warning(
+        _log(
             "no_project_id",
             source=slug,
             hint=f"add to {PROJECTS_YAML.relative_to(Path.cwd())}",
@@ -113,29 +120,30 @@ def upload_source(slug: str, force: bool = False) -> int:
 
     source_dir = DATA_ORIGINAL / slug
     if not source_dir.exists():
-        log.error("no_source_dir", source=slug, path=str(source_dir))
+        _log("no_source_dir", source=slug, path=str(source_dir))
         return 1
 
+    manifest = json.loads(MANIFEST_JSON.read_text()) if MANIFEST_JSON.exists() else {}
     client = _client()
     rows: list[dict] = []
     uploaded = skipped = errored = 0
 
     for path in sorted(source_dir.rglob("*")):
-        if path.is_dir() or path.name == "manifest.json":
+        if path.is_dir() or path.suffix == ".part":
             continue
         vintage = (
             path.relative_to(source_dir).parts[0] if path.relative_to(source_dir).parts else ""
         )
-        sha256 = ""  # Loaded from the source's manifest.json — left abstract for the stub.
+        rel = path.relative_to(DATA_ORIGINAL).as_posix()
+        sha256 = manifest.get(rel, {}).get("sha256", "")
 
         if not force:
             existing = _already_uploaded(client, sha256, project_id)
             if existing:
-                log.info("already_uploaded", source=slug, file=path.name, url=existing)
+                _log("already_uploaded", source=slug, file=path.name, url=existing)
                 rows.append(
                     {
-                        "source": slug,
-                        "vintage": vintage,
+                        "artifact": rel,
                         "documentcloud_url": existing,
                         "documentcloud_access": access,
                     }
@@ -151,21 +159,20 @@ def upload_source(slug: str, force: bool = False) -> int:
                 project=project_id,
                 access=access,
             )
-            log.info("uploaded", source=slug, file=path.name, url=doc.canonical_url)
+            _log("uploaded", source=slug, file=path.name, url=doc.canonical_url)
             rows.append(
                 {
-                    "source": slug,
-                    "vintage": vintage,
+                    "artifact": rel,
                     "documentcloud_url": doc.canonical_url,
                     "documentcloud_access": access,
                 }
             )
             uploaded += 1
         except Exception as exc:  # noqa: BLE001
-            log.error("upload_failed", source=slug, file=path.name, error=str(exc))
+            _log("upload_failed", source=slug, file=path.name, error=str(exc))
             errored += 1
 
-    log.info(
+    _log(
         "upload_summary",
         source=slug,
         uploaded=uploaded,
@@ -181,11 +188,11 @@ def _merge_into_provenance(rows: list[dict]) -> None:
     if not PROVENANCE_CSV.exists() or not rows:
         return
     prov = pd.read_csv(PROVENANCE_CSV, dtype=str).fillna("")
-    new = pd.DataFrame(rows).drop_duplicates(subset=["source", "vintage"])
+    new = pd.DataFrame(rows).drop_duplicates(subset=["artifact"])
     for col in ("documentcloud_url", "documentcloud_access"):
         if col not in prov.columns:
             prov[col] = ""
-    prov = prov.merge(new, on=["source", "vintage"], how="left", suffixes=("", "_new"))
+    prov = prov.merge(new, on=["artifact"], how="left", suffixes=("", "_new"))
     for col in ("documentcloud_url", "documentcloud_access"):
         new_col = f"{col}_new"
         if new_col in prov.columns:
@@ -194,14 +201,14 @@ def _merge_into_provenance(rows: list[dict]) -> None:
             )
             prov = prov.drop(columns=[new_col])
     prov.to_csv(PROVENANCE_CSV, index=False)
-    log.info("wrote_provenance", path=str(PROVENANCE_CSV))
+    _log("wrote_provenance", path=str(PROVENANCE_CSV))
 
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="Upload source documents to DocumentCloud.")
     g = p.add_mutually_exclusive_group(required=True)
-    g.add_argument("--source", help="Source registry slug to upload")
-    g.add_argument("--all", action="store_true", help="Upload all registered sources")
+    g.add_argument("--source", help="Source slug (a folder under data/original/)")
+    g.add_argument("--all", action="store_true", help="Upload every source under data/original/")
     p.add_argument(
         "--force",
         action="store_true",
@@ -211,7 +218,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.all:
         rc = 0
-        for slug in SOURCES:
+        for slug in sorted(d.name for d in DATA_ORIGINAL.iterdir() if d.is_dir()):
             rc = upload_source(slug, force=args.force) or rc
         return rc
     return upload_source(args.source, force=args.force)

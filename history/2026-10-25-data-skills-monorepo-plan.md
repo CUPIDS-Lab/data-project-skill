@@ -240,7 +240,7 @@ A companion `bug.yml` covers defects in templates or scripts. `config.yml` disab
 4. **Version line:** each skill continues its own line (`data-project` 0.11.0, `data-liberation` 0.5.0); no jump to 1.0.0.
 5. **Private marketplace repo:** not created. claude.ai org skills are updated by uploading the per-skill zips attached to each release.
 
-**Execution note:** this session can push to a single branch per repo, so the PR sequence in §9 lands as one commit per phase on the branch behind the plan's PR, each phase passing CI on its own.
+**Execution note:** this session can push to a single branch per repo, so the PR sequence in §9 lands as one commit per phase on the branch behind the plan's PR, each phase passing CI on its own. Two deviations from §8: evals run on demand with skill-creator rather than in an `evals.yml` workflow (the `claude plugin eval` runner needs a plugin wrapper this repository doesn't ship), and no Claude Code plugin marketplace was added, since the former subagents are now procedures inside `data-project`.
 
 ---
 

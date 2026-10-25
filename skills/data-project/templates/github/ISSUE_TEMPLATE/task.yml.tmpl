@@ -1,51 +1,50 @@
 name: Task
-description: File a unit of work — one issue per task, mirroring the ROADMAP checklist so the tracker can sync it.
+description: One unit of work, filed against the Outline section it moves forward.
 labels: [task]
 body:
   - type: markdown
     attributes:
       value: |
-        Use this form to file a single, assignable task. One issue equals one unit of work, which keeps progress legible and lets a Project board, milestone, and assignee each track exactly one thing. Fields below mirror the engagement TODO schema in `ROADMAP.md`, so editing the checklist and re-running the tracker create-or-updates this issue rather than duplicating it. Pick from the dropdowns instead of typing free text — fixed options keep labels and Project fields consistent across the team and stay legible without relying on color.
+        One issue is one unit of work, so progress stays legible and one assignee owns it. Pick the Outline section this task belongs to; it maps to the `section:N` label and to the matching row in `ROADMAP.md`. The section issues opened by `.github/seed-github.sh` use the same fields, so re-running the script updates them instead of duplicating them.
   - type: input
     id: summary
     attributes:
-      label: Summary
-      description: One sentence stating the outcome this task delivers, written so a teammate who lacks your context can tell what "done" looks like.
-      placeholder: Reconcile intake totals against the publisher's published figures.
+      label: Outcome
+      description: One sentence stating what this task delivers, so a teammate without your context can tell what "done" looks like.
+      placeholder: Reconcile the processed totals against the publisher's printed totals.
+    validations:
+      required: true
+  - type: dropdown
+    id: section
+    attributes:
+      label: Outline section
+      description: The section of the Outline (https://github.com/CUPIDS-Lab/data-skills/blob/main/OUTLINE.md) this task moves forward. Add the matching `section:N` label.
+      options:
+        - "1 Scope & gate"
+        - "2 Acquire"
+        - "3 Extract"
+        - "4 Model & tidy"
+        - "5 Pipeline & audit"
+        - "6 Document & cite"
+        - "7 Govern & collaborate"
+        - "8 Publish"
+        - "9 Deposit, share & discover"
+        - "10 Maintain & feedback"
     validations:
       required: true
   - type: textarea
-    id: definition-of-done
+    id: done-when
     attributes:
-      label: Definition of done
-      description: The checklist that must be true to close this issue. Make each item observable so a reviewer can verify it, rather than restating the title.
-      placeholder: |
-        - [ ] Totals match the source within tolerance
-        - [ ] Reconciliation step added to the pipeline
-        - [ ] Result documented in decision-log.md
+      label: Done when
+      description: Observable checks that must all be true to close this issue. Start from the section's "done when" test in ROADMAP.md.
       value: |
         - [ ]
     validations:
       required: true
   - type: dropdown
-    id: level
-    attributes:
-      label: Level
-      description: The escalation level (L0-L5) this task belongs to, so it can be grouped under the matching milestone and Project field.
-      options:
-        - L0
-        - L1
-        - L2
-        - L3
-        - L4
-        - L5
-    validations:
-      required: false
-  - type: dropdown
     id: priority
     attributes:
       label: Priority
-      description: How urgently this should be picked up, so the board can be sorted by what matters now rather than by guesswork.
       options:
         - High
         - Medium
@@ -56,7 +55,7 @@ body:
     id: size
     attributes:
       label: Size
-      description: A rough effort estimate (S/M/L) used for planning capacity, not a commitment — refine it as the work becomes clear.
+      description: A rough effort estimate for planning, not a commitment.
       options:
         - S
         - M
@@ -67,7 +66,7 @@ body:
     id: blocking
     attributes:
       label: Blocking?
-      description: Whether this task gates other work or a guarded action (for example ingesting sensitive data or publishing). Mark Yes so it can be modeled as a dependency and resolved before the gate.
+      description: Whether this gates another task or a guarded action (ingesting sensitive data, publishing, depositing). If yes, add the `blocking` label and link what it blocks.
       options:
         - "No"
         - "Yes"
@@ -77,7 +76,7 @@ body:
     id: links
     attributes:
       label: Links
-      description: References that ground the task — a roadmap row, a source dataset, a prior PR, or a decision-log entry — so a reviewer can follow the trail without asking.
-      placeholder: ROADMAP.md row 3; data/raw/source.csv; decision-log.md 2026-06-17
+      description: The ROADMAP row, sources, prior PRs or decision-log entries that ground the task.
+      placeholder: ROADMAP.md section 5; decision-log.md 2026-06-17
     validations:
       required: false

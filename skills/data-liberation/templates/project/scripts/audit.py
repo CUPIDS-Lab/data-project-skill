@@ -1,227 +1,232 @@
-"""Audit the processed deliverable.
+"""Audit: describe what `clean` produced, check it, and refresh the generated numbers.
 
-Three responsibilities, all written to `data/audit/` or `docs/`:
+Writes, with no wall-clock time in any of them, so an unchanged refresh changes
+nothing and a changed one shows a reviewable diff:
 
-1. `audit_all()` — Markdown report (`data/audit/summary-<ts>.md`) covering
-   source coverage, null rates per column, distinct values for low-cardinality
-   columns, and any empty-source warnings.
-2. `variables_report()` — auto-generated `docs/variables.md` + `docs/variables.csv`
-   describing each column's dtype, distinct count, null rate, sample values.
-   The mechanical complement to the hand-edited `docs/data-dictionary.md`.
-3. `record_extraction_error()` — append a row to `data/audit/extraction_errors.json`
-   whenever a `Source.ingest()` call raises. The pipeline's durable-not-fatal
-   error sink.
+* `data/audit/summary.md` — headline, row ledger, coverage, null rates, small
+  vocabularies, errors, rejects, and a spot-check sample drawn on the natural key;
+* `data/audit/headline.json` — the numbers prose may quote;
+* `docs/variables.{md,csv}` — the mechanical column profile beside the hand-kept
+  data dictionary;
+* the blocks between `<!-- BEGIN generated:headline -->` and `<!-- END generated -->`
+  in README.md and AGENTS.md. `tests/test_generated_docs.py` fails when they are stale.
 
-See `references/discovery-and-audit.md` for the patterns this implements.
+Conservation: the processed CSV must hold exactly the rows `clean` reported writing.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
-import traceback
-from dataclasses import asdict, is_dataclass
-from datetime import UTC, datetime
+import re
+import sys
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
-import structlog
 
-from scripts.config import DATA_AUDIT, DOCS, PROCESSED_CSV
-
-log = structlog.get_logger()
+from scripts.config import (
+    DOCS,
+    EXTRACTION_ERRORS_JSON,
+    FETCH_ERRORS_JSON,
+    GENERATED_DOCS,
+    HEADLINE_JSON,
+    PROCESSED_CSV,
+    PROVENANCE_CSV,
+    REJECTED_CSV,
+    RUN_JSON,
+    SUMMARY_MD,
+)
+from scripts.runlog import read_errors
+from scripts.schema import KEY_COLUMNS
 
 VARIABLES_MD = DOCS / "variables.md"
 VARIABLES_CSV = DOCS / "variables.csv"
-EXTRACTION_ERRORS_JSON = DATA_AUDIT / "extraction_errors.json"
+SAMPLE_SIZE = 10
+BLOCK_RE = re.compile(
+    r"(<!-- BEGIN generated:headline -->\n)(.*?)(<!-- END generated -->)", re.DOTALL
+)
 
 
-# ─── Markdown summary ────────────────────────────────────────────────────────
+# ─── Headline numbers and the generated doc blocks ───────────────────────────
 
 
-def audit_all() -> int:
-    """Generate `data/audit/summary-<ts>.md` and `docs/variables.{md,csv}`."""
-    if not PROCESSED_CSV.exists():
-        log.error("audit_no_processed_csv", path=str(PROCESSED_CSV))
-        return 1
-
-    df = pd.read_csv(PROCESSED_CSV, dtype=str)
-    ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-    out = DATA_AUDIT / f"summary-{ts}.md"
-
-    lines: list[str] = [f"# Audit Summary — {ts}", "", f"Rows: **{len(df):,}**", ""]
-    lines.extend(_section_source_coverage(df))
-    lines.extend(_section_null_rates(df))
-    lines.extend(_section_low_cardinality(df))
-    lines.extend(_section_empty_sources(df))
-    lines.extend(_section_extraction_errors())
-
-    out.write_text("\n".join(lines))
-    log.info("wrote_audit", path=str(out), rows=len(df))
-
-    variables_report(PROCESSED_CSV, VARIABLES_MD, VARIABLES_CSV)
-    return 0
+def headline_numbers(df: pd.DataFrame, ledger: dict[str, int] | None = None) -> dict[str, Any]:
+    """The figures prose may quote. Derived from the data (and the clean ledger)."""
+    vintages = sorted(df["vintage"].dropna().unique().tolist()) if "vintage" in df else []
+    numbers: dict[str, Any] = {
+        "rows": len(df),
+        "columns": len(df.columns),
+        "sources": int(df["source"].nunique()) if "source" in df else 0,
+        "vintages": len(vintages),
+        "first_vintage": vintages[0] if vintages else "",
+        "last_vintage": vintages[-1] if vintages else "",
+    }
+    if ledger:
+        numbers |= {
+            "duplicates_dropped": ledger.get("duplicates_dropped", 0),
+            "rejected": ledger.get("rejected", 0),
+        }
+    return numbers
 
 
-def _section_source_coverage(df: pd.DataFrame) -> list[str]:
-    if not {"source", "vintage"}.issubset(df.columns):
-        return [
-            "## Source coverage",
-            "",
-            "_`source`/`vintage` columns missing — schema drift?_",
-            "",
-        ]
-    coverage = (
-        df.groupby(["source", "vintage"], dropna=False)
-        .size()
-        .rename("rows")
-        .reset_index()
-        .sort_values(["source", "vintage"])
-    )
-    return ["## Source coverage", "", coverage.to_markdown(index=False), ""]
-
-
-def _section_null_rates(df: pd.DataFrame) -> list[str]:
-    null_rates = df.isna().mean().rename("null_rate").reset_index()
-    null_rates.columns = ["column", "null_rate"]
-    return [
-        "## Null rates per column",
-        "",
-        null_rates.to_markdown(index=False, floatfmt=".3f"),
-        "",
+def render_generated(numbers: dict[str, Any] | None) -> str:
+    """The Markdown that sits between the generated-block markers."""
+    if not numbers:
+        return "_No pipeline run yet: `uv run python -m scripts.pipeline run` fills this in._\n"
+    lines = [
+        f"- **Rows:** {numbers['rows']:,} across {numbers['columns']} columns",
+        f"- **Sources:** {numbers['sources']}; **vintages:** {numbers['vintages']} "
+        f"({numbers['first_vintage']} to {numbers['last_vintage']})",
     ]
-
-
-def _section_low_cardinality(df: pd.DataFrame) -> list[str]:
-    lines = ["## Distinct values for low-cardinality columns", ""]
-    any_found = False
-    for col in df.columns:
-        n = df[col].nunique(dropna=True)
-        if 1 <= n <= 30:
-            vals = sorted(str(v) for v in df[col].dropna().unique().tolist())
-            lines.append(f"- `{col}` ({n} distinct): {vals}")
-            any_found = True
-    if not any_found:
-        lines.append("_(no columns with between 1 and 30 distinct values)_")
-    lines.append("")
-    return lines
-
-
-def _section_empty_sources(df: pd.DataFrame) -> list[str]:
-    if not {"source", "vintage"}.issubset(df.columns):
-        return []
-    coverage = df.groupby(["source", "vintage"], dropna=False).size().rename("rows").reset_index()
-    empty = coverage[coverage["rows"] == 0]
-    if empty.empty:
-        return []
-    return ["## ⚠️ Empty sources", "", empty.to_markdown(index=False), ""]
-
-
-def _section_extraction_errors() -> list[str]:
-    if not EXTRACTION_ERRORS_JSON.exists():
-        return []
-    try:
-        errors = json.loads(EXTRACTION_ERRORS_JSON.read_text())
-    except json.JSONDecodeError:
-        return [
-            "## ⚠️ Extraction errors",
-            "",
-            "_(extraction_errors.json present but unreadable)_",
-            "",
-        ]
-    if not errors:
-        return []
-    lines = [f"## ⚠️ Extraction errors ({len(errors)})", ""]
-    for e in errors[-25:]:
+    if "rejected" in numbers:
         lines.append(
-            f"- **{e.get('source', '?')}** {e.get('artifact_url', '')} — "
-            f"`{e.get('error_type', '?')}: {e.get('error_message', '')}`"
+            f"- **Set aside by the build:** {numbers['duplicates_dropped']:,} duplicate rows, "
+            f"{numbers['rejected']:,} rejected rows"
         )
-    lines.append("")
-    return lines
+    lines.append("- _Generated by `scripts/audit.py`; do not edit by hand._")
+    return "\n".join(lines) + "\n"
 
 
-# ─── Variables report ────────────────────────────────────────────────────────
+def replace_block(text: str, body: str) -> str:
+    return BLOCK_RE.sub(lambda m: m.group(1) + body + m.group(3), text)
 
 
-def variables_report(processed_csv: Path, out_md: Path, out_csv: Path) -> None:
-    """Emit `docs/variables.md` and `docs/variables.csv`.
+def extract_block(text: str) -> str | None:
+    m = BLOCK_RE.search(text)
+    return m.group(2) if m else None
 
-    Auto-generated; do not hand-edit. The hand-edited counterpart is
-    `docs/data-dictionary.md`. If the dictionary says a column is `Int64`
-    but this report says `object`, the dictionary (or the parser) is wrong.
+
+def update_generated_docs(numbers: dict[str, Any] | None, docs: list[Path]) -> None:
+    body = render_generated(numbers)
+    for doc in docs:
+        if doc.exists():
+            text = doc.read_text()
+            new = replace_block(text, body)
+            if new != text:
+                doc.write_text(new)
+
+
+# ─── Samples, profiles, report sections ──────────────────────────────────────
+
+
+def spot_check_sample(df: pd.DataFrame, n: int = SAMPLE_SIZE) -> pd.DataFrame:
+    """Rows to check by eye against the originals, chosen by hashing the natural key.
+
+    Not by row number or a seeded shuffle, so the same rows stay in the sample when
+    the publisher re-sorts or renumbers its records, and new rows rarely displace them.
     """
-    df = pd.read_csv(processed_csv)
-    rows: list[dict[str, Any]] = []
+    if df.empty:
+        return df
+    key = df[KEY_COLUMNS].astype(str).agg("|".join, axis=1)
+    rank = key.map(lambda k: hashlib.sha256(k.encode()).hexdigest())
+    return df.loc[rank.sort_values().index[:n]].sort_values(KEY_COLUMNS)
+
+
+def variables_report(df: pd.DataFrame) -> pd.DataFrame:
+    rows = []
     for col in df.columns:
         s = df[col]
-        sample = s.dropna().unique()[:5].tolist()
-        is_numeric = pd.api.types.is_numeric_dtype(s)
         rows.append(
             {
                 "column": col,
                 "dtype": str(s.dtype),
                 "distinct": int(s.nunique(dropna=True)),
-                "null_rate": float(s.isna().mean()),
-                "min": s.min() if is_numeric else "",
-                "max": s.max() if is_numeric else "",
-                "sample_values": ", ".join(str(v) for v in sample),
+                "null_rate": round(float(s.isna().mean()), 4) if len(s) else 0.0,
+                "sample_values": ", ".join(sorted(str(v) for v in s.dropna().unique())[:5]),
             }
         )
-    rep = pd.DataFrame(rows)
-    out_csv.parent.mkdir(parents=True, exist_ok=True)
-    rep.to_csv(out_csv, index=False)
-    out_md.write_text(
-        "# Variables (auto-generated)\n\n"
-        "_Generated by `scripts.audit.variables_report`; do not hand-edit. "
-        "See `docs/data-dictionary.md` for the human-authored counterpart._\n\n"
-        + rep.to_markdown(index=False, floatfmt=".3f")
-        + "\n"
+    return pd.DataFrame(rows)
+
+
+def _table(df: pd.DataFrame) -> str:
+    return df.to_markdown(index=False) if not df.empty else "_(none)_"
+
+
+def _errors_section() -> list[str]:
+    errs = read_errors(FETCH_ERRORS_JSON) + read_errors(EXTRACTION_ERRORS_JSON)
+    title = f"## Errors this run: {len(errs)}" + (" ⚠️" if errs else "")
+    lines = [title, ""]
+    for e in errs:
+        lines.append(f"- `{e.get('stage')}` **{e.get('artifact')}**: {e.get('message')}")
+    return [*lines, ""] if errs else [*lines, "None.", ""]
+
+
+def _rejected_section() -> list[str]:
+    if not REJECTED_CSV.exists():
+        return ["## Rejected rows: 0", "", "None.", ""]
+    rej = pd.read_csv(REJECTED_CSV, dtype=str)
+    by_reason = rej.groupby("reject_reason").size().rename("rows").reset_index()
+    return [f"## Rejected rows: {len(rej):,}", "", _table(by_reason), ""]
+
+
+def build_summary(df: pd.DataFrame, prov: pd.DataFrame, ledger: dict | None) -> str:
+    numbers = headline_numbers(df, ledger)
+    lines = ["# Audit summary", "", render_generated(numbers)]
+    if ledger:
+        lines += ["## Row ledger", "", _table(pd.DataFrame([ledger])), ""]
+    coverage = df.groupby(["source", "vintage"]).size().rename("rows").reset_index()
+    lines += ["## Rows per source and vintage", "", _table(coverage), ""]
+    if not prov.empty:
+        empty = prov[pd.to_numeric(prov["rows_out"], errors="coerce").fillna(0) == 0]
+        cols = ["artifact", "extraction_quality", "extraction_notes"]
+        lines += [f"## Artifacts that produced no rows: {len(empty)}", "", _table(empty[cols]), ""]
+        quality = prov.groupby(["extraction_method", "extraction_quality"], dropna=False).size()
+        lines += [
+            "## Extraction methods",
+            "",
+            _table(quality.rename("artifacts").reset_index()),
+            "",
+        ]
+    nulls = df.isna().mean().round(4).rename("null_rate").rename_axis("column").reset_index()
+    lines += ["## Null rate per column", "", _table(nulls), ""]
+    small = [
+        f"- `{c}` ({df[c].nunique()}): {sorted(df[c].dropna().astype(str).unique().tolist())}"
+        for c in df.columns
+        if 1 <= df[c].nunique() <= 30
+    ]
+    lines += ["## Columns with at most 30 distinct values", "", *(small or ["None."]), ""]
+    lines += _errors_section() + _rejected_section()
+    lines += [
+        f"## Spot-check sample ({SAMPLE_SIZE} rows, chosen by hashing the natural key)",
+        "",
+        "Check each against its original page or record; note the result in the PR.",
+        "",
+        _table(spot_check_sample(df)),
+        "",
+    ]
+    return "\n".join(lines)
+
+
+# ─── Entry point ─────────────────────────────────────────────────────────────
+
+
+def audit_all() -> int:
+    if not PROCESSED_CSV.exists():
+        print("No processed data: run `python -m scripts.pipeline clean` first.", file=sys.stderr)
+        return 1
+    df = pd.read_csv(PROCESSED_CSV, dtype=str, keep_default_na=False, na_values=[""])
+    prov = pd.read_csv(PROVENANCE_CSV, dtype=str) if PROVENANCE_CSV.exists() else pd.DataFrame()
+    ledger = None
+    if RUN_JSON.exists():
+        ledger = json.loads(RUN_JSON.read_text()).get("ledger")
+    if ledger and ledger.get("written") != len(df):
+        print(
+            f"FAIL: conservation: clean wrote {ledger.get('written')} rows but "
+            f"{PROCESSED_CSV.name} holds {len(df)}.",
+            file=sys.stderr,
+        )
+        return 3
+
+    numbers = headline_numbers(df, ledger)
+    SUMMARY_MD.write_text(build_summary(df, prov, ledger))
+    HEADLINE_JSON.write_text(json.dumps(numbers, indent=2, sort_keys=True) + "\n")
+    rep = variables_report(df)
+    rep.to_csv(VARIABLES_CSV, index=False)
+    VARIABLES_MD.write_text(
+        "# Variables (generated)\n\nWritten by `scripts/audit.py`; do not edit. "
+        "The hand-kept counterpart is `data-dictionary.md`.\n\n" + _table(rep) + "\n"
     )
-    log.info("wrote_variables_report", md=str(out_md), csv=str(out_csv), cols=len(rep))
-
-
-# ─── Durable error sink ──────────────────────────────────────────────────────
-
-
-def record_extraction_error(*, source: str, artifact: Any, error: Exception) -> None:
-    """Append one record to `data/audit/extraction_errors.json`.
-
-    Called from `clean.py` when a `Source.ingest()` call raises. The
-    pipeline continues; the failure is visible in the next audit and
-    the JSON is durable for re-investigation.
-    """
-    EXTRACTION_ERRORS_JSON.parent.mkdir(parents=True, exist_ok=True)
-    existing: list[dict[str, Any]] = []
-    if EXTRACTION_ERRORS_JSON.exists():
-        try:
-            existing = json.loads(EXTRACTION_ERRORS_JSON.read_text())
-            if not isinstance(existing, list):
-                existing = []
-        except json.JSONDecodeError:
-            existing = []
-
-    if is_dataclass(artifact):
-        art_dict = asdict(artifact)
-    else:
-        art_dict = {"repr": repr(artifact)}
-
-    record = {
-        "recorded_at": datetime.now(UTC).isoformat(),
-        "source": source,
-        "artifact_url": art_dict.get("url", ""),
-        "artifact_local_path": str(art_dict.get("local_path", "")),
-        "artifact_vintage": art_dict.get("vintage", ""),
-        "error_type": type(error).__name__,
-        "error_message": str(error),
-        "traceback": "".join(traceback.format_exception(type(error), error, error.__traceback__)),
-    }
-    existing.append(record)
-    EXTRACTION_ERRORS_JSON.write_text(json.dumps(existing, indent=2, default=str))
-    log.warning(
-        "extraction_error",
-        source=source,
-        url=record["artifact_url"],
-        error_type=record["error_type"],
-        error_message=record["error_message"],
-    )
+    update_generated_docs(numbers, GENERATED_DOCS)
+    print(f"audit: {len(df):,} rows; wrote {SUMMARY_MD.name} and refreshed generated numbers.")
+    return 0

@@ -1,0 +1,24 @@
+{
+  "should_trigger": [
+    "get the table out of this PDF as a CSV",
+    "scrape this county page into a spreadsheet",
+    "write a data dictionary for this extracted dataset",
+    "build a crosswalk between the state and federal codes",
+    "reconcile my extracted totals with the PDF",
+    "add the 2025 vintage to our pipeline",
+    "pull all records from this ArcGIS layer",
+    "OCR these scanned FOIA pages into a table",
+    "make this extraction reproducible",
+    "what's in this panel-format Excel file"
+  ],
+  "should_not_trigger": [
+    "set up governance for our data collaboration",
+    "deposit our dataset to Dataverse",
+    "train a model on this clean CSV",
+    "help me fix this pandas syntax error",
+    "share our tables with a partner via OpenSharing",
+    "we finished a sprint, file feedback",
+    "make our repo discoverable by agents",
+    "audit my data project repo"
+  ]
+}

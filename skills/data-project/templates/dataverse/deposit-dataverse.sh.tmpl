@@ -12,7 +12,8 @@
 #   DATAVERSE_API_TOKEN=xxx ./deposit-dataverse.sh --collection <alias>              # demo: create draft + upload
 #   DATAVERSE_API_TOKEN=xxx ./deposit-dataverse.sh --prod --collection <alias>       # production: create a draft
 #   DATAVERSE_API_TOKEN=xxx ./deposit-dataverse.sh --prod --pid doi:10.7910/DVN/XXX  # update the existing draft in place
-#   ... --publish        # publish after upload (major version; use the UI or edit for a minor refresh)
+#   ... --publish        # publish after upload: v1.0 the first time, then a minor version per refresh
+#   ... --major          # with --publish: force a major version (a breaking change, e.g. a schema change)
 #   ... --no-publish     # upload only, never publish (what unattended CI uses)
 #   DRY_RUN=1 ...        # print what would happen; no network writes
 #   RESTRICT_DATA=1 ...  # upload data/ files as restricted (sensitive projects)
@@ -28,11 +29,13 @@ DRY_RUN="${DRY_RUN:-0}"
 RESTRICT_DATA="${RESTRICT_DATA:-0}"
 PUBLISH=ask     # ask | yes | no
 PID=""          # set via --pid to update an existing dataset instead of creating a new one
+FORCE_MAJOR=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --publish) PUBLISH=yes ;;
     --no-publish) PUBLISH=no ;;
+    --major) FORCE_MAJOR=1 ;;
     --prod|--production) DATAVERSE_URL="$PROD_URL" ;;
     --url) DATAVERSE_URL="$2"; shift ;;
     --collection) DATAVERSE_COLLECTION="$2"; shift ;;
@@ -42,7 +45,9 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"   # the kit folder (dataverse/)
+# The project root: the kit's parent when the kit lives in dataverse/, else the kit folder itself.
+if [ -d "$here/data" ]; then root="$here"; else root="$(cd "$here/.." && pwd)"; fi
 manifest="$here/dataset.json"
 sync="$here/.dataverse-deposit.json"
 [ -f "$manifest" ] || { echo "missing dataset.json next to this script" >&2; exit 1; }
@@ -84,7 +89,7 @@ if [ -n "$PID" ]; then
   echo "Updating existing dataset draft: $pid"
   if [ "$DRY_RUN" != "1" ]; then
     existing="$(curl -sS -H "X-Dataverse-key:${DATAVERSE_API_TOKEN:-}" \
-      "$DATAVERSE_URL/api/datasets/:persistentId/versions/:draft/files?persistentId=$pid" 2>/dev/null || true)"
+      "$DATAVERSE_URL/api/datasets/:persistentId/versions/:latest/files?persistentId=$pid" 2>/dev/null || true)"
   fi
 elif [ "$DRY_RUN" = "1" ]; then
   echo "DRY-RUN: POST $DATAVERSE_URL/api/dataverses/$DATAVERSE_COLLECTION/datasets  (from dataset.json)"
@@ -103,15 +108,20 @@ echo "Draft dataset: $pid"
 # Ingest vs opaque: plain CSV/TSV are tabular-ingested (typed .tab + per-variable metadata + a UNF checksum);
 # ship a large combined dump as .gz so Dataverse stores it opaque rather than exploding a .zip into members.
 # Best-effort id lookup for replace; pyDataverse (deposit_dataverse.py) is the robust path for updates.
-file_id_for() {
-  printf '%s' "$existing" | grep -o "\"id\":[0-9]*[^{]*\"filename\":\"$1\"" | grep -o '"id":[0-9]*' | head -n1 | cut -d: -f2
+file_id_for() {   # <filename> <directoryLabel>
+  if command -v jq >/dev/null 2>&1; then
+    printf '%s' "$existing" | jq -r --arg n "$1" --arg d "$2" \
+      '.data[]? | select(.dataFile.filename==$n and ((.directoryLabel // "")==$d)) | .dataFile.id' 2>/dev/null | head -n1
+  else  # without jq, match by file name only
+    printf '%s' "$existing" | grep -o "\"id\":[0-9]*[^{]*\"filename\":\"$1\"" | grep -o '"id":[0-9]*' | head -n1 | cut -d: -f2
+  fi
 }
 
 upload_one() {
   local path="$1" category="$2" label="$3" restrict="$4" name ingest fid
   name="$(basename "$path")"
   case "$name" in *.csv|*.tsv|*.tab) ingest=true ;; *) ingest=false ;; esac
-  fid="$(file_id_for "$name" 2>/dev/null || true)"
+  fid="$(file_id_for "$name" "$label" 2>/dev/null || true)"
   if [ -n "$fid" ]; then
     echo "  ~ [$category] $name (replace #$fid)"
     run curl -sS -H "X-Dataverse-key:${DATAVERSE_API_TOKEN:-}" \
@@ -137,24 +147,51 @@ upload_dir() {
 
 data_restrict=false; [ "$RESTRICT_DATA" = "1" ] && data_restrict=true
 echo "Uploading files..."
-upload_dir "$here/data/processed" "Data" "data/processed" "$data_restrict"
-upload_dir "$here/src"  "Code" "code" false
-upload_dir "$here/code" "Code" "code" false
-upload_dir "$here/knowledge" "Documentation" "documentation/knowledge" false
-# documentation: top-level docs, the data card, and the audit/validation reports (a self-documenting snapshot)
-for doc in README.md DATA-DICTIONARY.md CHANGELOG.md decision-log.md docs/data-card.md; do
-  [ -f "$here/$doc" ] && upload_one "$here/$doc" "Documentation" "documentation" false
+upload_dir "$root/data/processed" "Data" "data/processed" "$data_restrict"
+# code: the pipeline and its environment (data-liberation layout; R variant; optional Snakemake wrapper)
+upload_dir "$root/scripts" "Code" "code/scripts" false
+upload_dir "$root/R" "Code" "code/R" false
+for f in pyproject.toml uv.lock _targets.R DESCRIPTION renv.lock Snakefile config.yaml; do
+  [ -f "$root/$f" ] && upload_one "$root/$f" "Code" "code" false
 done
-upload_dir "$here/docs/checklists" "Documentation" "documentation/validation" false
+# multi-pipeline repositories: every pipelines/<name>/ (code + processed data) and the shared core
+if [ -d "$root/pipelines" ]; then
+  for p in "$root"/pipelines/*/; do
+    n="$(basename "$p")"
+    upload_dir "${p}scripts" "Code" "code/pipelines/$n/scripts" false
+    upload_dir "${p}src" "Code" "code/pipelines/$n/src" false
+    for f in pyproject.toml uv.lock; do [ -f "$p$f" ] && upload_one "$p$f" "Code" "code/pipelines/$n" false; done
+    upload_dir "${p}data/processed" "Data" "data/processed/$n" "$data_restrict"
+  done
+fi
+# documentation, the data card and the OKF bundle
+for doc in README.md CHANGELOG.md decision-log.md docs/data-dictionary.md docs/data-card.md; do
+  [ -f "$root/$doc" ] && upload_one "$root/$doc" "Documentation" "documentation" false
+done
+upload_dir "$root/knowledge" "Documentation" "documentation/knowledge" false
+# validation evidence: audit reports and checklists, so the snapshot documents itself
+upload_dir "$root/data/audit" "Documentation" "documentation/validation" false
+upload_dir "$root/docs/checklists" "Documentation" "documentation/validation" false
 
 # record the deposit so the next run updates this dataset in place (idempotent)
 run bash -c "printf '{\"persistentId\":\"%s\",\"url\":\"%s\"}\n' \"$pid\" \"$DATAVERSE_URL/dataset.xhtml?persistentId=$pid\" > \"$sync\""
 
 # --- 3. publish (offer, confirm, or skip) ---------------------------------
+# Versioning: the first publication is a major version (v1.0, which Dataverse requires); later
+# refreshes publish as minor versions (v1.1, v1.2, ...) under the same DOI. --major forces a major
+# version for a breaking change.
+release_type() {
+  if [ "$FORCE_MAJOR" = "1" ] || [ "$DRY_RUN" = "1" ]; then echo major; return; fi
+  local versions
+  versions="$(curl -sS -H "X-Dataverse-key:${DATAVERSE_API_TOKEN:-}" \
+    "$DATAVERSE_URL/api/datasets/:persistentId/versions?persistentId=$pid" 2>/dev/null || true)"
+  case "$versions" in *'"versionState":"RELEASED"'*) echo minor ;; *) echo major ;; esac
+}
 publish_now() {
-  echo "Publishing $pid (major version, mints/updates the DOI)..."
+  local type; type="$(release_type)"
+  echo "Publishing $pid ($type version; the first publication mints the DOI)..."
   run curl -sS -H "X-Dataverse-key:${DATAVERSE_API_TOKEN:-}" \
-    -X POST "$DATAVERSE_URL/api/datasets/:persistentId/actions/publish?persistentId=$pid&type=major" -o /dev/null
+    -X POST "$DATAVERSE_URL/api/datasets/:persistentId/actions/publish?persistentId=$pid&type=$type" -o /dev/null
   echo "Published: $DATAVERSE_URL/dataset.xhtml?persistentId=$pid"
 }
 case "$PUBLISH" in

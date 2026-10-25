@@ -1,485 +1,222 @@
-# Project Template: Layout, Conventions, Generated Scaffold
+# Project template: layout, file groups, and the generated scaffold
 
-This reference is the specification for what a liberation project's source tree looks like, what each file does, and which conventions are worth defending. The working version is **bundled in this repo** at [`templates/project/`](../templates/project/) and rendered into the user's working directory at scaffold time (see [Slot-fills and the render recipe](#slot-fills-and-the-render-recipe)); this document is the prose explanation of every choice.
+This reference specifies what a data-liberation project's source tree looks like, which files a project gets and when, what each one does, and the conventions worth defending. The working template is bundled at [`templates/project/`](../templates/project/); this document explains it. Read it before scaffolding, then read only the template files in the groups that are in scope.
 
-The structure is distilled from PUDL, BoulderPublicData/Election-Results, the IPEDS pipeline, and the NPP Tax Break project. The four converged independently on most of these conventions; the few divergences are documented inline.
+## Contents
+
+- [The skeleton](#the-skeleton)
+- [File groups](#file-groups)
+- [Slot-fills and the render recipe](#slot-fills-and-the-render-recipe)
+- [The five working files](#the-five-working-files)
+- [Pipeline modules](#pipeline-modules)
+- [Tests](#tests)
+- [Generated numbers in docs](#generated-numbers-in-docs)
+- [Storage budget](#storage-budget)
+- [CI workflows](#ci-workflows)
+- [The `data/` directories](#the-data-directories)
+- [Adding a second source](#adding-a-second-source)
+- [Governance](#governance)
+- [Architectural principles](#architectural-principles)
+- [Conventions worth defending](#conventions-worth-defending)
 
 ## The skeleton
 
+The core project, for one source. Files marked *(publish)*, *(refresh)* or *(multi-source)* are generated only when that group is in scope.
+
 ```
-project-name/
+project-slug/
+├── README.md               <- for people using the data; generated headline numbers
+├── AGENTS.md               <- how to work here; CLAUDE.md is the one line `@AGENTS.md`
+├── CLAUDE.md
+├── ROADMAP.md              <- the ten Outline sections: now / later / skip
+├── decision-log.md         <- dated decisions and why
+├── CHANGELOG.md            <- data and schema changes users need to know
+├── LICENSE                 <- MIT for the code
+├── pyproject.toml          <- uv-managed, Python >=3.12
+├── .gitignore  .gitattributes
 ├── data/
-│   ├── original/       <- immutable raw downloads (large files → LFS)
-│   │   ├── <source>/
-│   │   │   └── <vintage>/<file>
-│   │   └── manifest.json    <- per-file sha256
-│   ├── processed/      <- tidy output, the deliverable
-│   │   ├── <project>.csv
-│   │   ├── <project>.parquet
-│   │   ├── <project>.db     <- SQLite for Datasette (built by scripts/publish.py)
-│   │   ├── metadata.yaml    <- Datasette metadata (generated)
-│   │   └── provenance.csv
-│   ├── audit/          <- auto-generated reports
-│   │   └── summary-<ts>.md
-│   └── lookups/        <- crosswalks, code systems
-│       ├── concepts.yaml
-│       └── fips_to_county.csv
+│   ├── original/           <- immutable, as fetched: <source>/<vintage>/<file>
+│   │   └── manifest.json   <- url, sha256, size, fetch time per file (committed)
+│   ├── processed/          <- <pkg_name>.csv (+ .parquet) and provenance.csv
+│   ├── audit/              <- summary.md, headline.json (committed); per-run logs (ignored)
+│   └── lookups/            <- hand-kept vocabularies and crosswalks
 ├── scripts/
-│   ├── schema.py       <- LONG_COLUMNS, pandera schema, normalize_long
-│   ├── sources.py      <- Source ABC and Artifact dataclass
-│   ├── config.py       <- paths, HTTP defaults, SOURCES registry
-│   ├── concepts.py     <- concept catalog (multi-source projects only)
-│   ├── fetch.py        <- idempotent downloader; updates manifest
-│   ├── discover.py     <- (optional) find new sources upstream
-│   ├── clean.py        <- orchestrator; routes per source × vintage
-│   ├── audit.py        <- summary stats → Markdown
-│   ├── reconcile.py    <- (optional) verify against originals
-│   ├── publish.py      <- build SQLite + metadata.yaml for Datasette
-│   ├── pipeline.py     <- end-to-end driver (CLI entry point)
-│   └── parsers/
-│       ├── __init__.py
-│       └── <source>_<vintage>.py
-├── tests/
-│   ├── conftest.py
-│   ├── test_schema.py
-│   ├── test_<source>_<vintage>.py
-│   └── fixtures/
-│       └── <source>_<vintage>_small.<ext>
+│   ├── pipeline.py         <- the command line: run | fetch | clean | audit | reconcile
+│   ├── config.py           <- paths, HTTP defaults, the source's slug/label/license
+│   ├── source.py           <- artifacts() and parser_for(): the one source
+│   ├── parsers/            <- one module per layout era
+│   ├── fetch.py            <- idempotent download, manifest, --fresh
+│   ├── clean.py            <- parse → dedupe → validate → conservation check → write
+│   ├── schema.py           <- LONG_COLUMNS, KEY_COLUMNS, the pandera contract
+│   ├── provenance.py       <- provenance.csv columns and the extraction_method vocabulary
+│   ├── runlog.py           <- progress lines and the fresh per-run error log
+│   ├── audit.py            <- summary.md, headline.json, variables, generated doc numbers
+│   ├── reconcile.py        <- compare against the source's printed totals (opt-in)
+│   ├── discover.py         <- (refresh) what is upstream, what is new
+│   ├── concepts.py         <- (multi-source) the concept catalog
+│   ├── publish.py          <- (publish) SQLite + Datasette metadata
+│   └── upload_documentcloud.py  <- (publish) source documents to DocumentCloud
+├── tests/                  <- schema, build checks, vintage keys, generated numbers, vocabularies
 ├── docs/
-│   ├── _quarto.yml         <- (if Quarto site is per-docs-subdir)
-│   ├── index.qmd           <- landing page for the published site
-│   ├── data-dictionary.qmd <- long-form per-column reference
-│   ├── filter-pivot-recipes.qmd
-│   ├── methodology.qmd     <- how the data was extracted
-│   ├── changelog.qmd       <- per-vintage changes
-│   ├── _freeze/            <- committed; cached computation outputs
-│   ├── variables.md        <- auto-generated by audit.py
-│   └── variables.csv       <- auto-generated by audit.py
-├── _quarto.yml         <- Quarto project config (if top-level)
-├── .github/
-│   └── workflows/
-│       ├── tests.yml           <- on by default; pytest on push/PR
-│       ├── refresh.yml         <- opt-in; cron-driven data refresh PR
-│       ├── publish.yml         <- opt-in; build SQLite + datasette publish
-│       └── gh-pages.yml        <- opt-in; render Quarto site to gh-pages
-├── AGENTS.md           <- architecture brief
-├── README.md           <- for data consumers
-├── pyproject.toml      <- uv-managed
-├── .gitattributes      <- Git LFS rules
-└── .gitignore
+│   ├── data-dictionary.md  <- one entry per column, hand-kept
+│   ├── filter-pivot-recipes.md
+│   ├── variables.md/.csv   <- generated column profile
+│   └── index.qmd  methodology.qmd   <- (publish) Quarto site, with _quarto.yml at the root
+└── .github/
+    ├── workflows/tests.yml <- lint, tests, CLI check, storage budget
+    ├── workflows/refresh.yml.disabled                     <- (refresh)
+    ├── workflows/publish.yml.disabled, gh-pages.yml.disabled  <- (publish)
+    └── ISSUE_TEMPLATE/data-correction.yml                 <- (publish)
 ```
 
-The skeleton is meant to look like every other mature civic liberation project — PUDL, BoulderPublicData/Election-Results, IPEDS-pipeline — so a contributor switching between projects encounters the same directory at the same name doing the same thing. Predictability is the point.
+The layout matches what mature civic pipelines converged on (PUDL, BoulderPublicData/Election-Results, the IPEDS pipeline), so a contributor moving between projects finds the same directory doing the same thing.
 
-### Four publishing surfaces
+## File groups
 
-The skeleton supports four independent deployment surfaces, each playing to its strengths:
+A project starts with `core` and nothing else. Every other group is generated when the Outline section that needs it is reached, and a project's `ROADMAP.md` records which sections are now, later or skip. Generate a group's files together with its flag: the flag keeps the matching `<!-- IF:FLAG -->` blocks in README, AGENTS and the docs, and strips them otherwise. Paths are relative to `templates/project/`. `tools/validate_data_liberation.py` reads this table, renders a minimal (`core`) and a full (every group) project, and tests both.
 
-| Surface | Source | Target | Workflow |
-|---|---|---|---|
-| **Documentation site** | `docs/*.qmd` + `_quarto.yml` | GitHub Pages (`gh-pages` branch) | `.github/workflows/gh-pages.yml` |
-| **Queryable data interface** | `data/processed/<project>.db` + `metadata.yaml` | Vercel / Fly / Cloud Run | `.github/workflows/publish.yml` |
-| **Bulk data distribution** | LFS-tracked `data/original/`, `*.parquet` | GitHub LFS + Releases | Manual or `release.yml` |
-| **Source documents** | PDFs / FOIA responses / scans under `data/original/<source>/` | DocumentCloud projects with reader UI + OCR + embed iframes | `python-documentcloud` upload step in `refresh.yml`, or a DocumentCloud scraper add-on |
+<!-- BEGIN file-groups -->
+| Group | Flag | Generate when | Files |
+| --- | --- | --- | --- |
+| `core` | — | always: any project (sections 2–6) | every file not listed below: the five working files (`README.md.tmpl`, `AGENTS.md.tmpl` with `CLAUDE.md`, `ROADMAP.md.tmpl`, `decision-log.md.tmpl`, `CHANGELOG.md.tmpl`), `LICENSE.tmpl`, `pyproject.toml.tmpl`, `.gitignore`, `.gitattributes.tmpl`, `data/*/.gitkeep`, the pipeline core in `scripts/`, `tests/`, `docs/data-dictionary.md.tmpl`, `docs/filter-pivot-recipes.md.tmpl`, `.github/workflows/tests.yml` |
+| `publish` | `PUBLISH` | section 8 is in scope (visibility is public or embargoed) | `scripts/publish.py.tmpl`, `scripts/upload_documentcloud.py`, `_quarto.yml.tmpl`, `docs/*.qmd.tmpl`, `.github/workflows/publish.yml.disabled.tmpl`, `.github/workflows/gh-pages.yml.disabled`, `.github/ISSUE_TEMPLATE/data-correction.yml` |
+| `multi-source` | `MULTI_SOURCE` | a second source arrives (see [Adding a second source](#adding-a-second-source)) | `scripts/concepts.py`, `data/lookups/concepts.yaml`, `tests/test_concepts.py` |
+| `refresh` | `REFRESH` | the source publishes new vintages on a cadence (section 10) | `scripts/discover.py`, `.github/workflows/refresh.yml.disabled` |
+<!-- END file-groups -->
 
-Four references cover the four surfaces independently: [`publishing.md`](publishing.md), [`publishing.md`](publishing.md), [`publishing.md`](publishing.md), [`publishing.md`](publishing.md). The architectural constraint that Git LFS does not work with GitHub Pages — which is why publishing is split across surfaces rather than one workflow — is documented in the LFS reference. DocumentCloud closes the gap LFS leaves: where LFS hands readers an opaque file, DocumentCloud gives them a page-anchored permalink with searchable OCR text.
+Two independent questions decide the groups, and they call for different scaffolding: how many sources (a second source justifies the registry and concept catalog) and whether vintages recur (recurrence justifies `discover.py` and the refresh workflow). A single agency's quarterly file needs `refresh` but not `multi-source`; a one-time harmonization of three agencies is the reverse. Don't let "recurring" pull in the multi-source machinery. The `pipeline` command offers `discover` and `publish` only when their modules exist, so a minimal project has no dead commands.
 
-## Top-level files
-
-### `AGENTS.md`
-
-The architecture brief and future-agent handbook. Read by a returning maintainer or AI assistant who needs to know "what is this project" without reading every Python file. This is the most important file in the repo after the data itself, because it's what makes the project legible six months from now.
-
-Required sections:
-
-1. **What this project is.** One paragraph. What data, from whom, in what schema, with what cadence. Place the project in the liberation tradition with one sentence (e.g., "Follows the PUDL convention for per-vintage parsers and a harmonized canonical schema; reconciliation pattern modeled on BoulderPublicData/Election-Results.")
-2. **Quickstart.** Three commands that get a fresh clone to "tests passing, data refreshed":
-   ```bash
-   uv sync
-   uv run pytest
-   uv run python -m scripts.pipeline
-   ```
-3. **Layout.** A table mapping every top-level directory and key file to its responsibility. The template includes a starter table; edit to match the project's actual sources.
-4. **Design decisions.** The non-obvious choices, each one sentence to a paragraph: why tidy long not wide, why no imputation, why pdfplumber over camelot for this particular source, the unit of observation chosen and what was ruled out, the vintage convention. The "if you change this, here's what breaks" notes.
-5. **Known limitations.** Vintage-specific gaps, formats not handled yet, parser fragility. Be honest. The point of this section is so the next person doesn't rediscover the same potholes.
-6. **How to add a new source / vintage.** Concrete numbered recipe. The IPEDS pipeline does this well: "(1) Register the source in `scripts/sources.py`. (2) Create `scripts/parsers/<source>_<vintage>.py` with `parse(path) -> pd.DataFrame`. (3) Add a fixture in `tests/fixtures/`. (4) Add an entry to `docs/data-dictionary.md`. (5) If multi-source, update `scripts/concepts.py` with the new mappings and caveats."
-7. **References.** Inline links to canonical documentation, journalistic coverage, and historical context for the data being liberated. The original publisher's documentation; the FOIA / CORA path if applicable; any prior research using the same source.
-
-### `README.md`
-
-Distinct from AGENTS.md. The README is for *data consumers* — journalists opening the CSV, researchers loading it in R, downstream pipelines pinning a release. AGENTS.md is for *maintainers and AI agents*.
-
-Required sections:
-
-1. **One-paragraph description.** What the dataset contains, in plain language. Include 5 sample rows rendered as a Markdown table.
-2. **Movement context.** One paragraph naming the lineage: which tradition the project follows (Sunlight, PUDL, BoulderPublicData) and why the data was worth liberating. The `references/context.md` reference in this skill exists so this section can be short and well-cited.
-3. **How to load.** Code snippets for the dominant consumer (`pandas`, `polars`, `R`/`readr`, depending on the project audience).
-4. **Schema overview.** A short table: column name, type, one-line description. The exhaustive version lives in `docs/data-dictionary.md`.
-5. **Provenance and refresh.** When the data was last updated, where it came from, what cadence the publisher follows, and what `scripts/discover.py` checks for.
-6. **Citation.** A BibTeX entry. Public-interest datasets are cited; make it easy.
-7. **License.** Default to CC-BY-4.0 for the *data*, MIT for the *code*. Document this explicitly.
-
-### `pyproject.toml`
-
-`uv`-managed; Python 3.11+. Core deps: `pandas`, `pyarrow`, `pandera[pandas]`, `pydantic`, `requests`, `requests-cache`, `tenacity`, `structlog`, `tabulate`. Optional extras: `pdf` (pdfplumber, pypdf, camelot), `ocr` (pytesseract, pdf2image), `scrape` (httpx, selectolax, playwright), `tabular` (openpyxl, xlrd, pyreadstat), `publish` (datasette, sqlite-utils, datasette-publish-vercel), `analysis` (duckdb). Dev group: `pytest`, `pytest-recording`, `ruff`, `mypy`. Exact pin levels live in [`templates/project/pyproject.toml.tmpl`](../templates/project/pyproject.toml.tmpl); `uv sync --extra pdf --extra scrape` pulls only what the project uses. The `scrape` extra needs a one-time `uv run playwright install chromium`.
-
-### `.gitignore`
-
-Standard Python plus: `.requests-cache.sqlite`, `.env`, `docs/variables.{md,csv}` *unignored* (the refresh PR carries them), `/_site/` + `/.quarto/`. **Commit `docs/_freeze/`** (Quarto's executed-code cache) so the GH Action re-renders without re-running every code block. Whether to commit `data/processed/*.csv` is project-dependent — template default commits CSV, ignores Parquet. Full file at [`templates/project/.gitignore`](../templates/project/.gitignore).
-
-### `.gitattributes`
-
-Git LFS rules. Default patterns: `data/original/**/*.{pdf,zip,xlsx,xls,tar.gz,dbf}`, `data/processed/*.{parquet,db}`, `docs/_freeze/**/*.{png,pdf}`. Contributors must `git lfs install` once per machine; CI jobs needing raw data set `actions/checkout@v4` with `lfs: true`. The LFS-vs-Pages constraint, per-plan size limits, and CI bandwidth posture are in [`publishing.md`](publishing.md).
-
-### `_quarto.yml`
-
-Declares a Quarto website project with `_site/` output, a navbar linking docs/index.qmd + data-dictionary + filter-pivot-recipes + methodology + changelog, and `execute: freeze: auto`. Full configuration at [`templates/project/_quarto.yml.tmpl`](../templates/project/_quarto.yml.tmpl); the toolchain-side rationale (the freeze pattern, the GH Action workflow, the one-time `quarto publish gh-pages` setup) is in [`publishing.md`](publishing.md).
-
-## `scripts/` modules
-
-The pipeline is a Python package at `scripts/`. Every module is intentionally small and one-responsibility.
-
-### `schema.py` — canonical schema and helpers
-
-Declares `LONG_COLUMNS` and the pandera `CanonicalLong` model. Exposes `normalize_long(df) -> pd.DataFrame` for parsers to call before returning. See `references/data-modeling.md` for the full pattern.
-
-### `sources.py` — Source ABC and registry
-
-The source registry plus the abstract base class every parser inherits from. The two-method contract is `discover` and `ingest`:
-
-```python
-# scripts/sources.py
-from __future__ import annotations
-
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Iterator
-
-import pandas as pd
-
-
-@dataclass
-class Artifact:
-    """One downloadable unit from upstream."""
-    source: str
-    vintage: str
-    url: str
-    local_path: Path
-    metadata: dict = field(default_factory=dict)
-
-
-class Source(ABC):
-    """The contract every source obeys."""
-    name: str          # registry slug; matches data/original/<name>/
-    label: str         # human-readable
-
-    @abstractmethod
-    def discover(self) -> Iterator[Artifact]:
-        """Enumerate available artifacts upstream. Cheap; no downloads."""
-
-    @abstractmethod
-    def ingest(self, artifact: Artifact) -> pd.DataFrame:
-        """Load the local file and return a canonical-schema DataFrame.
-
-        Implementations dispatch to `scripts/parsers/<source>_<vintage>.py`
-        based on `artifact.vintage`.
-        """
-
-
-# The registry. Add a class per source.
-SOURCES: dict[str, type[Source]] = {
-    # "boulder_county_sov": BoulderCountySoV,
-}
-```
-
-The `discover` / `ingest` split is the convention from BoulderPublicData/Election-Results. `discover` is online (it asks "what's available?"); `ingest` is offline (it reads a local file produced by `fetch.py` and returns a frame). This separation makes `fetch` reusable across sources and lets `discover` be unit-tested against a saved upstream index page.
-
-### `fetch.py` — idempotent downloader
-
-Reads the SOURCES registry, walks each `discover()`, downloads any artifact not already in `data/original/<source>/<vintage>/`, and updates `data/original/manifest.json` with per-file sha256. Uses `requests-cache` for idempotence at the HTTP layer and `tenacity` for retries on transient failures.
-
-The CLI exposes `--force` to redownload (for cases where the upstream URL is stable but the content changed) and `--source <slug>` to limit to one source.
-
-### `discover.py` — find new sources upstream (optional)
-
-For pipelines with a recurring cadence, `discover.py` walks each `Source.discover()` and prints any artifacts present upstream but not in the registry. Output goes to stdout and (timestamped) to `data/audit/discovery-<ts>.txt`. Paired with a GitHub Actions cron, this becomes the self-refresh mechanism. See `references/pipeline.md`.
-
-### `clean.py` — orchestrator
-
-Runs each `Source.ingest()` over its discovered artifacts, concatenates the frames, validates against the canonical schema, attaches the `concept` column from the concept catalog (multi-source projects), and writes `data/processed/<project>.csv` + `.parquet` + `provenance.csv`.
-
-The `--fail-on-empty` flag turns silent regressions loud: if the merged frame has zero rows after running all parsers, exit non-zero. This catches the silent-regression failure mode where a layout change quietly empties the output. BoulderPublicData/Election-Results learned this one the hard way.
-
-### `audit.py` — summary stats and variables report
-
-Reads `data/processed/<project>.csv` and writes:
-
-- `data/audit/summary-<ts>.md` — row counts per `(source, vintage)`, null rates, distinct values for low-cardinality columns, flagged empty sources, extraction-error summary.
-- `docs/variables.md` + `docs/variables.csv` — auto-generated column profile (dtype, distinct, null rate, sample values).
-
-`audit.py` also exposes `record_extraction_error(source, artifact, error)` for `clean.py` to call when a per-artifact parse fails. Errors are durable, not fatal: the failed artifact appends to `data/audit/extraction_errors.json` and the rest of the pipeline continues.
-
-### `reconcile.py` — verify against originals (optional)
-
-For high-stakes pipelines (anything that will be cited publicly, anything contested), `reconcile.py` re-opens each original file and computes top-line totals (sum of votes per contest, total enrollment per institution) independently, then compares to the processed CSV. Mismatches are regressions: the pipeline run completes, but CI fails on the reconcile job and the audit flags it.
-
-Default: off, but always-scaffolded. See `references/pipeline.md` for the registry pattern and the BoulderPublicData/Election-Results 149/150 example.
-
-### `publish.py` — build SQLite + metadata for Datasette
-
-For projects publishing a queryable data interface, `publish.py` converts the canonical CSV + provenance sidecar into a single SQLite file using `sqlite-utils`. It declares the composite primary key, indexes facetable columns, optionally enables full-text search on narrative columns, adds the foreign key from data → provenance, and generates `data/processed/metadata.yaml` from `docs/data-dictionary.md` so the published Datasette site stays in sync with the hand-maintained documentation.
-
-```bash
-uv run python -m scripts.publish build       # rebuild SQLite + metadata
-uv run python -m scripts.publish serve       # build and serve Datasette locally
-uv run python -m scripts.publish deploy      # build and `datasette publish vercel`
-```
-
-Reproducible: same input CSV produces an identical `.db` file. See `references/publishing.md` for the full Datasette toolchain and the publishing options spectrum.
-
-### `pipeline.py` — end-to-end driver
-
-`python -m scripts.pipeline` runs `discover → fetch → clean → audit` in sequence and exits non-zero if any phase fails. Also exposes the subcommands individually for development:
-
-```bash
-uv run python -m scripts.pipeline                # full run
-uv run python -m scripts.pipeline discover       # just discover
-uv run python -m scripts.pipeline fetch          # just fetch
-uv run python -m scripts.pipeline clean --fail-on-empty
-uv run python -m scripts.pipeline audit
-uv run python -m scripts.pipeline reconcile      # opt-in
-```
-
-argparse with subcommands; structlog for logging. No CLI framework heavier than argparse — the dependency budget for civic-data pipelines should stay small.
-
-### `parsers/` — per-source, per-vintage parser modules
-
-Naming convention: `scripts/parsers/<source-slug>_<vintage>.py` (or `<source-slug>.py` for single-vintage sources). Each module exposes `parse(path: Path) -> pd.DataFrame`, returning a frame that validates against `CanonicalLong`.
-
-The `Source.ingest()` method dispatches to the parser based on `artifact.vintage`:
-
-```python
-# scripts/sources.py (continued)
-class BoulderCountySoV(Source):
-    name = "boulder_county_sov"
-    label = "Boulder County Statement of Vote"
-
-    def ingest(self, artifact: Artifact) -> pd.DataFrame:
-        from scripts.parsers import (
-            boulder_sov_2009, boulder_sov_2015_present,
-        )
-        # Per-vintage dispatch — resist the urge to write one parser for all years.
-        if artifact.vintage in {"2009", "2011", "2013"}:
-            return boulder_sov_2009.parse(artifact.local_path)
-        if artifact.vintage in {"2015", "2017", "2019", "2021", "2023"}:
-            return boulder_sov_2015_present.parse(artifact.local_path)
-        raise NotImplementedError(f"No parser for vintage {artifact.vintage}")
-```
-
-For long-running series where layouts change, split into vintage-band modules (`boulder_sov_2009.py`, `boulder_sov_2015_present.py`). The Boulder Election-Results pipeline keeps each vintage band in its own file precisely because the alternative — one function with `if vintage < 2015: ... elif vintage < 2021: ...` — degrades into a parser nobody can read.
-
-## `tests/`
-
-### `conftest.py`
-
-Path fixtures (`fixtures_dir`, `data_original`, `data_processed`) and one synthetic-frame fixture matching the canonical schema for use in `test_schema.py`. Keep this small.
-
-### `test_schema.py`
-
-The minimum viable test set:
-
-1. A known-good synthetic frame passes `CanonicalLong.validate`.
-2. A frame missing a required column raises `pandera.errors.SchemaError` (or `SchemaErrors`).
-3. A frame with an extra unknown column raises (because `strict=True` is set).
-4. Dtype coercion works (integer vintage → string vintage).
-
-These run on every CI push and catch schema drift before it reaches downstream consumers.
-
-### `test_<source>_<vintage>.py`
-
-One per parser. The minimum useful test:
-
-```python
-from pathlib import Path
-from scripts.parsers.boulder_sov_2009 import parse
-
-FIXTURE = Path(__file__).parent / "fixtures" / "boulder_sov_2009_small.pdf"
-
-def test_parses_canonical_schema():
-    df = parse(FIXTURE)
-    assert len(df) > 0
-    assert "contest" in df.columns
-
-def test_top_line_total():
-    """A small reconciliation: known totals from a fixture should match."""
-    df = parse(FIXTURE)
-    pres_total = df.query("contest == 'PRESIDENT'")["votes"].sum()
-    assert pres_total == EXPECTED_TOTAL_FROM_PDF
-```
-
-The second test is a small-scale reconciliation — running the same logic `reconcile.py` runs at full scale, but against a fixture so it's fast in CI.
-
-### `tests/fixtures/`
-
-Realistic but minimal source artifacts. For PDFs, commit at least one real source PDF per parser (or a redacted version if the source has any sensitive content). The Boulder 2009 Statement of Vote is the model fixture for the bundled template; the [camelot test corpus](https://github.com/camelot-dev/camelot/tree/master/tests/files) is a good source for synthetic ruled-table fixtures.
-
-## `docs/`
-
-### `data-dictionary.md`
-
-Hand-maintained. One H2 per column. The IPEDS pipeline's `DATA_DICTIONARY.md` is the model. See `references/data-modeling.md` for the per-column template and the rationale for cataloging caveats.
-
-### `filter-pivot-recipes.md`
-
-The bridge between tidy storage and wide-form analysis. Three stacks: Python/pandas, R/tidyverse, SQL/DuckDB — all reading the canonical CSV at `data/processed/<project>.csv`. Four recipes carry most of the weight (single-vintage wide pivot, year × source matrix, geographic roll-up, cross-source concept comparison). See `references/data-modeling.md#filter-pivot-recipes`.
-
-### `variables.md` and `variables.csv` (auto-generated)
-
-Column-by-column profile inferred from the data itself. Do not hand-edit. The mechanical complement to `data-dictionary.md`; treat their agreement as a precondition.
-
-## `.github/workflows/`
-
-### `tests.yml` (default on)
-
-`uv sync` and `pytest` on push and PR. Pins Python via `requires-python`. Caches `~/.cache/uv`. The crucial extra: a `--fail-on-empty` check after a fast pipeline dry-run, so the layout-changed-and-no-rows regression fails CI loudly.
-
-### `refresh.yml` (opt-in)
-
-Scheduled `discover → fetch → clean --fail-on-empty → audit`, then PR-on-new-data. The template ships this as `refresh.yml.disabled`; rename to enable. See `references/pipeline.md` for the recurring-refresh pattern, the cron-cadence guidance per source type, and why PR-not-commit-to-main is the right discipline.
-
-### `publish.yml` (opt-in)
-
-Triggered when the refresh PR merges (i.e., on push to `main` that touches `data/processed/**`). Rebuilds `data/processed/<project>.db` from the canonical CSV via `scripts/publish.py build`, then runs `datasette publish vercel|fly|cloudrun` to deploy the updated database. Requires the deploy provider's auth token in repository secrets (`VERCEL_TOKEN`, `FLY_API_TOKEN`, or GCP credentials).
-
-Template ships as `publish.yml.disabled`; rename and configure the provider once the first manual `datasette publish` succeeds locally. See `references/publishing.md`.
-
-### `gh-pages.yml` (opt-in)
-
-Renders the Quarto documentation site to GitHub Pages on every push to `main` that touches `docs/`, `_quarto.yml`, or `data/processed/**`. Uses `quarto-dev/quarto-actions/setup@v2` + `publish@v2` with `target: gh-pages`. Requires `permissions: contents: write` to push to the `gh-pages` branch; the branch must be created first by running `quarto publish gh-pages` locally once.
-
-Template ships as `gh-pages.yml.disabled`. Enable once the project has a Quarto site authored under `docs/` and the one-time local setup is done. See `references/publishing.md` for the workflow itself and `references/publishing.md` for the LFS architectural caveat.
-
-## Governance
-
-Civic-data projects publish information about *people, institutions, and systems whose interests aren't always aligned with publication*. The skill scatters governance-relevant content across the data dictionary (caveats), provenance.csv (legal basis), the cleaning pipeline (PII redaction at step 8), and AGENTS.md (design decisions); this section names the *up-front* decisions every project should make explicitly. Treat this as a checklist run during the Survey phase, not a phase of its own — but the answers belong in AGENTS.md and the README, not in someone's head.
-
-The licensing, permanence, and non-discrimination decisions below track the **Sunlight Open Data Policy Guidelines** (10 principles) — the publisher-side policy frame whose gaps are *why* liberation work exists. Naming the principle a decision honors is optional background, not a compliance step; see [`context.md`](context.md#a-meta-synthesis-four-lenses-on-open-data).
-
-### License inheritance
-
-The source's license is not the project's license. Many publishers attach terms (CORA-conditional, "for non-commercial use," "no redistribution without attribution") that the project must propagate or honor.
-
-- **Identify the source's license.** Look in the publisher's terms-of-use, the FOIA response letter, the dataset's metadata. If unclear, ask the records officer (this is part of the bulletproofing checklist's *state reconstruction* phase). Document the answer in `data/processed/provenance.csv` under `extraction_notes` or a dedicated `source_license` column.
-- **Pick the project's license deliberately.** Defaults: **CC-BY-4.0** for the *data*, **MIT** for the *code*. If the source's terms preclude CC-BY (e.g., a restricted FOIA response), name the more restrictive license the project must use and explain why in the README.
-- **Don't laundering-by-tidy.** Repackaging restricted data into a tidy CSV doesn't strip its terms. If a source carries "non-commercial use" forward, the processed CSV does too.
-
-### Data-subject considerations
-
-Some sources contain information *about people who didn't consent to be in the dataset*. PII redaction (cleaning pipeline step 8) handles obvious identifiers; the harder questions live one level up.
-
-- **Identify the data subjects.** Records *about* employees (salary disclosures), residents (incident reports, 311 calls), defendants (court filings, jail rosters), patients (healthcare exposures), beneficiaries (gainful-employment outcomes). Each carries different ethical and legal weight.
-- **Apply the right-to-erasure analog where it exists.** GDPR has Article 17; California has CCPA; some agencies have their own correction-and-deletion procedures. Document the project's response path for an erasure request — typically a documented PR that adds an `erasure_log.csv` entry and propagates downstream on the next refresh.
-- **Honor parallel sovereignty frames.** For data about indigenous communities, the [CARE principles](https://www.gida-global.org/care) (Collective benefit, Authority to control, Responsibility, Ethics) sit alongside the FAIR principles. For data about other historically-surveilled populations, ask: would the affected community endorse this liberation, or is this strip-mining their data for an enterprise consumer? AGENTS.md should record the answer.
-- **Set out-of-scope uses explicitly.** A processed CSV can be cited for accountability journalism *and* used to feed predictive policing, enrichment-for-eviction, or immigration-enforcement tooling. The README and AGENTS.md should name uses the maintainers consider out-of-scope. This is not legally binding but it's the documented community norm.
-
-**These are real gates, not caveats.** Most of this skill's guidance is advisory, but privacy law and Indigenous-data sovereignty can mean *do not publish, or publish differently* — they outrank the default "liberate and publish." A short decision order:
-
-1. **Privacy-law screen.** If the release contains personal data that **GDPR** (incl. the Art. 17 right to erasure), **CCPA**, or an agency procedure protects, the question is whether to publish *at all*, and in what shape — redact, pseudonymize, aggregate, or withhold. "It was extractable" is not authorization. Document the call and the legal basis.
-2. **CARE-vs-FAIR check.** FAIR pushes toward maximal discoverability; the **CARE Principles** (Collective benefit, Authority to control, Responsibility, Ethics — <https://www.gida-global.org/care>) can pull the other way for data about Indigenous or other historically-surveilled communities, toward *restricted access under community authority*. When they conflict, CARE governs the access decision and FAIR governs the *form* of whatever is released. If the affected community wouldn't endorse the liberation, that's a stop, not a footnote.
-3. **Out-of-scope-use declaration.** Whatever ships, name the uses the project disavows.
-
-The wider policy and rights landscape (FOIA, the federal mandates, GDPR/CCPA, CARE, the international frame) is catalogued in [`context.md`](context.md).
-
-### Project-internal governance
-
-Once the project is live, it acquires its own governance surface: who can change the schema, who reviews refresh PRs, how disagreements get resolved.
-
-- **Schema-revision discipline.** Changes to `LONG_COLUMNS` or the pandera class are *contract changes* (see the schema-as-contract framing in [`data-modeling.md`](data-modeling.md#the-canonical-schema)). Require an entry in `docs/changelog.qmd` for every schema-revision PR; require a paragraph naming what breaks for downstream consumers.
-- **Concept-catalog amendments.** Adding a new cross-source equivalence is a contract change at the equivalence level. Require the caveats list to be non-empty and to name what is and isn't comparable (see [`data-modeling.md`](data-modeling.md#concept-catalogs)).
-- **Refresh-PR review norms.** Document who reviews refresh PRs and what they look at: row-count delta in `data/audit/summary-*.md`, new entries in `extraction_errors.json`, new "Empty sources" flags, reconcile mismatches. The current `refresh.yml.disabled` template includes a PR-body checklist; AGENTS.md should name who runs it.
-- **Conflict-resolution path.** When contributors from different functional teams disagree about a schema choice or a concept caveat — and they will, see Casemajor's "data culture as contested field" in [`context.md`](context.md#critical-perspectives-worth-absorbing) — AGENTS.md should name the documented escalation path. A "minority report" field in the dictionary, or a `disputes/` log directory, beats litigating in PR comments.
-
-### Downstream accountability
-
-A liberation project supplies data other actors will cite, build on, and sometimes get wrong. Accountability infrastructure isn't optional.
-
-- **Error-reporting path.** The README should name how downstream users flag errors (a GitHub issue template; an email; a Mastodon contact). The path should preserve the audit trail — corrections become entries in the changelog with the affected vintages named, not silent rewrites.
-- **Correction propagation.** When an error is confirmed, the fix lands in the next refresh PR (or an explicit hotfix PR); `provenance.csv` keeps the original sha256 and the corrected sha256 visible. Downstream consumers can detect a corrected vintage by checking the changelog.
-- **Citation guidance.** The README should include a BibTeX or equivalent so downstream uses are citeable; the citation should include the vintage tag (e.g., `v2024.11.01`) so a corrected dataset doesn't silently displace what a paper cited.
-- **Retraction-equivalent path.** If a vintage turns out to be unsalvageable (the source was withdrawn; the parser had a load-bearing bug that affects most rows), document the retraction in the changelog *and* keep the bad data available in the Git history. Don't quietly delete; downstream users may have cited it.
-
-### Where these decisions land in the project
-
-| Decision | Lives in |
-|---|---|
-| Source license + project license | `README.md` + `data/processed/provenance.csv` |
-| PII redaction policy | `scripts/publish.py` + `docs/data-dictionary.md` per-column caveats |
-| Out-of-scope uses | `README.md` *Movement context* section + `AGENTS.md` *Design decisions* |
-| Schema-revision discipline | `AGENTS.md` + `docs/changelog.qmd` template |
-| Refresh-PR review checklist | `.github/workflows/refresh.yml.disabled` PR body + `AGENTS.md` |
-| Error-reporting path | `README.md` *Contributing* section + GitHub issue template |
-| Citation guidance + vintage tagging | `README.md` *Citation* + GitHub Releases tag policy |
-
-Most of these the template already produces stubs for; the governance section's job is to make sure the stubs get filled in *before* the project ships a first vintage, not after the first complaint.
-
-## `data/` directory discipline
-
-Four subdirectories, each with a `.gitkeep`:
-
-- **`data/original/`** — *Immutable.* The raw artifacts as fetched, organized by `<source-slug>/<vintage>/<filename>`. `manifest.json` records sha256 per file. `fetch.py` is the only module that writes here.
-- **`data/processed/`** — *The deliverable.* One canonical CSV (and Parquet) per project, plus `provenance.csv` (one row per source artifact: `source_url`, `retrieved_at`, `sha256`, `extraction_quality`, `extraction_notes`).
-- **`data/audit/`** — *Auto-generated.* Markdown reports, one per `audit` run, timestamped. Plus `extraction_errors.json` from any failed parses and `reconcile.json` if reconciliation is enabled.
-- **`data/lookups/`** — Crosswalks and reference tables. YAML/JSON for field-name maps (short, human-edited); CSV for code systems (FIPS, agency codes — longer, possibly machine-edited); `concepts.yaml` for the concept catalog, if multi-source.
-
-The `.gitkeep` files keep the directories in version control even when empty. `.gitignore` selectively unignores; see the gitignore section above.
+When a group arrives later in an existing project, copy its files, turn its flag's blocks on by hand in README, AGENTS and the docs, and record the change in the decision-log.
 
 ## Slot-fills and the render recipe
 
-The template ships **in this repo** at [`templates/project/`](../templates/project/). Scaffolding is **agent-driven** — there is no scaffold script. Files that carry slot-fills have a `.tmpl` suffix and use `{{UPPER_SNAKE}}` tokens (matching `data-project-skill`); files with no slot-fills render verbatim.
+Scaffolding is agent-driven; there is no scaffold script. For each file in the groups in scope:
 
-To render a project, for each file under `templates/project/`:
+1. **Output path:** strip a trailing `.tmpl` (`pyproject.toml.tmpl` → `pyproject.toml`).
+2. **Substitute** every `{{UPPER_SNAKE}}` token from the table below.
+3. **Conditionals:** keep the contents of `<!-- IF:FLAG -->…<!-- /IF -->` blocks whose group is in scope, drop the others, and remove the markers.
+4. **Write** into the user's working directory, never into this skill's folder. A leftover `{{ }}` or `IF` marker is a bug. Never overwrite an existing file without asking.
 
-1. **Output path** — strip a trailing `.tmpl` (`pyproject.toml.tmpl` → `pyproject.toml`).
-2. **Substitute** every `{{UPPER_SNAKE}}` token from the fill-map below.
-3. **Conditionals** — strip any `<!-- IF:FLAG -->…<!-- /IF -->` block whose flag is off. (No flags are used yet; optional surfaces ship as `*.yml.disabled` for the operator to rename.)
-4. **Write** into the user's working directory — never into this skill's. A leftover `{{ }}` is a bug.
-
-| Token | Source | Example |
-|---|---|---|
-| `{{PROJECT_NAME}}` | the project name, kebab-case | `boulder-election-results` |
-| `{{PROJECT_SLUG}}` | snake_case identifier derived from the name | `boulder_election_results` |
-| `{{DESCRIPTION}}` | one-line description of what the project liberates | `Boulder County election results, 1980–present` |
+| Token | What it is | Example |
+| --- | --- | --- |
+| `{{PROJECT_NAME}}` | the human-readable project name | `Boulder Election Results` |
+| `{{PROJECT_SLUG}}` | kebab-case: the repository, distribution and command name | `boulder-election-results` |
+| `{{PKG_NAME}}` | snake_case: file stems, SQL table, BibTeX key (anything an import or a query names) | `boulder_election_results` |
+| `{{DESCRIPTION}}` | one line on what the project liberates | `Boulder County election results, 1980 to the present` |
 | `{{AUTHOR}}` | author string (fall back to `git config user.name <user.email>`) | `Brian Keegan <bkeegan@…>` |
-| `{{OWNER}}` | GitHub owner the project will live under (fall back to `git config user.name`) | `BoulderPublicData` |
-| `{{CONSUMER_STACK}}` | comma-separated consumer stacks | `pandas`, `pandas,R`, `pandas,polars` |
+| `{{OWNER}}` | GitHub owner the repository will live under | `BoulderPublicData` |
+| `{{CONSUMER_STACK}}` | the users' main tools, comma-separated | `pandas,R` |
 
-The template uses these tokens sparingly — most of it is real, runnable content; the tokens fill in identifiers and human-readable strings, not logic. `scripts/validate.py` enforces the contract: every `{{UPPER}}` token must appear in this fill-map (and in `DOCUMENTED_TOKENS` in `validate.py`), `.tmpl` suffixes and tokens must agree, and a render of the whole tree must `uv sync && pytest` under `--smoke`. When you add a token, add a row here **and** to `validate.py` in the same PR.
+The code package is always `scripts/` (run as `python -m scripts.pipeline`), so `PKG_NAME` names data files and tables rather than a Python package. The validator enforces the contract: every token used appears in this table and in its `DOCUMENTED_TOKENS`, `.tmpl` suffixes and tokens agree, every `IF` flag belongs to a group, and both renders pass `uv sync`, ruff and pytest under `--smoke`. When you add a token or a flag, add it here and in the validator in the same change.
+
+## The five working files
+
+These are the files people keep current; every project starts with them (the Outline's "five working files").
+
+- **`README.md`**, for people using the data: "What & why" (filled during scoping: the question, what one row means, the source, who the data is for, what the project won't extract or publish), the data at a glance (generated), how to load it in pandas, R and DuckDB, how to reproduce it, how to report a correction, how to cite a release, and the licenses (code MIT; data CC-BY-4.0 for the project's transformations, with the publisher's terms recorded per source in `provenance.csv`) and disavowed uses.
+- **`AGENTS.md`**, how to work here, kept short (about a screen or two): where to start, the commands, where things are, the current state (generated), dated project rules, the pull-request convention (what changed, why, what I checked, what I left alone on purpose), links to this skill's references on GitHub, and the end-of-sprint instruction to file feedback. `CLAUDE.md` contains exactly `@AGENTS.md`; never let a second copy of the rules grow there.
+- **`ROADMAP.md`** and **`decision-log.md`** are vendored from the shared templates: the ten Outline sections marked now, later or skip, and dated decisions tagged *Assumed* or *Private* where they apply. Record probe findings, the storage budget and the sensitivity and visibility decisions in the decision-log.
+- **`CHANGELOG.md`** records what users of the data need to know: new vintages and sources, corrections (with the affected vintages), and schema changes (with what breaks).
+
+## Pipeline modules
+
+The pipeline is a small package in `scripts/`, one responsibility per module, run as `uv run python -m scripts.pipeline run`. That command runs fetch, clean, audit and reconcile (with discover first when the refresh group is present) and stops at the first non-zero exit.
+
+- **`config.py`:** paths, the processed-file names (`data/processed/<pkg_name>.csv`), the audit outputs, HTTP defaults (a user agent with a contact), and the source's `SOURCE_SLUG`, `SOURCE_LABEL` and `SOURCE_LICENSE`.
+- **`source.py`:** the one source. `artifacts()` lists every file upstream as an `Artifact` (source, vintage, URL, local path), cheaply and without downloading: a static list for predictable URLs, or a scrape of the index page. `parser_for(artifact)` returns the parser module by an explicit condition on the vintage; no registry and no dynamic import dispatch. `vintage_from_filename()` reads the period from the file's own name, never from the publish directory (a Q4 file posted in next February's folder is still Q4), and a test pins that case.
+- **`parsers/`:** one module per layout era, `parse(path) -> DataFrame`, plus `METHOD` (a canonical `extraction_method`), `TOOLS` (distributions whose versions are recorded) and optionally `QUALITY` and `NOTES`. Keep text extraction separate from line parsing so the PDF engine can change without touching the parser. Per-era modules beat one function full of `if vintage < 2015` branches.
+- **`fetch.py`:** downloads what is missing into `data/original/<source>/<vintage>/` and records it in `data/original/manifest.json`. Idempotent; retries with backoff on connection errors and 429/5xx only; rejects an empty body or an HTML error page served for a PDF; prints throttled progress. `--fresh` bypasses the HTTP cache and re-downloads everything; changed bytes replace the file, keep the old hash in `previous_sha256`, and are reported. A file listed in the manifest but missing from disk (kept outside git) is re-downloaded and checked against its recorded sha256. Failures go to a fresh `data/audit/fetch_errors.json` and exit 1; nothing ever substitutes sample, synthetic or stale data.
+- **`clean.py`:** for each artifact, parse, tag `source` and `vintage`, and fail loudly on empty output, missing columns, or rows whose key columns are all empty; then deduplicate on the natural key, validate, and set failing rows aside in `data/audit/rejected.csv` with a reason. A conservation ledger (`parsed = duplicates_dropped + rejected + written`) must balance or the build fails. If no rows survive, nothing is written over the previous outputs and the command exits 2. Errors go to a fresh `data/audit/extraction_errors.json`; `--strict` turns any error or reject into a non-zero exit for CI. The CSV is sorted by the key and `provenance.csv` by source, vintage and artifact, so a re-run on the same originals is byte-identical.
+- **`schema.py`:** `LONG_COLUMNS`, `KEY_COLUMNS` and the pandera `CanonicalLong` model (`strict`, `coerce`, `unique` on the key), plus `normalize_long`, `dedupe` and `split_valid`. See `data-modeling.md` for the contract.
+- **`provenance.py`:** the `provenance.csv` columns (one row per artifact and parser run), the canonical `extraction_method` and `extraction_quality` vocabularies, which `clean` enforces, and tool-version capture. `retrieved_at` comes from the manifest, not the clock, so cleaning is deterministic.
+- **`runlog.py`:** throttled progress lines and the error log that starts empty every run.
+- **`audit.py`:** reads the processed CSV, checks it holds exactly the rows `clean` wrote, and writes `data/audit/summary.md` (headline, ledger, coverage, artifacts with no rows, extraction methods, null rates, small vocabularies, errors, rejects, and a spot-check sample drawn by hashing the natural key), `data/audit/headline.json`, `docs/variables.{md,csv}`, and the generated blocks in README and AGENTS. None of these contain a timestamp, so an unchanged refresh changes nothing.
+- **`reconcile.py`:** opt-in reconcilers that recompute the source's printed totals from the processed rows; `compare_totals` compares the finest grain both sides share and reports one-sided keys as scope differences, not mismatches. Writes `data/audit/reconcile.md` and exits 2 on a mismatch. See `pipeline.md`.
+- **`pipeline.py`:** argparse subcommands; `-q` hides progress.
+- **`discover.py`** *(refresh):* lists the artifacts upstream, flags the new ones, and writes `data/audit/discovery.md`.
+- **`concepts.py`** *(multi-source):* loads `data/lookups/concepts.yaml`; `concept_for()` and `caveats_for()`.
+- **`publish.py`** and **`upload_documentcloud.py`** *(publish):* see `publishing.md`. `pipeline publish build|serve|deploy` delegates to `publish.py`.
+
+## Tests
+
+The core tests check the machinery, not any particular source, so they pass on a fresh scaffold:
+
+- `test_schema.py`: good frames validate, missing and unknown columns fail, vintages coerce to strings, `dedupe` keeps the last reading, `split_valid` routes bad rows to the reject file. It imports `pandera.pandas as pa` (pandera 0.24 or later).
+- `test_clean.py`: drives `clean.build` with a stand-in parser: the ledger balances with duplicates and rejects, an empty extraction is an error, all-empty keys are degenerate, provenance is deterministic, and an unknown `extraction_method` fails the artifact.
+- `test_source.py`: vintage keys come from file names, including the publish-directory trap.
+- `test_reconcile.py`: one-sided keys are scope differences; differences beyond the tolerance are mismatches.
+- `test_generated_docs.py`: the generated blocks in README and AGENTS match `headline.json`, and `headline.json` matches the processed data.
+- `test_lookups.py`: each `data/lookups/vocab_<column>.csv` matches the dictionary's vocabulary line for that column, and observed values stay inside it.
+- `test_concepts.py` *(multi-source)*: every concept that maps more than one source has caveats.
+
+Add one `tests/test_<source>_<era>.py` per parser with a small real fixture in `tests/fixtures/` and an assertion against a total printed in that fixture; that is reconciliation at fixture scale, and it runs in milliseconds. Validate a parser on every structural cohort of the corpus (each era, each file-format variant), not on one convenient specimen: a reconcile gate that only ever ran on one file can't catch the file it never saw.
+
+## Generated numbers in docs
+
+Every number quoted in prose (rows, sources, vintages, rejected rows) is generated. `audit` writes `data/audit/headline.json` and rewrites whatever sits between `<!-- BEGIN generated:headline -->` and `<!-- END generated -->` in the files listed in `GENERATED_DOCS` (README and AGENTS by default). `tests/test_generated_docs.py` fails when a block differs from what `headline.json` renders to, so a hand edit or a forgotten audit run fails CI, and the refresh PR carries the updated blocks.
+
+To quote a number elsewhere (a methodology page, a data card, a manuscript), add the file to `GENERATED_DOCS` and give it the same markers, or add a key to `headline_numbers()` and a line to `render_generated()`. A number that can't be generated (a figure from a partner's report) is cited with its source and date beside it. Hand-typed counts drifted in four of nine projects reviewed; generated ones stayed current.
+
+## Storage budget
+
+Decide per source, during section 2, where the originals live, and record it in the decision-log:
+
+| Originals | Where | How |
+| --- | --- | --- |
+| Small text and tabular files (the usual case) | committed to git | nothing to do |
+| Large binaries (PDF volumes, scans, archives) or many of them | Git LFS | uncomment the patterns in `.gitattributes`; `git lfs install` once per machine; LFS bandwidth is metered and LFS files can't be served by GitHub Pages (see `publishing.md`) |
+| Too large or too many for LFS, or restricted from redistribution | outside git | uncomment the source's lines in `.gitignore`; the committed `manifest.json` keeps each file's URL and sha256, and `fetch` re-downloads and verifies them; keep a copy in durable storage (an institutional drive, a release asset, a deposit) when the source could disappear |
+
+The processed CSV is committed by default and the Parquet and SQLite copies are rebuilt from it. CI's storage-budget step fails on any committed file over 95 MiB, short of GitHub's 100 MB hard limit, because a file over the limit can't be pushed and removing it means rewriting history. When the processed data is too large to commit, the committed audit reports and `headline.json` are the shared record, and regenerating must reproduce them.
+
+## CI workflows
+
+- **`tests.yml`** *(core, on):* `uv sync`, ruff check and format, mypy (advisory), pytest, `pipeline --help` and `run --help`, and the storage-budget check. Python 3.13 via `astral-sh/setup-uv@v7`; `actions/checkout@v7` without LFS, since tests use committed fixtures.
+- **`refresh.yml.disabled`** *(refresh):* rename to enable once the pipeline runs cleanly by hand. On a schedule it runs `pipeline run` and opens a pull request with `peter-evans/create-pull-request@v8` whose diff holds the data, `manifest.json`, `data/audit/*.md`, `headline.json`, `docs/variables.*` and the regenerated README and AGENTS blocks, plus a review checklist. A failed stage fails the job, so no PR opens on bad data. See `pipeline.md` for cadence and ephemeral sources.
+- **`publish.yml.disabled`** and **`gh-pages.yml.disabled`** *(publish):* deploy Datasette and render the Quarto site after a merge; see `publishing.md`.
+
+## The `data/` directories
+
+- **`data/original/`:** immutable. `<source>/<vintage>/<file>`, written only by `fetch.py`, plus `manifest.json`. Line endings are never normalized (`.gitattributes` marks the tree `-text`), so hashes keep matching.
+- **`data/processed/`:** the deliverable: `<pkg_name>.csv` (and `.parquet`) and `provenance.csv`.
+- **`data/audit/`:** generated. Committed: `summary.md`, `headline.json`, `reconcile.md`, `discovery.md`. Ignored, rewritten every run: `extraction_errors.json`, `fetch_errors.json`, `rejected.csv` (it can hold personal data, and its counts are in the summary), `run.json` (timestamps and the ledger), `reconcile.json`.
+- **`data/lookups/`:** hand-kept tables: `vocab_<column>.csv` vocabularies (tested against the dictionary), crosswalks such as FIPS codes, entity seeds (a reference list of the stations, offices or facilities the data describes, regenerated by a small script from the publisher's own listing and committed, so joins and referential checks have a fixed target), and `concepts.yaml` once there are two sources.
+
+## Adding a second source
+
+Single-source is the default because building a source registry, an abstract base class and dynamic dispatch on day one produced abstraction that projects later paid to remove. The cheap seams (`data/original/<source>/`, the `source` column, per-era parser modules) are there from the start; the machinery arrives in the same change as the second source:
+
+1. **Probe the new source** as you did the first: real files from every era, and the unit of observation it actually reports. Record the findings in the decision-log.
+2. **Move the source code:** `scripts/source.py` becomes `scripts/sources/<first_slug>.py`; write `scripts/sources/<second_slug>.py` with the same two functions; move `SOURCE_SLUG`, `SOURCE_LABEL` and `SOURCE_LICENSE` into each module.
+3. **Add the registry** in `scripts/sources/__init__.py`: `SOURCES = {"first_slug": first, "second_slug": second}` (modules, imported explicitly), and make `fetch.py`, `clean.py` and `discover.py` loop over it, passing each module's `artifacts()` and `parser_for`. `clean.build` already accepts both as arguments.
+4. **Generate the `multi-source` group:** `scripts/concepts.py`, `data/lookups/concepts.yaml`, `tests/test_concepts.py`, and turn on the `MULTI_SOURCE` blocks. Add a nullable `concept` column to `LONG_COLUMNS` and the schema, and fill it in `clean` with `concept_for(source, vintage, variable)`. Each concept that maps more than one source carries caveats (`data-modeling.md`, "Concept catalogs").
+5. **Reconcile across sources at their finest shared grain**, and document scope differences as caveats rather than forcing agreement.
+6. Update the dictionary (the `source` vocabulary, new columns, caveats), add a `CHANGELOG.md` entry, and record the change in the decision-log.
+
+A third or fourth source is then a module and a registry entry. When several sources become separate pipelines in one repository (`pipelines/<name>/`, each shaped like this template, with shared plumbing in `pipelines/_core/`), follow the data-project skill's `multi-pipeline.md`.
+
+## Governance
+
+Governance decisions are shared with the data-project skill: [`_shared/governance.md`](_shared/governance.md) covers license inheritance, data subjects, correction and remedy paths, project-internal governance and where each decision lands, and [`_shared/values-and-gates.md`](_shared/values-and-gates.md) has the hard gates (the privacy-law screen and the CARE check) that can mean *do not publish, or publish differently*. In this template they land as follows: the source's license in `SOURCE_LICENSE` and `provenance.csv`, the project's licenses and disavowed uses in the README, PII decisions in the parser or publish code and the dictionary's per-column caveats, the correction path in the README, `CHANGELOG.md` and (when publishing) the *Data correction* issue form, and schema and refresh-review rules in AGENTS. A solo project says so plainly; review rules such as "maintainers approve by PR" ship only with the branch protection that enforces them.
 
 ## Architectural principles
 
-A short list of cross-cutting principles the skill enacts everywhere. The vocabulary is borrowed from [GROBID's design principles](https://grobid.readthedocs.io/en/latest/Principles/) — GROBID has been doing scientific-document extraction since ~2008, and its lessons generalize past its specific domain. Each principle names a stance the skill already takes across multiple files; reading them together explains *why* the skill looks the way it does.
+The vocabulary is borrowed from [GROBID's design principles](https://grobid.readthedocs.io/en/latest/Principles/); each names a stance this template already takes.
 
-- **Cascade of specialized stages, not a monolithic extractor.** GROBID decomposes extraction into a series of small sequence-labeling models, each tuned for one document region. This skill's analog: **per-source × per-vintage parsers**, plus the 9-step cleaning pipeline in [`pipeline.md`](pipeline.md), plus the source-extraction / transformation / sink-publication role decomposition. Resist the urge to write one parser that handles everything; resist the urge to roll all cleaning into one function. Diagnosis-by-stage is what cascading buys you.
-
-- **Work with layout tokens, not raw text.** GROBID's models operate on tokens that carry position, font, and bounding-box information, not just Unicode. This skill's analog: **pdfplumber's character-level coordinates, camelot's ruled-grid detection, docling's layout-aware DoclingDocument, the `--psm` and bounding-box configuration in the OCR section, the `selectolax` selectors that bind to *structural* classes**. Where the source has visual structure that bears meaning, the parser keeps it. Throwing away layout to recover plain text first and reconstruct second is the failure mode.
-
-- **Small high-quality fixtures beat large auto-generated ones.** GROBID achieves competitive accuracy with ~30-100× less training data than peers by manually curating it. This skill's analog: **`tests/fixtures/<source>_<vintage>_small.<ext>`** holding *real* artifacts, plus the `test_top_line_total` reconciliation tests against known totals. One hand-curated fixture per vintage with assertion against the published total catches regressions that 10× the synthetic-data volume would miss. Quality of the fixture > quantity of the corpus.
-
-- **Evaluation under realistic distribution, not training distribution.** GROBID holds out evaluation sets that follow the *actual* document distribution, because training distribution undersamples common cases. This skill's analog: **`reconcile.py` re-opens the *original* artifact and computes top-line totals from it** — independent of the parser's path through the data. The recurring-refresh PR's audit diff is the same idea: each refresh is evaluated against the source's current state, not the schema the parser was written against.
-
-- **Default fast, opt into precision.** GROBID defaults to CRF for speed and offers deep-learning models when accuracy matters more than throughput. This skill's analog: **start with rule-based pdfplumber / camelot, escalate to PaddleOCR / docTR / Surya when tesseract fails, escalate to docling when classical methods can't handle the layout, escalate to VLMs only when nothing else works** (see the decision trees in [`extract-pdf.md`](extract-pdf.md) and [`extract-images.md`](extract-images.md)). The expensive tool is the second pass for the hard subset; the cheap tool is the first pass for the easy 80%.
-
-These principles are not novel — they're how every mature document-extraction project that has lasted longer than a single grad-student cycle ended up structured. Naming them lets a reviewer (or a future agent) see the architecture as a coherent stance rather than as five independent file conventions.
+- **A cascade of specialized stages, not a monolithic extractor.** Per-era parsers, then the cleaning steps in `pipeline.md`, then validation and publication. Diagnosis by stage is what the cascade buys.
+- **Work with layout, not raw text.** Keep positions, rulings, page numbers and selectors where the source's visual structure carries meaning; throwing layout away to recover plain text first is the failure mode.
+- **Small, real fixtures beat large synthetic ones.** One hand-picked fixture per era with an assertion against its printed total catches regressions that ten times the synthetic volume misses.
+- **Evaluate on the real distribution.** `reconcile.py` re-reads the original, independently of the parser's path through it, and each refresh is checked against the source as it is now.
+- **Default fast, opt into precision.** Text layer first (PDFium via `pypdfium2`), then table tools, then OCR, layout models or vision models for the pages that need them, each with a parser manifest (see the `extract-*.md` references).
 
 ## Conventions worth defending
 
-The handful of decisions that matter most and are easy to get wrong:
-
-- **`scripts/` not `src/` or `pipeline/`.** Every mature civic liberation project — PUDL, BoulderPublicData, IPEDS-pipeline — uses `scripts/`. The convention matters more than the name; predictability across projects is the point.
-- **Immutable originals.** `data/original/` is write-only from `fetch.py`. Re-cleaning re-runs parsers; re-fetching is explicit (`fetch --force`). The hash manifest enforces immutability.
-- **Per-vintage parsers, not nested conditionals.** Long-running series get one file per vintage band. Resist the temptation to write a universal parser.
-- **Per-extract provenance, not per-row.** `provenance.csv` sidecar, keyed on `(source, vintage)`. Carrying source URL on every row is wasteful and noisy. See `references/data-modeling.md#provenance`.
-- **Concepts carry caveats.** A multi-source project that maps variables across sources without documenting comparability is producing misinformation, even if every individual row is accurate. See `references/data-modeling.md#concept-catalogs`.
-- **AGENTS.md before code.** A contributor (or future Claude) should be able to read AGENTS.md and add a source without re-reading the codebase. If the file is missing or stale, the architecture is undocumented; fix it.
-- **Errors durable, not fatal.** A single failed artifact appends to `data/audit/extraction_errors.json` and the rest of the run continues. The next audit flags the error. The CI `--fail-on-empty` is the catch for silent regressions.
+- **`scripts/`, not `src/` or `pipeline/`,** and one command: `python -m scripts.pipeline run`. Predictability across projects is the point. Notebooks, when a project wants them, are thin drivers over `scripts/`, with outputs stripped by `nbstripout`.
+- **Immutable originals.** `data/original/` is written only by `fetch.py`; re-fetching is explicit (`--fresh`) and every change of bytes is recorded in the manifest.
+- **Probe the live source before writing a parser.** A description of the source (a paper, a notebook, an older pipeline) describes it as it was; one download per claimed era is cheaper than one parser per claimed era.
+- **One source until there are two.** The registry arrives with the second source.
+- **Per-era parsers, not nested conditionals.**
+- **Per-extract provenance, not per-row.** `provenance.csv` has one row per artifact and parser run; data rows carry only `source` and `vintage` (plus a `page` or selector where values must trace to a region).
+- **Fail loudly.** Empty and degenerate output is an error, rows lost between stages fail the build, and the error log starts fresh every run.
+- **Generated numbers, never typed ones.**
+- **AGENTS.md before code.** Someone new should be able to read it and add a parser without reading the codebase; if it is stale, the architecture is undocumented.

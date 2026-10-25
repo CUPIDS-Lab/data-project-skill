@@ -1,17 +1,19 @@
-# Summary
+## What changed
 
-Describe what this PR changes and, more importantly, *why* — the diff already shows what changed, so use this space for the reasoning and any tradeoff you accepted. Keep the change focused on one concern so a reviewer can reason about it.
+<!-- One or two sentences. Keep the PR to one concern. -->
 
-Closes #
+## Why
 
-## PR checklist
+<!-- The reason, and the trade-off you accepted. Link the issue: Closes #N. Add a decision-log.md entry for any non-obvious choice and link it here. -->
 
-Before requesting review, confirm:
+## What I checked
 
-- [ ] Branched from the default branch; the PR describes the change and *why* it was made.
-- [ ] Derived data is regenerable from `data/raw/` via the pipeline; nothing under `data/raw/` was edited in place.
-- [ ] Reusable logic lives in `src/`; notebooks stay in `exploratory/` with outputs cleared.
-- [ ] No secrets or sensitive data in the diff (code, config, or notebook outputs).
-- [ ] Environment/lockfile updated if dependencies changed; results reproduce in a clean environment.
-- [ ] Docs updated (`README.md`, `DATA-DICTIONARY.md`, `decision-log.md`) for any user-visible or non-obvious change.
-- [ ] The right `CODEOWNERS` reviewer is requested.
+<!-- The commands you ran and what they showed, e.g. `uv run pytest` (N passed), `uv run python -m scripts.pipeline run` (row count before → after), reconcile results, the audit diff. Say what you did not check. -->
+
+- [ ] Nothing under `data/original/` was edited; `data/processed/` regenerates from the originals.
+- [ ] No secrets or sensitive data in the diff (code, config or notebook outputs).
+- [ ] `docs/data-dictionary.md`, `CHANGELOG.md` and `decision-log.md` updated where this change affects them.
+
+## Left alone on purpose
+
+<!-- What you noticed but did not change, and why (out of scope, needs a decision, separate PR). -->

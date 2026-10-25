@@ -10,7 +10,7 @@ OpenSharing organizes assets as **Share → Schema → Asset**. This project's s
 | --- | --- | --- |
 | `data/processed/` (as Delta / Iceberg / Parquet) | **Table** | `{{SHARE_STORAGE_BASE}}/data/processed/…` |
 | `documentation/`, `knowledge/`, file directories | **Volume** | `{{SHARE_STORAGE_BASE}}/documentation/…` |
-| `.skills/<name>` (AgentSkills) | **AgentSkill** | `{{SHARE_STORAGE_BASE}}/.skills/…` |
+| agent skills the project publishes, if any | **AgentSkill** | `{{SHARE_STORAGE_BASE}}/skills/…` |
 
 Edit `share.json` to list your real processed tables and skill directories (the names must match the directories in storage), to add or remove schemas, and to set `format`/`accessModes` per table.
 
@@ -39,9 +39,9 @@ Edit `share.json` to list your real processed tables and skill directories (the 
 
 The profile points at `{{OPENSHARING_ENDPOINT}}`; add `"icebergEndpoint"` if you serve Iceberg tables.
 
-## How this fits the other L5 surfaces
+## How this fits the other section 9 surfaces
 
-OpenSharing shares the **live data and AI assets** (zero-copy, governed). It complements the project's other publish surfaces: the **OKF** `knowledge/` bundle shares the *understanding*, the **ARD** `ai-catalog.json` *advertises* that these resources exist (the AgentSkill here is the same `.skills/` it lists), and the **Dataverse** deposit archives a *frozen, citable copy* with a DOI. Use OpenSharing when partners need working access without taking a copy; use the deposit when you need a permanent citation.
+OpenSharing shares the **live data and AI assets** (zero-copy, governed). It complements the project's other section 9 surfaces: the **OKF** `knowledge/` bundle shares the *understanding*, the **ARD** `ai-catalog.json` *advertises* that these resources exist (any AgentSkill shared here is one it can list), and the **Dataverse** deposit archives a *frozen, citable copy* with a DOI. Use OpenSharing when partners need working access without taking a copy; use the deposit when you need a permanent citation.
 
 <!-- IF:SENSITIVE -->## Sensitive data — govern what enters the share
 

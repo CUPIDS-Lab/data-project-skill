@@ -1,0 +1,45 @@
+name: triage
+
+# Label new feedback and bug issues from their form answers, so every issue is
+# findable by skill, Outline section, likely cause and severity.
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  issues: write
+
+jobs:
+  label:
+    if: contains(github.event.issue.labels.*.name, 'feedback') || contains(github.event.issue.labels.*.name, 'bug')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v9
+        with:
+          script: |
+            const body = context.payload.issue.body || "";
+            // Issue forms render each field as "### <label>\n\n<answer>".
+            const field = (label) => {
+              const m = body.match(new RegExp(`### ${label}\\s*\\n+([\\s\\S]*?)(?=\\n### |$)`));
+              return m ? m[1].trim() : "";
+            };
+            const labels = new Set();
+            const skill = field("Skill");
+            if (skill === "data-liberation" || skill === "both") labels.add("skill:data-liberation");
+            if (skill === "data-project" || skill === "both") labels.add("skill:data-project");
+            if (skill.startsWith("repository")) labels.add("skill:repo");
+            for (const part of field("Outline section\\(s\\)").split(",")) {
+              const s = part.trim();
+              const n = s.match(/^(\d+) /);
+              if (n) labels.add(`section:${n[1]}`);
+              else if (s.startsWith("The Outline")) labels.add("section:outline");
+            }
+            const cause = field("Likely cause \\(optional\\)").split(" ")[0];
+            if (["missing", "ambiguous", "contradictory", "buried", "novel"].includes(cause)) labels.add(`cause:${cause}`);
+            const severity = field("Severity");
+            if (severity.startsWith("blocked")) labels.add("severity:blocked");
+            if (severity.startsWith("cost rework")) labels.add("severity:rework");
+            if (labels.size) {
+              await github.rest.issues.addLabels({ ...context.repo, issue_number: context.issue.number, labels: [...labels] });
+            }

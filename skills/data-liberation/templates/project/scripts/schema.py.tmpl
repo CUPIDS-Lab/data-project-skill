@@ -1,94 +1,95 @@
-"""Canonical schema for {{PROJECT_NAME}}.
+"""Canonical schema for {{PROJECT_NAME}}: the contract every parser's output obeys.
 
-The contract between parsers and downstream consumers. Every parser's
-output must validate against `CanonicalLong` (via `normalize_long`).
-Schema drift is caught here.
+`LONG_COLUMNS` and the pandera model together are the machine-enforced side of the
+data dictionary (`docs/data-dictionary.md` is the human side). Changing either is
+a schema change: record it in `CHANGELOG.md` with what breaks for users.
 
-See `references/data-modeling.md` in the data-liberation skill for the
-conventions this file follows.
+Order of operations in `clean`: deduplicate on the natural key, then validate.
+Rows that fail a row-level check go to the reject file with a reason
+(`split_valid`); a frame-level failure (a missing or unexpected column) fails the
+whole artifact, which is recorded in the run's error log.
 """
 
 from __future__ import annotations
 
 import pandas as pd
 import pandera.pandas as pa
-from pandera.typing.pandas import DataFrame, Series
+from pandera.typing.pandas import Series
 
-# ─── Canonical column list ──────────────────────────────────────────────────
+# ─── Columns ────────────────────────────────────────────────────────────────
 #
-# Edit this to match the project's actual unit of observation. `source` and
-# `vintage` are required by convention — they join to `provenance.csv`. Add
-# domain-specific identifying columns (precinct/contest/candidate, unitid/
-# year/variable, etc.) and the measurement column(s) here.
+# Replace `observation_id` with the project's real identifying columns and add the
+# measurement column(s). `source` and `vintage` stay: they join to provenance.csv.
 
 LONG_COLUMNS: list[str] = [
-    "source",  # registry slug; joins to provenance
-    "vintage",  # year or version string
-    "observation_id",  # natural-key placeholder — replace with project's actual key
-    "concept",  # cross-source harmonization key (nullable, single-source projects ignore)
+    "source",  # the source slug (scripts/config.py SOURCE_SLUG)
+    "vintage",  # the period the artifact covers, read from its file name or content
+    "observation_id",  # placeholder natural key: replace with the real key column(s)
 ]
 
-
-# ─── pandera schema ─────────────────────────────────────────────────────────
+# The natural key: unique across the processed CSV. Dedup and sort use it, and
+# audit samples are drawn on it, so never use an upstream row number or ObjectId.
+KEY_COLUMNS: list[str] = ["source", "vintage", "observation_id"]
 
 
 class CanonicalLong(pa.DataFrameModel):
-    """The canonical schema for processed outputs.
+    """The processed table. Keep dtypes honest: IDs, FIPS and ZIP codes stay
+    strings; counts are nullable `Int64` so zero and missing stay distinct, e.g.
 
-    Edit columns to match the project's actual unit of observation. The
-    `source` and `vintage` columns are required by convention — they join
-    to `provenance.csv`.
-
-    The `concept` column is the harmonization-as-a-column pattern from
-    the IPEDS pipeline. Use it when ≥2 sources measure the same
-    underlying thing under different names; otherwise leave it nullable
-    and unused.
+        votes: Series[pd.Int64Dtype] = pa.Field(ge=0, nullable=True)
     """
 
-    source: Series[str] = pa.Field(description="Source registry slug")
-    vintage: Series[str] = pa.Field(description="Year or version of source")
-
-    # ───── project-specific columns ─────
-    # Replace the placeholder below with the actual variables. Common
-    # patterns for civic data:
-    #
-    #   precinct: Series[str] = pa.Field(nullable=True)
-    #   contest:  Series[str] = pa.Field()
-    #   candidate: Series[str] = pa.Field(nullable=True)
-    #   votes:    Series[pd.Int64Dtype] = pa.Field(ge=0, nullable=True)
-    #
-    # Keep dtypes honest. Strings stay strings (ZIP codes, FIPS, district
-    # numbers). Counts are non-negative integers; prefer nullable Int64
-    # over int64 so missingness is preserved.
+    source: Series[str] = pa.Field(description="Source slug")
+    vintage: Series[str] = pa.Field(description="Period the source artifact covers")
     observation_id: Series[str] = pa.Field(
-        description="Placeholder — replace with the project's natural-key column(s)."
-    )
-
-    # Harmonization key (optional; nullable by default)
-    concept: Series[str] = pa.Field(
-        nullable=True,
-        description="Cross-source harmonization key. Null when row doesn't participate.",
+        description="Placeholder: replace with the project's natural-key column(s)."
     )
 
     class Config:
-        strict = True  # reject unknown columns — catches schema drift loudly
-        coerce = True  # let parsers be loose with dtypes; the schema does the final cast
+        strict = True  # unknown columns fail loudly
+        coerce = True  # parsers may be loose with dtypes; the schema does the final cast
+        unique = KEY_COLUMNS
 
 
-def normalize_long(df: pd.DataFrame) -> DataFrame[CanonicalLong]:
-    """Coerce a parser's raw output to the canonical schema.
+def normalize_long(df: pd.DataFrame) -> pd.DataFrame:
+    """Keep `LONG_COLUMNS` in order and validate; raises on any failure."""
+    missing = [c for c in LONG_COLUMNS if c not in df.columns]
+    if missing:
+        raise ValueError(f"missing required columns {missing}; got {list(df.columns)}")
+    return CanonicalLong.validate(df[LONG_COLUMNS].copy())
 
-    Parsers may produce extra working columns during cleaning; this helper
-    keeps only `LONG_COLUMNS`, reorders, coerces dtypes via pandera, and
-    validates. Call this at the end of every parser's `parse()`.
 
-    Raises pandera.errors.SchemaError(s) if validation fails — let it
-    propagate up so the failure is durable in `data/audit/extraction_errors.json`.
+def dedupe(df: pd.DataFrame) -> tuple[pd.DataFrame, int]:
+    """Drop rows that repeat the natural key, keeping the last (the latest reading
+    or correction wins). Returns the frame and the number of rows dropped."""
+    if df.empty:
+        return df, 0
+    keep = ~df.duplicated(subset=KEY_COLUMNS, keep="last")
+    return df.loc[keep], int((~keep).sum())
+
+
+def split_valid(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Validate `df`, returning `(valid, rejected)`.
+
+    `rejected` keeps the failing rows' original values plus a `reject_reason`. Raises
+    when a failure is not tied to specific rows (for example a missing column).
     """
     missing = [c for c in LONG_COLUMNS if c not in df.columns]
     if missing:
-        raise ValueError(
-            f"normalize_long: missing required columns: {missing}. Got: {list(df.columns)}"
-        )
-    df = df[LONG_COLUMNS].copy()
-    return CanonicalLong.validate(df)
+        raise ValueError(f"missing required columns {missing}; got {list(df.columns)}")
+    frame = df[LONG_COLUMNS].copy()
+    try:
+        valid = CanonicalLong.validate(frame, lazy=True)
+        return valid, frame.iloc[0:0].assign(reject_reason=pd.Series(dtype="object"))
+    except pa.errors.SchemaErrors as exc:
+        cases = exc.failure_cases
+    if "index" not in cases.columns or cases["index"].isna().any():
+        raise ValueError(f"frame-level schema failure:\n{cases}")
+    cases = cases.assign(
+        index=cases["index"].astype(frame.index.dtype),
+        reason=cases["column"].astype(str) + ": " + cases["check"].astype(str),
+    )
+    reasons = cases.groupby("index")["reason"].agg(lambda r: "; ".join(sorted(set(r))))
+    bad = frame.index.intersection(reasons.index)
+    rejected = df.loc[bad].assign(reject_reason=reasons.loc[bad].values)
+    return normalize_long(frame.drop(index=bad)), rejected

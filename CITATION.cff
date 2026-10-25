@@ -1,26 +1,36 @@
 cff-version: 1.2.0
-message: "If you use this skill, please cite it."
-title: "data-project: an Agent Skill for scaffolding accessible, documented, transparent, and inclusive data collaborations"
-abstract: "A portable Agent Skill from the CU Public Interest Data Science (CUPIDS) Lab that interviews the user, samples a curated corpus of data-science and data-collaboration frameworks, and scaffolds a right-sized data project across six escalating levels (L0–L5), deferring above-level concerns into a project roadmap rather than over-building."
+message: "If you use these skills, please cite them."
+title: "data-skills: Agent Skills for liberating public data and running public-interest data collaborations"
+abstract: "Two portable Agent Skills from the CU Public Interest Data Science (CUPIDS) Lab. data-liberation turns government PDFs, scans, spreadsheets, web pages, APIs and dashboards into tidy, provenance-tracked, reproducible datasets. data-project scopes, governs, tracks, deposits and shares the collaborations around them. Both follow one ten-section outline with checkable outcomes, and generate project artifacts only when the work reaches the section that needs them."
 type: software
 authors:
   - name: "University of Colorado Public Interest Data Science Lab"
     website: "https://github.com/cupids-lab"
-repository-code: "https://github.com/cupids-lab/data-project-skill"
+  - given-names: "Brian C."
+    family-names: "Keegan"
+repository-code: "https://github.com/CUPIDS-Lab/data-skills"
 license: MIT
-version: "0.10.0"
-date-released: "2026-07-23"
 keywords:
-  - data science
-  - reproducibility
+  - data liberation
   - open data
+  - reproducibility
   - responsible data
   - data collaboration
   - agent skill
   - FAIR
-  - open knowledge format
-  - agentic resource discovery
-  - data deposit
+  - provenance
   - dataverse
-  - open sharing
-  - zero-copy sharing
+references:
+  - type: software
+    title: "data-project-skill"
+    repository-code: "https://github.com/CUPIDS-Lab/data-project-skill"
+    version: "0.10.0"
+    authors:
+      - name: "University of Colorado Public Interest Data Science Lab"
+  - type: software
+    title: "data-liberation-skill"
+    repository-code: "https://github.com/CUPIDS-Lab/data-liberation-skill"
+    version: "0.4.0"
+    authors:
+      - given-names: "Brian C."
+        family-names: "Keegan"

@@ -1,0 +1,52 @@
+name: release
+
+# Tag a skill release as <skill>--v<version> (for example data-liberation--v0.5.0).
+# The workflow checks the tag matches the skill's metadata.version, validates the
+# repository, builds the skill's zip for claude.ai, and attaches it to a GitHub release
+# whose notes are that skill's section of CHANGELOG.md.
+
+on:
+  push:
+    tags: ["*--v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: false
+          python-version: "3.13"
+      - name: Check the tag against the skill's version
+        id: meta
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          skill="${tag%%--v*}"
+          version="${tag##*--v}"
+          found=$(uv run --no-project --with pyyaml python -c "import re,yaml,sys; t=open('skills/$skill/SKILL.md').read(); print(yaml.safe_load(re.match(r'^---\n(.*?)\n---\n', t, re.S).group(1))['metadata']['version'])")
+          if [ "$found" != "$version" ]; then echo "::error::tag says $version but skills/$skill/SKILL.md says $found"; exit 1; fi
+          echo "skill=$skill" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Validate
+        run: uv run --no-project --with pyyaml python tools/validate.py --smoke --spec-tool
+      - name: Build the zip
+        run: python tools/build_zips.py "${{ steps.meta.outputs.skill }}"
+      - name: Extract release notes from CHANGELOG.md
+        run: |
+          python3 - "${{ steps.meta.outputs.skill }}" "${{ steps.meta.outputs.version }}" > notes.md <<'PY'
+          import re, sys
+          skill, version = sys.argv[1], sys.argv[2]
+          text = open("CHANGELOG.md").read()
+          part = text.split(f"## {skill}\n", 1)[1].split("\n## ", 1)[0]
+          m = re.search(rf"### \[{re.escape(version)}\].*?(?=\n### \[|\Z)", part, re.S)
+          print(m.group(0) if m else f"See CHANGELOG.md for {skill} {version}.")
+          PY
+      - uses: softprops/action-gh-release@v3
+        with:
+          name: ${{ steps.meta.outputs.skill }} ${{ steps.meta.outputs.version }}
+          body_path: notes.md
+          files: dist/${{ steps.meta.outputs.skill }}.zip

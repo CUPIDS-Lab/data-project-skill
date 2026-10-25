@@ -1,147 +1,158 @@
-"""Idempotent downloader.
+"""Fetch: download every artifact from `scripts.source.artifacts()` that is not on
+disk yet, into `data/original/<source>/<vintage>/`, and record it in
+`data/original/manifest.json` (URL, sha256, size, fetch time).
 
-Walks each `Source.discover()`, downloads any artifact not already present
-under `data/original/<source>/<vintage>/`, and updates a per-source
-`manifest.json` recording sha256 / URL / retrieval timestamp / file size.
-
-Idempotence: re-running `fetch` after a no-change interval is a no-op.
-`requests-cache` handles the HTTP-layer idempotence; the `force` flag
-bypasses both the cache and the file-exists short-circuit.
+* Idempotent: a re-run downloads nothing new and leaves the manifest unchanged.
+* `--fresh` re-downloads everything, bypassing the HTTP cache. Identical bytes are a
+  no-op; changed bytes replace the file, keep the old hash in `previous_sha256`, and
+  are reported loudly, so the change shows up in the refresh PR's manifest diff.
+* A missing file whose manifest entry exists (an original kept outside git under the
+  storage budget) is re-downloaded and checked against the recorded sha256.
+* Failures go to a fresh `data/audit/fetch_errors.json` and the exit code is 1. A
+  failed download is never replaced by sample, synthetic or stale data.
 """
 
 from __future__ import annotations
 
-import hashlib
 import json
+import shutil
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import requests
 import requests_cache
-import structlog
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
+from scripts import source
 from scripts.config import (
     CACHE_EXPIRE_S,
     CACHE_PATH,
-    DATA_ORIGINAL,
+    FETCH_ERRORS_JSON,
+    MANIFEST_JSON,
     REQUEST_TIMEOUT_S,
-    SOURCES,
     USER_AGENT,
 )
+from scripts.provenance import sha256_file
+from scripts.runlog import ErrorLog, progress
 
-log = structlog.get_logger()
+RETRY_STATUS = {429, 500, 502, 503, 504}
+
+
+class TransientError(Exception):
+    """A response worth retrying with backoff."""
+
+
+class BadDownload(Exception):
+    """The response is not the file we asked for."""
 
 
 def get_session() -> requests_cache.CachedSession:
-    """Build a cached, identified HTTP session."""
     session = requests_cache.CachedSession(
         cache_name=str(CACHE_PATH),
         backend="sqlite",
         expire_after=CACHE_EXPIRE_S,
-        cache_control=True,
+        allowable_codes=(200,),  # never cache an error page
     )
     session.headers["User-Agent"] = USER_AGENT
     return session
 
 
-def sha256_of(path: Path) -> str:
-    h = hashlib.sha256()
-    with path.open("rb") as f:
-        for chunk in iter(lambda: f.read(65536), b""):
-            h.update(chunk)
-    return h.hexdigest()
-
-
 @retry(
     stop=stop_after_attempt(5),
-    wait=wait_exponential(multiplier=1, min=2, max=30),
-    retry=retry_if_exception_type((requests.exceptions.RequestException,)),
+    wait=wait_exponential(multiplier=1, min=2, max=60),
+    retry=retry_if_exception_type((TransientError, requests.ConnectionError, requests.Timeout)),
     reraise=True,
 )
-def http_download(url: str, dest: Path, session: requests.Session, force: bool) -> bool:
-    """Download `url` to `dest` unless `dest` exists and not `force`.
-
-    Returns True if we wrote a file; False if we short-circuited.
-    """
-    if dest.exists() and not force:
-        return False
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    r = session.get(url, timeout=REQUEST_TIMEOUT_S, stream=True)
-    r.raise_for_status()
-    with dest.open("wb") as f:
-        for chunk in r.iter_content(chunk_size=65536):
-            if chunk:
+def download(url: str, dest: Path, session: requests.Session) -> None:
+    """Stream `url` to `dest`; raise on an HTTP error, an empty body or a non-PDF
+    served for a `.pdf` (usually an HTML error page)."""
+    with session.get(url, timeout=REQUEST_TIMEOUT_S, stream=True) as r:
+        if r.status_code in RETRY_STATUS:
+            raise TransientError(f"HTTP {r.status_code}")
+        r.raise_for_status()
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        with dest.open("wb") as f:
+            for chunk in r.iter_content(chunk_size=1 << 16):
                 f.write(chunk)
-    return True
+    if dest.stat().st_size == 0:
+        raise BadDownload("empty response body")
+    if url.lower().endswith(".pdf") and dest.read_bytes()[:5] != b"%PDF-":
+        raise BadDownload("expected a PDF but got something else (an error page?)")
 
 
-def update_manifest(source_name: str, path: Path, url: str) -> None:
-    """Add or update one entry in `data/original/<source>/manifest.json`."""
-    manifest_path = DATA_ORIGINAL / source_name / "manifest.json"
-    manifest_path.parent.mkdir(parents=True, exist_ok=True)
-
-    existing: dict[str, dict] = {}
-    if manifest_path.exists():
-        try:
-            existing = json.loads(manifest_path.read_text())
-        except json.JSONDecodeError:
-            existing = {}
-
-    rel = str(path.relative_to(DATA_ORIGINAL / source_name))
-    existing[rel] = {
-        "url": url,
-        "sha256": sha256_of(path),
-        "fetched_at": datetime.now(UTC).isoformat(),
-        "size_bytes": path.stat().st_size,
-    }
-    manifest_path.write_text(json.dumps(existing, indent=2, sort_keys=True))
+def load_manifest() -> dict[str, dict[str, Any]]:
+    try:
+        return json.loads(MANIFEST_JSON.read_text())
+    except FileNotFoundError:
+        return {}
 
 
-def fetch_all(force: bool = False, source: str | None = None) -> int:
-    """Download missing artifacts for every (or one) source. Returns exit code."""
-    if not SOURCES:
-        log.info("fetch_empty_registry", hint="see scripts/config.py::SOURCES")
-        print("No sources registered. Add classes to scripts/config.py::SOURCES.")
-        return 0
+def write_manifest(manifest: dict[str, dict[str, Any]]) -> None:
+    MANIFEST_JSON.parent.mkdir(parents=True, exist_ok=True)
+    MANIFEST_JSON.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
 
+
+def fetch_all(*, fresh: bool = False, show_progress: bool = True) -> int:
+    """Download missing (or, with `fresh`, all) artifacts. Returns an exit code."""
+    errors = ErrorLog(FETCH_ERRORS_JSON, "fetch").start()
+    arts = source.artifacts()
+    if not arts:
+        print("No artifacts configured: probe the source, then list them in scripts/source.py.")
+        errors.write()
+        return 2
+
+    manifest = load_manifest()
     session = get_session()
-    downloaded = 0
-    skipped = 0
-    errored = 0
+    counts = {"downloaded": 0, "unchanged": 0, "present": 0, "changed": 0}
 
-    for slug, cls in SOURCES.items():
-        if source and slug != source:
+    for i, art in enumerate(arts, 1):
+        progress(i, len(arts), f"fetch {art.rel}", enabled=show_progress)
+        dest = art.local_path
+        if dest.exists() and not fresh:
+            counts["present"] += 1
             continue
+        recorded = manifest.get(art.rel, {}).get("sha256")
+        tmp = dest.with_name(dest.name + ".part")
         try:
-            src = cls()
-            for artifact in src.discover():
-                try:
-                    wrote = http_download(artifact.url, artifact.local_path, session, force=force)
-                    if wrote:
-                        downloaded += 1
-                        update_manifest(slug, artifact.local_path, artifact.url)
-                        log.info(
-                            "fetched",
-                            source=slug,
-                            vintage=artifact.vintage,
-                            path=str(artifact.local_path),
-                        )
-                    else:
-                        skipped += 1
-                except Exception as exc:  # noqa: BLE001
-                    errored += 1
-                    log.error(
-                        "fetch_failed",
-                        source=slug,
-                        vintage=artifact.vintage,
-                        url=artifact.url,
-                        error=str(exc),
-                    )
-        except Exception as exc:  # noqa: BLE001
-            log.error("source_discover_failed", source=slug, error=str(exc))
-            errored += 1
+            if fresh:
+                with session.cache_disabled():
+                    download(art.url, tmp, session)
+            else:
+                download(art.url, tmp, session)
+        except Exception as exc:  # noqa: BLE001 — recorded; the run reports failure
+            tmp.unlink(missing_ok=True)
+            errors.record(art, exc)
+            continue
 
-    log.info("fetch_summary", downloaded=downloaded, skipped=skipped, errored=errored)
-    print(f"Fetched {downloaded} new files; {skipped} already present; {errored} errors.")
-    return 0 if errored == 0 else 1
+        new_sha = sha256_file(tmp)
+        if recorded == new_sha:
+            shutil.move(tmp, dest)
+            counts["unchanged"] += 1
+            continue
+        if recorded:
+            counts["changed"] += 1
+            msg = f"upstream bytes changed (was {recorded[:12]}, now {new_sha[:12]})"
+            print(f"WARNING {art.rel}: {msg}")
+            if not fresh:
+                errors.record(art, msg + "; re-run with --fresh to accept the new version")
+        shutil.move(tmp, dest)
+        entry = manifest.get(art.rel, {})
+        previous = entry.get("previous_sha256", []) + ([recorded] if recorded else [])
+        manifest[art.rel] = {
+            "url": art.url,
+            "sha256": new_sha,
+            "size_bytes": dest.stat().st_size,
+            "fetched_at": datetime.now(UTC).isoformat(timespec="seconds"),
+            **({"previous_sha256": previous} if previous else {}),
+        }
+        counts["downloaded"] += 1
+
+    write_manifest(manifest)
+    errors.write()
+    print(
+        "fetch: {downloaded} downloaded ({changed} changed upstream), {present} already "
+        "present, {unchanged} re-downloaded unchanged; ".format(**counts)
+        + f"{len(errors.records)} error(s)."
+    )
+    return 1 if errors.records else 0

@@ -17,20 +17,22 @@ Checks
    Code keeps only a skill's first 5,000 tokens after compaction.
 3. **Links** — every relative Markdown link in the skills' own docs (not the project
    templates, whose links resolve inside a generated project) points at a file that exists.
-4. **Vendoring** — every copy of `shared/` content matches its source (`tools/vendor.py --check`).
-5. **Per-skill validators** — `tools/validate_data_project.py` and
+4. **Outline ownership** — every reference and template maps to exactly one Outline
+   section in `shared/outline.yaml`, so feedback filed against a section has an owner.
+5. **Vendoring** — every copy of `shared/` content matches its source (`tools/vendor.py --check`).
+6. **Per-skill validators** — `tools/validate_data_project.py` and
    `tools/validate_data_liberation.py` (`--smoke` is passed through).
-6. **Version bump** (`--base REF`) — any change under `skills/<name>/` since REF must bump
+7. **Version bump** (`--base REF`) — any change under `skills/<name>/` since REF must bump
    that skill's `metadata.version`.
 
 Usage
 -----
-    python tools/validate.py                    # checks 1–5
+    python tools/validate.py                    # checks 1–6
     python tools/validate.py --smoke            # also smoke-test the rendered data-liberation project
     python tools/validate.py --spec-tool        # also run the official `agentskills validate`
     python tools/validate.py --base origin/main # also enforce version bumps (CI on PRs)
 
-Needs PyYAML (`uv run --no-project --with pyyaml python tools/validate.py`).
+Needs Python 3.13+ and PyYAML (`uv run --no-project --with pyyaml python tools/validate.py`).
 """
 
 from __future__ import annotations
@@ -168,7 +170,48 @@ def check_links() -> list[str]:
     return errors
 
 
-# ── 4–6. Vendoring, per-skill validators, version bumps ──────────────────────
+# ── 4. Outline ownership ──────────────────────────────────────────────────────
+
+SECTIONS = {str(n) for n in range(1, 11)} | {"outline"}
+
+
+def check_outline() -> list[str]:
+    """Every reference and template belongs to exactly one Outline section.
+
+    `shared/outline.yaml` maps glob patterns (relative to each skill folder, or to
+    `shared/`) to a section number, or `outline` for cross-cutting files. This is what
+    lets a feedback issue filed against a section land on the file that owns it.
+    """
+    errors: list[str] = []
+    manifest = yaml.safe_load((REPO / "shared" / "outline.yaml").read_text(encoding="utf-8"))
+    roots = {"shared": REPO / "shared", **{d.name: d for d in skill_dirs()}}
+    for root_name, patterns in manifest.items():
+        root = roots.get(root_name)
+        if root is None:
+            errors.append(f"outline.yaml: unknown root '{root_name}'")
+            continue
+        for pattern, section in patterns.items():
+            if str(section) not in SECTIONS:
+                errors.append(f"outline.yaml: {root_name}/{pattern} → '{section}' is not a section")
+            if not list(root.glob(pattern)):
+                errors.append(f"outline.yaml: {root_name}/{pattern} matches no files")
+    for root_name, root in roots.items():
+        patterns = manifest.get(root_name, {})
+        if root_name == "shared":
+            files = [p for p in root.rglob("*") if p.is_file() and p.name not in {"vendor.toml", "outline.yaml"}]
+        else:
+            files = [p for sub in ("references", "templates") for p in (root / sub).rglob("*")
+                     if p.is_file() and "_shared" not in p.relative_to(root).parts]
+        for f in files:
+            rel = f.relative_to(root)
+            owners = [pat for pat in patterns if rel.full_match(pat)]
+            if len(owners) != 1:
+                state = "no Outline section" if not owners else f"several patterns {owners}"
+                errors.append(f"{root_name}/{rel.as_posix()}: {state} in shared/outline.yaml")
+    return errors
+
+
+# ── 5–7. Vendoring, per-skill validators, version bumps ──────────────────────
 
 def run_tool(args: list[str]) -> list[str]:
     r = subprocess.run([sys.executable, *args], cwd=REPO, capture_output=True, text=True)
@@ -211,6 +254,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.spec_tool:
         sections.append(("agentskills validate", check_spec_tool()))
     sections.append(("links", check_links()))
+    sections.append(("outline ownership", check_outline()))
     sections.append(("vendoring", run_tool(["tools/vendor.py", "--check"])))
     sections.append(("data-project templates", run_tool(["tools/validate_data_project.py"])))
     dl_args = ["tools/validate_data_liberation.py"] + (["--smoke"] if args.smoke else [])

@@ -27,7 +27,7 @@ CI runs `tools/validate.py --smoke --spec-tool` on every push and pull request, 
 
 ## Where things are
 
-- `shared/` — source of truth for content both skills vendor.
+- `shared/` — source of truth for content both skills vendor; `shared/outline.yaml` maps every reference and template to its Outline section.
 - `tools/` — `validate.py` (the CI entry point), `vendor.py`, and each skill's template validator.
 - `evals/<skill>/` — evaluation cases, kept outside the skill folders so installs stay clean.
 - `history/` — the predecessor repositories' changelogs, plans and retrospectives, plus the monorepo plan.

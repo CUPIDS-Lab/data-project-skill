@@ -1,6 +1,22 @@
-# Extract: tabular inputs (XLSX, CSV, Parquet, databases)
+# Extract: tabular inputs (XLSX, CSV, Parquet, statistical files, databases)
 
-A large fraction of public datasets are already tabular when published — XLSX from government portals, CSV from open-data sites, Parquet from data brokers, dumps from SQL databases. They are *technically* structured but often as hostile to reuse as PDFs: panel-format spreadsheets with merged headers, CSVs with inconsistent delimiters across years, schema drift, undocumented sentinel values, encoding bombs. This part covers reading these inputs reliably and surfacing structural problems early.
+A large fraction of public datasets are already tabular when published: XLSX from government portals, CSV from open-data sites, Parquet from data brokers, SPSS or Stata files from survey programs, dumps from SQL databases. They are technically structured but often as hostile to reuse as PDFs: panel-format spreadsheets with merged headers, CSVs with inconsistent delimiters across years, schema drift, undocumented sentinel values, wrong encodings, and IDs that change between releases. This file covers Outline section 3 (Extract) for these inputs: reading them reliably, with explicit types, and surfacing structural problems early.
+
+## Contents
+
+- [Reading XLSX](#reading-xlsx)
+- [Reading CSV](#reading-csv)
+- [Reading Parquet](#reading-parquet)
+- [Statistical-package files](#statistical-package-files)
+- [Reading databases](#reading-databases)
+- [Stable keys across releases](#stable-keys-across-releases)
+- [Dtype hygiene at the boundary](#dtype-hygiene-at-the-boundary)
+- [Choosing the output format for `data/processed/`](#choosing-the-output-format-for-dataprocessed)
+- [The provenance row](#the-provenance-row)
+- [Common failure modes](#common-failure-modes)
+- [What to write in the AGENTS.md](#what-to-write-in-the-agentsmd)
+
+**Read everything as text first, then coerce.** Never let a reader guess types: inference strips leading zeros from FIPS codes and ZIP codes, turns IDs into floats when one value is missing, and reads `"NA"` (Namibia, or a precinct code) as missing. Read with `dtype=str` (and `keep_default_na=False` where literal `NA` strings are possible), then convert each column deliberately in the parser (see [Dtype hygiene at the boundary](#dtype-hygiene-at-the-boundary)).
 
 ## Reading XLSX
 
@@ -9,7 +25,7 @@ A large fraction of public datasets are already tabular when published — XLSX 
 ```python
 import pandas as pd
 
-df = pd.read_excel("data/original/agency/2024.xlsx", sheet_name="Data", header=0)
+df = pd.read_excel("data/original/agency/2024.xlsx", sheet_name="Data", header=0, dtype=str)
 ```
 
 The 20% that doesn't is where civic data liberation lives. The diagnostic order when a spreadsheet doesn't yield cleanly:
@@ -71,6 +87,8 @@ df = pd.read_excel(path, header=None, skiprows=2)
 df.columns = header
 ```
 
+**Wide by year (one column per year or period):** reshape to long with `df.melt(id_vars=["district_id"], var_name="year", value_name="value")`, then parse `year` from the column labels rather than trusting their order.
+
 **Panel format (same schema repeated in blocks):**
 
 The reliable approach is to read the sheet with `header=None` and find the block boundaries programmatically — usually by detecting the rows where a known marker (region name, year header, "Total" row) appears.
@@ -117,7 +135,7 @@ When a publisher distributes an XLSX with cells whose values come from formulas,
 - *The source was edited but not recalculated before save.* Excel and LibreOffice both default to recalc-on-save, but agency exporters built on `openpyxl` (or hand-edited files) often skip this; the cached values silently lag the formula intent.
 - *The formula references external workbooks or named ranges that don't resolve in your parser context.* The cached value is the last value seen on the publisher's machine; your environment can't reproduce it.
 
-The general principle: **for any format that separates source-of-truth-expression from cached-value, recompute before parsing.** For XLSX specifically, headless LibreOffice in a `--calc --headless --convert-to xlsx` pass forces a full recalc and writes a normalized file the parser can trust. Document the recompute step in `provenance.csv`'s `extraction_notes` so downstream consumers know which values are publisher-as-saved vs project-recomputed; the two can diverge meaningfully when formulas pull from `INDIRECT()`, `OFFSET()`, or external links.
+The general principle: **for any format that separates source-of-truth-expression from cached-value, recompute before parsing.** For XLSX specifically, a headless LibreOffice pass (`soffice --headless --calc --convert-to xlsx --outdir <derived dir> <file>`) forces a full recalc and writes a normalized file the parser can trust. Document the recompute step in `provenance.csv`'s `extraction_notes` so downstream consumers know which values are publisher-as-saved vs project-recomputed; the two can diverge meaningfully when formulas pull from `INDIRECT()`, `OFFSET()`, or external links.
 
 The same principle applies past XLSX — materialized database views with stale incremental updates, cached query results in BI tools, derived columns in CMS-backed datasets. Any time the file format distinguishes formula from result, the recompute step is part of the parser, not the consumer.
 
@@ -152,16 +170,22 @@ Domain sentinels (`-9`, `9999`, `99999`) for missing values are common in govern
 Government CSVs are commonly Latin-1, Windows-1252, or UTF-8 with a BOM. If `pd.read_csv` raises a `UnicodeDecodeError`:
 
 ```python
-# Try in order
-for enc in ("utf-8", "utf-8-sig", "latin-1", "cp1252"):
+from charset_normalizer import from_path
+
+guess = from_path(path).best()            # a guess: confirm on rows with accented names
+print(guess.encoding if guess else None)
+
+for enc in ("utf-8", "utf-8-sig", "cp1252"):   # strict encodings first
     try:
-        df = pd.read_csv(path, encoding=enc)
+        df = pd.read_csv(path, encoding=enc, dtype=str)
         break
     except UnicodeDecodeError:
         continue
+else:
+    df = pd.read_csv(path, encoding="latin-1", dtype=str)   # never fails, so only as a last resort
 ```
 
-Capture the encoding that worked into provenance — it's a property of the source file that downstream users may need to know.
+`latin-1` decodes any byte sequence, so a loop that tries it early always "succeeds" and can silently garble text; keep it last and check a few rows with accented names by eye. Record the encoding in the provenance notes; it is a property of the source file.
 
 ### Malformed rows
 
@@ -176,7 +200,7 @@ with open(path, newline="") as f:
     rows = [row for row in reader if len(row) == EXPECTED_NCOLS]
 ```
 
-If you have to drop rows, **count them and emit the count to the audit log**. Silent loss is the worst kind.
+If you have to drop rows, **count them and write them to a rejects file** under `data/audit/`, with the raw line and line number, and report the count. Some agency exports are not RFC 4180 CSV at all (unescaped quotes, embedded newlines, a delimiter that changes mid-file); write a small tolerant reader for that source and keep a rejects ledger whose expected size is zero, so any rejected line fails the run until it is explained. Silent loss is the worst kind.
 
 ## Reading Parquet
 
@@ -207,15 +231,31 @@ for batch in pf.iter_batches(batch_size=100_000):
 
 Parquet preserves dtypes — including nullable integers, datetimes, and categoricals — natively. When you write processed data to Parquet, dtype information survives round trips, which is one reason Parquet is the better long-term storage format than CSV for the `data/processed/` directory. Many liberation projects ship both: CSV for accessibility, Parquet for analyst use.
 
+## Statistical-package files
+
+Survey and administrative programs often publish SPSS (`.sav`), Stata (`.dta`) or SAS (`.sas7bdat`, `.xpt`) files. `pd.read_spss`, `pd.read_stata` and `pd.read_sas` read the values; [`pyreadstat`](https://github.com/Roche/pyreadstat) also returns the metadata, which is the codebook:
+
+```python
+import pyreadstat
+
+df, meta = pyreadstat.read_dta("data/original/survey/2024.dta")
+labels = meta.column_names_to_labels          # variable labels
+value_labels = meta.variable_value_labels     # {column: {1: "Yes", 2: "No", -9: "Refused"}}
+```
+
+Keep the coded values in the data and the labels in `data/lookups/` (or the data dictionary), and treat documented missing codes (`-9`, `.a`, `99`) as missing explicitly.
+
 ## Reading databases
 
 When the source is a database dump (PostgreSQL, MySQL, SQL Server, SQLite), or a connection string for a live database:
 
 ```python
-from sqlalchemy import create_engine
-import pandas as pd
+import os
 
-engine = create_engine("postgresql+psycopg://user:pw@host/db")
+import pandas as pd
+from sqlalchemy import create_engine
+
+engine = create_engine(os.environ["SOURCE_DB_URL"])   # credentials from the environment, never committed
 df = pd.read_sql("SELECT * FROM elections WHERE year >= 2010", engine)
 ```
 
@@ -227,7 +267,7 @@ import pandas as pd
 
 with sqlite3.connect("data/original/foia/release.sqlite") as conn:
     tables = pd.read_sql("SELECT name FROM sqlite_master WHERE type='table'", conn)
-    df = pd.read_sql("SELECT * FROM voters", conn)
+    df = pd.read_sql("SELECT * FROM filings", conn)
 ```
 
 For ad-hoc exploration of large database dumps, [`duckdb`](https://duckdb.org/) is excellent: it can query CSV, Parquet, and SQLite files directly without a load step, and uses standard SQL.
@@ -250,6 +290,14 @@ df = duckdb.sql("""
 
 DuckDB is particularly useful in `scripts/audit.py` for reconciliation queries that would be slow in pandas.
 
+## Stable keys across releases
+
+Agencies renumber records. A republished map layer can reassign every object ID, a portal re-export can reorder rows, and a database refresh can recycle surrogate keys. Real projects have seen a seeded random sample change between two pulls of the same data because the sample was drawn by row order and the publisher had renumbered the rows. Guard against it:
+
+- **Key on a natural key** the publisher's domain defines (parcel number, precinct code plus election date, case number), not on a row number, an `OBJECTID` or an auto-increment ID. If no natural key exists, build one from stable fields and document it in the data dictionary.
+- **Sort by the stable key before sampling, deduplicating or diffing**, and seed the sampler: `df.sort_values(["precinct_id", "date"]).sample(n=60, random_state=20261025)`.
+- **Compare releases on the natural key.** On each new pull, join to the previous one on the natural key and report rows added, removed and changed, plus whether the publisher's own ID still maps to the same natural key. A remapped ID is a finding for the data dictionary's caveats, not something to silently absorb.
+
 ## Choosing the output format for `data/processed/`
 
 A liberation project usually ships processed data in multiple formats. Defaults that work:
@@ -270,7 +318,11 @@ df.to_csv("data/processed/elections_tidy.csv", index=False)
 df.to_parquet("data/processed/elections_tidy.parquet", index=False)
 ```
 
-Both files have the same content but different downstream affordances. Document this in the README; many readers don't know what Parquet is and default to CSV.
+Both files have the same content but different downstream affordances. Document this in the README; many readers don't know what Parquet is and default to CSV. Excel opens a plain UTF-8 CSV as a legacy encoding and garbles accented names; if many readers will open it in Excel, either write it with `encoding="utf-8-sig"` (a byte-order mark Excel recognizes) or tell readers to import it as UTF-8, and say which in the README.
+
+## The provenance row
+
+One row in `provenance.csv` per source file and parser run (not per data row): `source`, `vintage`, `source_url`, `retrieved_at`, `sha256`, `extraction_method`, `extraction_quality`, `extraction_notes`, `parser_module`. A file read natively (CSV, XLSX, Parquet, a statistical file, a database dump) uses `extraction_method = text_layer`, since the values are read as encoded with no recognition step; a file fetched from an API uses `api` (see [`extract-api.md`](extract-api.md)). `extraction_quality` is `clean`, `caveats` (for example, a recomputed workbook, or rejects that were explained) or `degraded`. The notes carry the encoding, sentinel values, sheet names, any recompute step and the rejects count.
 
 ## Dtype hygiene at the boundary
 
@@ -302,6 +354,8 @@ This pays off downstream: pandera schemas validate cleanly, parquet write preser
 | Numeric column has trailing whitespace | Source has " 123" with leading space | `pd.to_numeric(s.str.strip(), errors="coerce")` |
 | Same data, different schemas across years | Mid-period schema change | Vintage-specific parser, harmonize via concept catalog |
 | Sentinel value `999` treated as a real number | Domain-specific NA token | Pass `na_values=[999, "999"]` to `read_csv` |
+| A seeded sample differs between two pulls | Publisher renumbered rows or IDs | Sort by a natural key before sampling; never key on `OBJECTID` or row order |
+| Accented names garbled after `latin-1` "worked" | `latin-1` accepts any bytes | Try strict encodings first; check rows by eye |
 
 ---
 
@@ -312,3 +366,5 @@ This pays off downstream: pandera schemas validate cleanly, parquet write preser
 - Sentinel values used for missing data.
 - Panel format / multi-row headers / merged cells, with the per-vintage strategy.
 - Dtype expectations for ID-like columns (FIPS, ZIP, precinct ID, agency code).
+- The natural key for each table, and whether the publisher's own IDs are stable across releases.
+- Any recompute step, tolerant reader or rejects ledger, and its expected size.
