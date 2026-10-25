@@ -1,16 +1,22 @@
 ---
 name: data-project
 description: >-
-  Scaffold a public-interest data collaboration — repo skeleton, documentation, reproducible pipeline,
-  governance/roles, responsible-data & data-quality artifacts, and an Open-Knowledge-Format catalog.
-  Trigger on "new data project," "set up a repo," "data collaboration,"
-  "data dictionary," "governance," "responsible data," "open knowledge," "OKF," "agent discovery," "ARD,"
-  "ai-catalog," "make it discoverable by agents," "deposit," "Dataverse," "get a DOI," "archive the data,"
-  "share the data," "zero-copy," "OpenSharing," "Delta Sharing," "audit my repo," even when
-  the skill is not named. Do not trigger for pure ML model training, generic coding help, or raw
-  document→data extraction (use the data-liberation skill for that).
-argument-hint: "[project name / one-line description, or 'audit <path>']"
+  Set up and run a public-interest data collaboration: scope it, decide sensitivity and
+  visibility, track the work, govern who may touch what, and deposit, share or make the data
+  discoverable. Covers project scoping, repo setup for a team, governance and roles,
+  responsible-data and data-quality checks, FAIR, Open Knowledge Format catalogs, agent
+  discovery (ARD, ai-catalog), Harvard Dataverse deposits with a DOI, OpenSharing zero-copy
+  shares, auditing an existing data repo, and filing sprint feedback on these skills. Trigger
+  on "new data project," "data collaboration," "set up a repo for our team," "governance,"
+  "responsible data," "OKF," "ARD," "deposit," "Dataverse," "get a DOI," "share the data,"
+  "audit my repo," "sprint retro," even when the skill is not named. Do not use for extracting
+  data from documents, a one-off CSV, or a data dictionary for a single extract (use
+  data-liberation), for ML model training, or for generic coding help.
+license: MIT
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent, AskUserQuestion
+metadata:
+  version: "0.10.0"
+  repository: https://github.com/CUPIDS-Lab/data-skills
 ---
 
 # Data Project

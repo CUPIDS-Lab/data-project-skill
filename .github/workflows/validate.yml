@@ -1,7 +1,8 @@
 name: validate
 
-# Guards both skills on every change. Each job runs one skill's validator from tools/;
-# a later phase merges them into a single tools/validate.py.
+# One gate for the whole repository: layout, Agent Skills spec, links, vendored copies,
+# both skills' template validators, and (on pull requests) per-skill version bumps.
+# See tools/validate.py.
 
 on:
   push:
@@ -10,23 +11,18 @@ on:
   workflow_dispatch:
 
 jobs:
-  data-project:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
         with:
-          python-version: "3.13"
-      - name: Validate skills/data-project
-        run: python tools/validate_data_project.py
-
-  data-liberation:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
+          fetch-depth: 0 # the version-bump check diffs against the base branch
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: false
           python-version: "3.13"
-      - name: Validate skills/data-liberation and smoke-test the rendered project
-        run: uv run --no-project python tools/validate_data_liberation.py --smoke
+      - name: Validate (with the official spec validator and the data-liberation smoke test)
+        run: uv run --no-project --with pyyaml python tools/validate.py --smoke --spec-tool
+      - name: Require a version bump for every changed skill
+        if: github.event_name == 'pull_request'
+        run: uv run --no-project --with pyyaml python tools/validate.py --base origin/${{ github.base_ref }}

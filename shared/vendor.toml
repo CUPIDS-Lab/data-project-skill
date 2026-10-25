@@ -1,0 +1,2 @@
+# Content vendored into both skills by tools/vendor.py.
+# Each [[file]] copies shared/<src> to every path in dest (repository-relative).

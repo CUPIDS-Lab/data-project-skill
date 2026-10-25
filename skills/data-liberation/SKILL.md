@@ -1,6 +1,22 @@
 ---
 name: data-liberation
-description: Build Python data pipelines that liberate structured data from unstructured and semi-structured sources — government PDFs, FOIA releases, scanned reports, scraped HTML, panel-format spreadsheets — into tidy, documented, reproducible civic datasets. Works at six escalating levels, from a one-shot "just give me the CSV" extraction (L0) up to a fully published, governed, multi-source pipeline (L5) — start low and climb only as far as the task needs. Use whenever the user wants to extract tables or data from PDFs, get a CSV out of a document, scrape a government or institutional site for tabular data, scaffold a reproducible data project, harmonize records across multiple sources, write a data dictionary or crosswalk, audit data against originals, publish a dataset, or wrangle messy historical data. Trigger on phrases like "data liberation," "PDF extraction," "get the data out," "tidy data," "data dictionary," "crosswalk," "provenance," "reconcile," "scrape this site," even when the user does not name the skill explicitly; if the request involves turning a document into a dataset someone else could reuse, this skill applies. Do not trigger for pure ML model training or generic Python tutoring unrelated to data extraction.
+description: >-
+  Turn documents and messy sources into tidy, provenance-tracked datasets. Extracts tables from
+  government PDFs, scanned reports, FOIA releases, spreadsheets, web pages, APIs and dashboards;
+  models them as tidy long data with a data dictionary; and, when asked, builds a re-runnable,
+  audited Python pipeline and publishes it. Use when the user wants a CSV out of a document, to
+  scrape or pull tabular data from a government or institutional source, to add a source or
+  vintage to an extraction pipeline, to harmonize records across sources, to write a data
+  dictionary or crosswalk for an extracted dataset, or to reconcile or audit data against its
+  originals. Trigger on "data liberation," "PDF extraction," "get the data out," "tidy data,"
+  "data dictionary," "crosswalk," "provenance," "reconcile," "scrape this site," even when the
+  skill is not named. Do not use for setting up a team data collaboration, governance, a
+  Dataverse deposit or data sharing (use data-project), for ML model training, or for generic
+  Python help.
+license: MIT
+metadata:
+  version: "0.4.0"
+  repository: https://github.com/CUPIDS-Lab/data-skills
 ---
 
 # Data Liberation
