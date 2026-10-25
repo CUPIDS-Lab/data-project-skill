@@ -1,6 +1,6 @@
 # Plan — merge `data-project` and `data-liberation` into one monorepo (`cupids-lab/data-skills`)
 
-**Status:** proposed, awaiting maintainer approval. Nothing below has been executed.
+**Status:** approved 2026-10-25 with the §10 decisions resolved (see §10); execution in progress on the same branch, one commit per phase of §9.
 **Baselines:** `data-project` 0.10.0 (this repo, `636c930`); `data-liberation` 0.4.0 (`CUPIDS-Lab/data-liberation-skill`, `acb59c9`); `CUPIDS-Lab/data-liberation-template` (already folded into `data-liberation` by its PR #27 but never archived).
 **Goals, in the maintainer's words:** prevent drift between the skills; give project sprints a single input for feedback; refresh both skills to current best practices after several months; fix an onboarding experience with "no central outline and guide about what to do."
 **Evidence base:** an audit of both skills; nine downstream project repos built with them (deliberately not named here); the Agent Skills spec and Anthropic authoring guidance as of October 2026, including a prototype monorepo tested against `skills-ref`, `npx skills` and `claude plugin details`; SoMarkAI's skills collection and sibling repos; and a 2026 survey of document-parsing tools (OXR, Awesome-Document-Understanding, benchmarks).
@@ -20,7 +20,7 @@
 | D7 | Refresh depth | **Aggressive.** Consolidate references (substance of the values spine, deposit/sharing kits and source digests is protected), cut agents that only existed to pick artifacts by level, fix the seam between the skills, repair `data-liberation` debt, update tooling. |
 | D8 | Extraction | **Survey plus rewritten guidance; no new template code.** Text layer first for born-digital PDFs; VLM parsers (OXR and peers) as an audited option with a parser manifest and page-plus-bounding-box provenance. |
 | D9 | Distribution | Supports all three install paths in use: claude.ai org skills (per-skill zips attached to each release), `npx skills add cupids-lab/data-skills`, and manual copy. A Claude Code plugin marketplace is an optional extra, never a dependency. |
-| D10 | Versioning | Per-skill semver in `metadata.version`, tags `data-project--vX.Y.Z` / `data-liberation--vX.Y.Z`, one root CHANGELOG with per-skill sections. Both skills start the monorepo at **1.0.0**. |
+| D10 | Versioning | Per-skill semver in `metadata.version`, tags `data-project--vX.Y.Z` / `data-liberation--vX.Y.Z`, one root CHANGELOG with per-skill sections. Each skill **continues its own line**: `data-project` 0.11.0, `data-liberation` 0.5.0. |
 
 ---
 
@@ -226,19 +226,21 @@ A companion `bug.yml` covers defects in templates or scripts. `config.yml` disab
 | 5 | **Seam and debt.** One project shape, multi-pipeline CI on `pyproject.toml`, deposit-kit paths, token unification, `data-liberation` debt and absorbed project fixes, tooling updates, reference consolidation | Rendering a multi-pipeline `data-project` with two `data-liberation` pipelines runs both pipelines' tests in CI |
 | 6 | **Extraction and new coverage.** Rewritten extract references, `extract-api.md`, ephemeral sources | Every tool claim carries a dated source; stale items from the landscape survey resolved |
 | 7 | **Feedback intake.** Issue forms, labels, CONTRIBUTING triage rules, seeded backlog issues, the sprint-end line in generated AGENTS.md | A test issue filed through the form gets `skill:*`/`section:*` labels; the seeded backlog is visible |
-| 8 | **Evals and release.** Eval suites, `evals.yml`, `release.yml`, README install docs, CITATION; tag both skills `--v1.0.0` | Release attaches two zips that upload cleanly to claude.ai |
+| 8 | **Evals and release.** Eval suites, `evals.yml`, `release.yml`, README install docs, CITATION; tag `data-project--v0.11.0` and `data-liberation--v0.5.0` | Release attaches two zips that upload cleanly to claude.ai |
 
-**Maintainer actions outside PRs:** rename this repo to `data-skills`; archive `data-liberation-skill` and `data-liberation-template` with tombstone READMEs pointing to `data-skills`; close `data-liberation-skill` PR #26 with credit (its proposal is adopted in PR 2); re-upload the two org skills from the 1.0.0 zips.
+**Maintainer actions outside PRs:** rename this repo to `data-skills`; archive `data-liberation-skill` and `data-liberation-template` with tombstone READMEs pointing to `data-skills`; close `data-liberation-skill` PR #26 with credit (its proposal is adopted in PR 2); re-upload the two org skills from the release zips.
 
 ---
 
-## 10. Open decisions for the maintainer
+## 10. Maintainer decisions (resolved 2026-10-25)
 
-1. **Code directory name in projects:** `scripts/` (current `data-liberation`, all its projects) or `src/` (current `data-project`). The plan recommends keeping `scripts/` to avoid migrating existing pipelines, and fixing `data-project`'s templates to match.
-2. **Snakemake:** drop it, or keep it as an optional wrapper over `pipeline.py` for projects that want it. The plan recommends optional.
-3. **R variant:** `data-project` ships R templates. Keep them as a maintained variant or move them to a "community-maintained" note.
-4. **Version line:** start both skills at 1.0.0 (recommended, marking the breaking removal of the ladders) or continue 0.11 / 0.5.
-5. **Private marketplace repo** for claude.ai org auto-sync: create one, or keep manual zip uploads.
+1. **Code directory in projects:** `scripts/`. `data-project`'s templates change to match; no existing pipeline moves.
+2. **Snakemake:** kept as an optional wrapper over `pipeline.py`, never required, never what CI discovers.
+3. **R variant:** kept as a maintained variant of `data-project`'s templates.
+4. **Version line:** each skill continues its own line (`data-project` 0.11.0, `data-liberation` 0.5.0); no jump to 1.0.0.
+5. **Private marketplace repo:** not created. claude.ai org skills are updated by uploading the per-skill zips attached to each release.
+
+**Execution note:** this session can push to a single branch per repo, so the PR sequence in §9 lands as one commit per phase on the branch behind the plan's PR, each phase passing CI on its own.
 
 ---
 
