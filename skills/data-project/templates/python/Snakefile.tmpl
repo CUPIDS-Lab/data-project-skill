@@ -1,0 +1,28 @@
+# Optional Snakemake wrapper for {{PROJECT_NAME}}.
+# The pipeline itself is `python -m scripts.pipeline run` (data-liberation's project shape); this file
+# only lets people who prefer Snakemake drive it. CI never depends on it. Preview with `snakemake -n`,
+# run with `snakemake --cores 1`. Paths and the deliverable name live in config.yaml.
+
+configfile: "config.yaml"
+
+
+rule all:
+    input:
+        config["deliverable"],
+
+
+# discover -> fetch -> clean -> audit, in one step. Originals in data/original/ are immutable;
+# the pipeline reads them and writes data/processed/ and data/audit/.
+rule run:
+    output:
+        config["deliverable"],
+    shell:
+        "uv run python -m scripts.pipeline run"
+
+
+# Reconcile against the source's printed totals (opt-in in data-liberation's pipeline).
+rule reconcile:
+    input:
+        config["deliverable"],
+    shell:
+        "uv run python -m scripts.pipeline reconcile"

@@ -1,0 +1,61 @@
+---
+title: "Data dictionary"
+---
+
+# Data dictionary — {{PROJECT_NAME}}
+
+Hand-maintained: what each column means, where it comes from, and what is surprising about it. The generated column profile (dtype, distinct values, null rate, samples) is [`variables.md`](variables.md); if the two disagree about a type, one of them is wrong, usually the parser, so resolve it before merging.
+
+Each column has a level-2 heading with its name in backticks, and these lines:
+
+- **Type:** one of `string`, `Int64`, `Float64`, `boolean`, `date`, `datetime`.
+- **Description:** one or two plain sentences.
+- **Source(s):** which source and which field or page region it comes from.
+- **Vocabulary / units:** the allowed values in backticks for a categorical column (kept identical to `data/lookups/vocab_<column>.csv` when there is one, which a test checks), the units for a number, or the code system for a code.
+- **Missing values:** what an empty cell means here: not collected, does not apply, or unknown whether it exists; and which publisher sentinels (`-9`, `9999`) were converted to empty.
+- **Known caveats:** vintage breakpoints, definition changes, ID format changes, who is over- or under-represented and why. For example: *"Permit numbers changed from `P######` to `P22-######` in 2022, so they can't be joined across that boundary."*
+- **Crosswalks:** lookup tables in `data/lookups/` this column joins to.
+
+---
+
+## `source`
+
+- **Type:** `string`
+- **Description:** Short name of the source the row came from. Joins to `data/processed/provenance.csv`.
+- **Source(s):** Assigned by the pipeline (`SOURCE_SLUG` in `scripts/config.py`).
+- **Vocabulary / units:** `example_source`
+- **Missing values:** Never empty.
+- **Known caveats:** None.
+- **Crosswalks:** None.
+
+## `vintage`
+
+- **Type:** `string`
+- **Description:** The period the original file covers, such as `2024`, `2024Q1` or `2024-11`. A string, because vintages are not always years.
+- **Source(s):** Read from the original file's own name or content, never from where or when it was published.
+- **Vocabulary / units:** Format: _state the format this project uses._
+- **Missing values:** Never empty.
+- **Known caveats:** _Note any period the source skipped or published late._
+- **Crosswalks:** None.
+
+## `observation_id`
+
+- **Type:** `string`
+- **Description:** Placeholder for the natural key: replace this entry with the column(s) that identify a row within a source and vintage.
+- **Source(s):** _Which field of the original._
+- **Vocabulary / units:** Not applicable.
+- **Missing values:** Never empty: a row with an empty key is rejected.
+- **Known caveats:** _Document format changes across vintages here, so nobody joins across them by accident._
+- **Crosswalks:** None.
+<!-- IF:MULTI_SOURCE -->
+
+## `concept`
+
+- **Type:** `string`
+- **Description:** The harmonized concept a row measures when more than one source measures it under different names.
+- **Source(s):** Assigned by the pipeline from `data/lookups/concepts.yaml`.
+- **Vocabulary / units:** The concept names in `data/lookups/concepts.yaml`.
+- **Missing values:** Empty when the row takes part in no cross-source comparison.
+- **Known caveats:** Read each concept's caveats in `concepts.yaml` before comparing sources: a shared concept is not a claim that the sources agree.
+- **Crosswalks:** `data/lookups/concepts.yaml`.
+<!-- /IF -->

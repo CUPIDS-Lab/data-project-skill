@@ -1,0 +1,204 @@
+#!/usr/bin/env bash
+# seed-github.sh — open or update one GitHub issue per *now* Outline section (plus blocking
+# items) for {{PROJECT_NAME}}, idempotently.
+#
+# ROADMAP.md rows say where each section stands; these issues are where the work happens. The
+# script matches existing issues before creating anything (by .github/engagement-sync.json, then
+# by a hidden marker in the issue body), so running it again updates issues instead of
+# duplicating them. A missing permission prints what to grant and the script carries on with
+# what it can do. See CONTRIBUTING.md, "How we track work".
+#
+# Usage:
+#   ./.github/seed-github.sh            # reconcile labels and section issues
+#   DRY_RUN=1 ./.github/seed-github.sh  # print the gh commands instead of running them
+#   PRINT=1 ./.github/seed-github.sh    # no gh needed: print each issue as Markdown to paste by hand
+set -euo pipefail
+
+# ----- Configuration (filled when the project was scaffolded) ---------------
+REPO_SLUG="{{REPO_SLUG}}"             # owner/repo
+OWNER_DEFAULT="{{OWNER_DEFAULT}}"     # default assignee (GitHub handle)
+PROJECT_TITLE="{{PROJECT_TITLE}}"     # GitHub Project board, used only when WANT_PROJECT=1
+WANT_PROJECT=0
+<!-- IF:PROJECT -->
+WANT_PROJECT=1
+<!-- /IF -->
+HERE="$(cd "$(dirname "$0")" && pwd)"
+LABELS_FILE="$HERE/labels.yml"
+SYNC_FILE="$HERE/engagement-sync.json"   # task-id -> issue number + content hash
+
+DRY_RUN="${DRY_RUN:-0}"
+PRINT="${PRINT:-0}"
+
+run() {
+  if [[ "$DRY_RUN" == "1" ]]; then
+    printf 'DRY_RUN:'; printf ' %q' "$@"; printf '\n'
+  else
+    "$@"
+  fi
+}
+note() { printf '  -- %s\n' "$*" >&2; }
+fail() { printf 'ERROR: %s\n' "$*" >&2; }
+
+CAN_ISSUES=1
+CAN_PROJECT="$WANT_PROJECT"
+
+# ----- Preflight: never abort after this point, only downgrade --------------
+preflight() {
+  if [[ "$PRINT" == "1" ]]; then
+    CAN_ISSUES=0; CAN_PROJECT=0
+    return 0
+  fi
+  printf '== Preflight for %s ==\n' "$REPO_SLUG" >&2
+  if ! command -v gh >/dev/null 2>&1; then
+    fail "gh CLI not found. Install it, or run with PRINT=1 to get paste-able issue text."
+    exit 1
+  fi
+  if ! gh auth status >/dev/null 2>&1; then
+    fail "Not authenticated. Run: gh auth login  (add the board scope with: gh auth refresh -s project)"
+    exit 1
+  fi
+  local feats
+  if feats="$(gh repo view "$REPO_SLUG" --json hasIssuesEnabled 2>/dev/null)"; then
+    if ! grep -q '"hasIssuesEnabled":true' <<<"$feats"; then
+      note "Issues are disabled -> enable them in Settings -> General -> Features -> Issues."
+      note "Nothing to create; run with PRINT=1 for paste-able text."
+      CAN_ISSUES=0
+    fi
+  else
+    note "Could not read $REPO_SLUG (token may lack repo access) -> grant the 'repo' scope."
+    CAN_ISSUES=0
+  fi
+  if [[ "$CAN_PROJECT" == "1" ]]; then
+    if ! gh auth status 2>&1 | grep -qiE "Token scopes:.*\bproject\b"; then
+      note "Missing 'project' scope -> gh auth refresh -s project. Skipping the board."
+      CAN_PROJECT=0
+    elif ! gh project list --owner "${REPO_SLUG%%/*}" >/dev/null 2>&1; then
+      note "Cannot list Projects for ${REPO_SLUG%%/*} -> org 'Projects: Read and write' needed. Skipping the board."
+      CAN_PROJECT=0
+    fi
+  fi
+  printf '== Preflight done: issues=%s board=%s ==\n' "$CAN_ISSUES" "$CAN_PROJECT" >&2
+}
+
+# ----- Labels from labels.yml (create or update; never delete) ---------------
+seed_labels() {
+  [[ "$CAN_ISSUES" == "1" ]] || return 0
+  [[ -f "$LABELS_FILE" ]] || { note "No labels.yml at $LABELS_FILE; skipping labels."; return 0; }
+  printf '== Labels ==\n' >&2
+  local name="" color="" desc=""
+  flush_label() {
+    [[ -n "$name" ]] || return 0
+    run gh label create "$name" --color "$color" --description "$desc" --repo "$REPO_SLUG" --force \
+      || note "Label '$name' could not be set (permission?); continuing."
+    name=""; color=""; desc=""
+  }
+  while IFS= read -r line; do
+    case "$line" in
+      "- name:"*)       flush_label; name="${line#*: }" ;;
+      *"color:"*)       color="${line#*: }" ;;
+      *"description:"*) desc="${line#*: }" ;;
+    esac
+  done < "$LABELS_FILE"
+  flush_label
+}
+
+# ----- Board (optional): add the issue and set Status/Priority/Size ---------
+PROJECT_NUMBER=""
+project_upsert_item() {
+  local num="$1" priority="$2" size="$3"
+  [[ "$CAN_PROJECT" == "1" && -n "$num" && "$num" != "null" ]] || return 0
+  local owner="${REPO_SLUG%%/*}"
+  if [[ -z "$PROJECT_NUMBER" ]]; then
+    PROJECT_NUMBER="$(gh project list --owner "$owner" --format json \
+      --jq ".projects[] | select(.title==\"$PROJECT_TITLE\") | .number" 2>/dev/null || true)"
+    if [[ -z "$PROJECT_NUMBER" ]]; then
+      run gh project create --owner "$owner" --title "$PROJECT_TITLE" \
+        || { note "Could not create the board; skipping board steps."; CAN_PROJECT=0; return 0; }
+      if [[ "$DRY_RUN" == "1" ]]; then
+        PROJECT_NUMBER="DRY"
+      else
+        PROJECT_NUMBER="$(gh project list --owner "$owner" --format json \
+          --jq ".projects[] | select(.title==\"$PROJECT_TITLE\") | .number" 2>/dev/null || true)"
+      fi
+    fi
+  fi
+  local url="https://github.com/$REPO_SLUG/issues/$num"
+  run gh project item-add "$PROJECT_NUMBER" --owner "$owner" --url "$url" \
+    || note "Could not add #$num to the board; continuing."
+  # Field values are set in the Project UI or with `gh project item-edit` (it needs field and
+  # option ids); record them here so the next person knows what to set.
+  note "Board item #$num: set Status=Todo, Priority=$priority, Size=$size."
+}
+
+# ----- One issue per task (create or update, matched by marker) -------------
+# seed_issue <task-id> <title> <labels,comma,separated> <priority> <size> <body>
+seed_issue() {
+  local task_id="$1" title="$2" labels="$3" priority="$4" size="$5" body="$6"
+  local marker="<!-- data-project:task=$task_id -->"
+  local full_body
+  full_body="$(printf '%s\n\n**Priority:** %s · **Size:** %s · Status lives in ROADMAP.md.\n\n%s' "$body" "$priority" "$size" "$marker")"
+
+  if [[ "$PRINT" == "1" ]]; then
+    printf -- '---\n\n### %s\n\nLabels: `%s`\n\n%s\n\n' "$title" "$labels" "$full_body"
+    return 0
+  fi
+  [[ "$CAN_ISSUES" == "1" ]] || return 0
+
+  local hash num=""
+  hash="$(printf '%s' "$title$labels$full_body" | (sha256sum 2>/dev/null || shasum -a 256) | awk '{print $1}')"
+  if [[ -f "$SYNC_FILE" ]] && command -v jq >/dev/null 2>&1; then
+    num="$(jq -r --arg id "$task_id" '.[$id].issue // empty' "$SYNC_FILE" 2>/dev/null || true)"
+    local old; old="$(jq -r --arg id "$task_id" '.[$id].hash // empty' "$SYNC_FILE" 2>/dev/null || true)"
+    if [[ -n "$num" && "$old" == "$hash" ]]; then
+      note "Issue #$num for '$task_id' is unchanged."
+      return 0
+    fi
+  fi
+  if [[ -z "$num" ]]; then
+    num="$(gh issue list --repo "$REPO_SLUG" --state all --search "\"data-project:task=$task_id\" in:body" \
+      --json number --jq '.[0].number // empty' 2>/dev/null || true)"
+  fi
+
+  if [[ -n "$num" ]]; then
+    note "Updating #$num for '$task_id'."
+    run gh issue edit "$num" --repo "$REPO_SLUG" --title "$title" --body "$full_body" \
+      --add-label "$labels" --add-assignee "$OWNER_DEFAULT" || note "Could not fully update #$num; continuing."
+  else
+    note "Creating an issue for '$task_id'."
+    local url
+    url="$(run gh issue create --repo "$REPO_SLUG" --title "$title" --body "$full_body" \
+      --label "$labels" --assignee "$OWNER_DEFAULT")" || { note "Could not create '$task_id'; continuing."; return 0; }
+    if [[ "$DRY_RUN" == "1" ]]; then num=""; else num="${url##*/}"; fi
+  fi
+
+  record_sync "$task_id" "$num" "$hash"
+  project_upsert_item "$num" "$priority" "$size"
+}
+
+# ----- Sync map: task-id -> issue number + hash (nothing GitHub already stores) ---
+record_sync() {
+  local task_id="$1" num="$2" hash="$3"
+  [[ "$DRY_RUN" == "1" ]] && return 0
+  command -v jq >/dev/null 2>&1 || { note "jq not found; skipping $SYNC_FILE update."; return 0; }
+  [[ -f "$SYNC_FILE" ]] || echo '{}' > "$SYNC_FILE"
+  local tmp; tmp="$(mktemp)"
+  jq --arg id "$task_id" --arg num "$num" --arg hash "$hash" \
+     '.[$id] = {issue: ($num|tonumber? // $num), hash: $hash}' "$SYNC_FILE" > "$tmp" && mv "$tmp" "$SYNC_FILE"
+}
+
+main() {
+  preflight
+  seed_labels
+
+  # --- One line per *now* section and per blocking item (filled at scaffold time) ---
+  {{ISSUE_SEED_ROWS}}
+  # --- end ---
+
+  if [[ "$PRINT" == "1" ]]; then
+    printf '%s\n' '---' 'Paste each block above as a new issue, add its labels, and assign it.'
+  else
+    printf '== Done. Commit .github/engagement-sync.json so the next run updates these issues. ==\n' >&2
+  fi
+}
+
+main "$@"

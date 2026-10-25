@@ -1,0 +1,23 @@
+{
+  "specVersion": "{{ARD_SPEC_VERSION}}",
+  "host": {
+    "displayName": "{{PROJECT_NAME}}",
+    "identifier": "{{ARD_HOST_IDENTIFIER}}",
+    "documentationUrl": "{{REPO_URL}}"
+  },
+  "entries": [
+    {
+      "identifier": "urn:ai:{{ARD_HOST_DOMAIN}}:datasets:{{PROJECT_SLUG}}",
+      "displayName": "{{PROJECT_NAME}}",
+      "type": "text/csv",
+      "url": "{{REPO_URL}}",
+      "description": "{{DESCRIPTION}}",
+      "tags": ["dataset", "{{PROJECT_SLUG}}"],
+      "representativeQueries": [
+        "where can I get the {{PROJECT_NAME}} data",
+        "what does one row of {{PROJECT_NAME}} represent"
+      ],
+      "updatedAt": "{{DATE}}T00:00:00Z"
+    }
+  ]
+}

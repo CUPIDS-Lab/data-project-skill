@@ -1,0 +1,48 @@
+# Contributing to {{PROJECT_NAME}}
+
+Thanks for working on {{PROJECT_NAME}}. This guide explains how changes get made here so the project stays reproducible, legible and safe for the people in its data. Read `AGENTS.md` first for the non-negotiables, and `CODE_OF_CONDUCT.md` for community norms.
+
+## Set up
+
+```bash
+git clone {{REPO_URL}}
+cd {{PROJECT_SLUG}}
+```
+
+<!-- IF:PIPELINE -->Install and run the tests with uv (Python 3.12 or newer):
+
+```bash
+uv sync
+uv run pytest
+uv run python -m scripts.pipeline run   # regenerate data/processed/ from the originals
+```
+
+For the R variant, restore the pinned environment with `renv::restore()` (see `docs/renv.md`) and run `make pipeline`.<!-- /IF -->
+
+When you add or upgrade a dependency, update `pyproject.toml` and `uv.lock` (or `renv.lock`) in the same change.
+
+## Making a change
+
+1. Open or pick an issue, so the work is visible before it starts.
+2. Branch from `{{DEFAULT_BRANCH}}` with a name that says what the change is (`fix/reconcile-totals`, `source/2026-release`). Never commit directly to `{{DEFAULT_BRANCH}}`.
+3. Keep the pull request to one concern. Fill in the [pull request template](.github/PULL_REQUEST_TEMPLATE.md): what changed, why, what you checked, and what you left alone on purpose. Put `Closes #N` in the body when it finishes an issue.
+4. Update the docs in the same PR: `docs/data-dictionary.md` for any column change, `CHANGELOG.md` for anything a user would notice, and a dated `decision-log.md` entry for any non-obvious choice (a filter, a definition, a trade-off).
+
+## Review
+
+<!-- IF:COLLAB -->Every pull request needs an approving review from someone other than its author before it merges; `CODEOWNERS` requests the owner of each path you touched. Branch protection on `{{DEFAULT_BRANCH}}` enforces this (the command and how to check it are in `docs/governance/GOVERNANCE.md`, "Decision-making"). If branch protection is ever off, the rule is not in force: say so in the PR and turn it back on.<!-- /IF -->
+<!-- IF:SOLO -->This is a single-steward project: {{PI_NAME}} reviews and merges their own changes, and there is no second reviewer. The PR body is the review record, so fill in every section of the template honestly, including what you did not check.<!-- /IF -->
+
+## Data rules
+
+- **Originals are immutable.** Never edit files under `data/original/`; fix problems in code and record them in `docs/data-dictionary.md` and `decision-log.md`.
+- **The pipeline is the shared artifact,** not a cleaned snapshot. Anything in `data/processed/` must be regenerable from the originals with one command.
+- **Notebooks are for exploration.** Move reusable logic into `scripts/` and keep notebook outputs out of version control.
+- **No secrets or sensitive data in the repository,** including notebook outputs and example configs. Read credentials from the environment. <!-- IF:SENSITIVE -->This project holds **{{SENSITIVITY_TIER}}** data: follow the access tiers in `docs/governance/GOVERNANCE.md` and the responsible-data checklist before ingesting or sharing anything.<!-- /IF -->
+- **Numbers in prose are generated** from the pipeline's audit outputs. Don't hand-type a row count or total into the README.
+
+<!-- IF:GH -->## How we track work
+
+`ROADMAP.md` shows each Outline section's status. When a section is in progress it has a GitHub issue labeled `section:<N>`, whose body is that section's "done when" test as a task list; discussion happens on the issue, and decisions are copied to `decision-log.md` with a link. Other labels: `type:*` (data, docs, pipeline, governance, infra), `blocking` (gates an action such as ingesting sensitive data or publishing; resolve it or record the accepted risk before that action), `good-first-issue` and `help-wanted`. Labels are defined in `.github/labels.yml`, and `.github/seed-github.sh` creates or updates the labels and section issues idempotently, so re-running it never duplicates them.<!-- /IF -->
+
+<!-- IF:PROJECT -->The issues also appear on the **{{PROJECT_TITLE}}** Project board, which syncs from the issues; don't track the same value in two places.<!-- /IF -->

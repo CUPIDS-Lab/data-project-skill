@@ -1,0 +1,28 @@
+# Labels for triaging feedback and bugs. Synced to the repository by .github/workflows/labels.yml.
+- {name: feedback, color: "0e8a16", description: "Filed through the sprint-feedback form"}
+- {name: bug, color: "d73a4a", description: "A template, script or validator is broken"}
+- {name: "status:triage", color: "fbca04", description: "Not yet triaged"}
+- {name: "status:needs-repro", color: "fbca04", description: "Needs a reproduction or more evidence"}
+- {name: "status:accepted", color: "0e8a16", description: "Will be fixed in the owning file"}
+- {name: "status:wontfix", color: "cccccc", description: "Considered; no change (often a one-off)"}
+- {name: "skill:data-liberation", color: "1d76db", description: "Concerns the data-liberation skill"}
+- {name: "skill:data-project", color: "5319e7", description: "Concerns the data-project skill"}
+- {name: "skill:repo", color: "bfdadc", description: "Repository tooling, CI, packaging"}
+- {name: "section:1", color: "c5def5", description: "Outline 1: Scope & gate"}
+- {name: "section:2", color: "c5def5", description: "Outline 2: Acquire"}
+- {name: "section:3", color: "c5def5", description: "Outline 3: Extract"}
+- {name: "section:4", color: "c5def5", description: "Outline 4: Model & tidy"}
+- {name: "section:5", color: "c5def5", description: "Outline 5: Pipeline & audit"}
+- {name: "section:6", color: "c5def5", description: "Outline 6: Document & cite"}
+- {name: "section:7", color: "c5def5", description: "Outline 7: Govern & collaborate"}
+- {name: "section:8", color: "c5def5", description: "Outline 8: Publish"}
+- {name: "section:9", color: "c5def5", description: "Outline 9: Deposit, share & discover"}
+- {name: "section:10", color: "c5def5", description: "Outline 10: Maintain & feedback"}
+- {name: "section:outline", color: "c5def5", description: "The Outline or onboarding itself"}
+- {name: "cause:missing", color: "f9d0c4", description: "Guidance never addressed this"}
+- {name: "cause:ambiguous", color: "f9d0c4", description: "Mentioned, but vague or weak"}
+- {name: "cause:contradictory", color: "f9d0c4", description: "Two pieces of guidance disagree"}
+- {name: "cause:buried", color: "f9d0c4", description: "Correct, but found too late"}
+- {name: "cause:novel", color: "f9d0c4", description: "Nothing could have anticipated it"}
+- {name: "severity:blocked", color: "b60205", description: "Blocked the sprint"}
+- {name: "severity:rework", color: "e99695", description: "Cost rework"}

@@ -1,0 +1,99 @@
+---
+title: "Methodology"
+---
+
+How {{PROJECT_NAME}} is built, validated, and kept current.
+
+## The pipeline at a glance
+
+One command, `uv run python -m scripts.pipeline run`, runs the stages in
+order and stops at the first failure. Publishing is a separate step (and a
+separate workflow), so a routine refresh never deploys without review.
+
+```
+discover → fetch → clean → audit → reconcile     (the `run` command)
+                                       ↓
+                                   publish       (separate: `pipeline publish`)
+```
+
+`clean` parses each original, removes duplicate keys, validates against the
+schema, and sets rejected rows aside with a reason. It checks that every
+parsed row was written, dropped as a duplicate or rejected, and fails the build
+otherwise; it never writes an empty or partial table over a good one.
+
+## Source artifacts
+
+(Document each upstream source here. Recommended template per source:)
+
+### {Source name}
+
+- **Provider:** {organization, URL}
+- **What it covers:** {temporal range, unit of observation, scope}
+- **Format:** {PDF / XLSX / CSV / HTML / JSON}
+- **Cadence:** {annual / quarterly / on-demand}
+- **Extraction approach:** {brief sentence on which toolchain is used and why}
+- **Known structural quirks:** {merged cells, schema migrations, columns
+  renamed mid-period, footnoted rows, etc.}
+- **Vintage breakpoints:** {years where parsing must branch}
+
+## Extraction pipeline
+
+`scripts/source.py` defines two functions:
+
+- `artifacts()` lists what is available upstream as `Artifact` records
+  (vintage, URL, local path). Cheap, no downloads.
+- `parser_for(artifact)` picks the parser module for a file; each module
+  in `scripts/parsers/` reads one layout era and declares its extraction
+  method and tools, which are recorded in `provenance.csv`.
+
+Listing is an online question and parsing an offline one; keeping them
+apart makes parsers testable against fixtures without network access.
+
+## Canonical schema
+
+Every parser's output is validated against `scripts.schema.CanonicalLong`
+before being written to disk. The schema declares:
+
+- Required columns (`source`, `vintage`, plus the project's natural-key
+  columns)
+- Per-column dtypes, with `coerce=True` to be forgiving of parser output
+- `strict=True` to reject unknown columns — schema drift fails loudly
+- Nullable types for measurements where missingness must be preserved
+
+See `docs/data-dictionary.md` for the full column-by-column reference.
+
+## Reconciliation
+
+For sources with authoritative top-line totals (vote totals, enrollment
+counts, line-item totals), `scripts/reconcile.py` re-opens each
+original file, independently computes those totals, and compares to
+what's in the processed deliverable. Mismatches are regressions: the
+pipeline run completes, but CI fails on the reconcile job.
+
+Reconcilers are opt-in per source; the project's reconcile registry is
+in `RECONCILERS` in `scripts/reconcile.py`; it compares at the finest grain both sides share and reports keys present on one side only as scope differences.
+
+## Caveats and known issues
+
+(Document specifics as they emerge. Examples:)
+
+- {Some vintage's source PDF was scanned; OCR'd values have ±N% error
+  estimated from a manual sample.}
+- {Source X and source Y use different denominators for "enrollment"
+  — see the `concepts.yaml` caveats.}
+- {Records before {year} have imputed geocodes; flagged in the
+  `geocode_quality` column.}
+
+## How to verify a finding
+
+For any specific number that matters:
+
+1. Look up the row in `data/processed/{{PKG_NAME}}.csv`.
+2. Join to `provenance.csv` on `(source, vintage)` to get the original
+   file, its URL and sha256, and the parser and tools that read it.
+3. Cross-check against the corresponding original under
+   `data/original/<source>/<vintage>/`.
+
+The published Datasette instance exposes this join as a canned query
+named `with_provenance` — see
+[the Datasette URL](https://{{PROJECT_SLUG}}.vercel.app/).

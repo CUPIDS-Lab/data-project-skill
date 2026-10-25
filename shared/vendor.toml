@@ -1,0 +1,43 @@
+# Content vendored into both skills by tools/vendor.py.
+# Each [[file]] copies shared/<src> to every path in dest (repository-relative).
+# Markdown copies get a "vendored from" header; other files are copied byte-for-byte.
+
+[[file]]
+src = "OUTLINE.md"
+dest = ["OUTLINE.md", "skills/data-liberation/references/_shared/OUTLINE.md", "skills/data-project/references/_shared/OUTLINE.md"]
+
+[[file]]
+src = "references/feedback.md"
+dest = ["skills/data-liberation/references/_shared/feedback.md", "skills/data-project/references/_shared/feedback.md"]
+
+[[file]]
+src = "templates/ROADMAP.md.tmpl"
+dest = ["skills/data-liberation/templates/project/ROADMAP.md.tmpl", "skills/data-project/templates/ROADMAP.md.tmpl"]
+
+[[file]]
+src = "templates/decision-log.md.tmpl"
+dest = ["skills/data-liberation/templates/project/decision-log.md.tmpl", "skills/data-project/templates/decision-log.md.tmpl"]
+
+[[file]]
+src = "references/values-and-gates.md"
+dest = ["skills/data-liberation/references/_shared/values-and-gates.md", "skills/data-project/references/_shared/values-and-gates.md"]
+
+[[file]]
+src = "references/responsible-data.md"
+dest = ["skills/data-liberation/references/_shared/responsible-data.md", "skills/data-project/references/_shared/responsible-data.md"]
+
+[[file]]
+src = "references/governance.md"
+dest = ["skills/data-liberation/references/_shared/governance.md", "skills/data-project/references/_shared/governance.md"]
+
+[[file]]
+src = "references/standards-and-fair.md"
+dest = ["skills/data-liberation/references/_shared/standards-and-fair.md", "skills/data-project/references/_shared/standards-and-fair.md"]
+
+[[file]]
+src = "references/quality-and-bulletproofing.md"
+dest = ["skills/data-liberation/references/_shared/quality-and-bulletproofing.md", "skills/data-project/references/_shared/quality-and-bulletproofing.md"]
+
+[[file]]
+src = "references/practice-sources.md"
+dest = ["skills/data-liberation/references/_shared/practice-sources.md", "skills/data-project/references/_shared/practice-sources.md"]

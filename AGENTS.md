@@ -1,29 +1,33 @@
-# AGENTS.md — using this skill from any harness
+# AGENTS.md — maintaining the data-skills repository
 
-This repository is a portable **Agent Skill**. Its entry point is `SKILL.md` at the root; everything else loads on demand. This file describes the skill for an agent harness that is browsing the repo rather than loading `SKILL.md` directly.
+This repository holds two Agent Skills. It is not itself a skill: never add a `SKILL.md` at the root.
 
-## What it does
+- `skills/data-liberation/` turns documents and messy sources into tidy, provenance-tracked datasets and pipelines.
+- `skills/data-project/` scopes, governs, tracks, deposits and shares a public-interest data collaboration.
 
-It scaffolds right-sized, public-interest data-collaboration projects: it interviews the user, samples a bundled best-practice corpus, proposes a plan the user approves, and writes a small set of project files plus a `ROADMAP.md` of deferred work. It optimizes for accessible, documented, transparent, and inclusive collaborative data projects, and it is deliberately lean by default — it builds only what the chosen complexity level needs. At its top rung (L5) it can also publish and share outputs — an OKF knowledge bundle, an ARD agent-discovery catalog, a Harvard Dataverse deposit (citable DOI), and an OpenSharing zero-copy share kit — each gated by the project's governance and sensitivity rules.
+To *use* a skill, read its `SKILL.md`. This file is for changing the repository.
 
-## How to run it
+## Rules
 
-Read `SKILL.md` and follow it. The workflow is: **Interview → Sample → Synthesize → Approve → Scaffold (now) + Roadmap (later) → Verify → Offer next rung**, governed by the entry protocol in `references/escalation-levels.md` (infer the lowest level that fits, state the assumption, execute it, offer the next rung).
+- **Each skill folder is installed as-is** by claude.ai uploads, `npx skills` and manual copies, so it must be self-contained and must not hold repository files (README, CHANGELOG, CI, evals, retros). Those live at the root.
+- **Shared content is edited in `shared/` only.** `tools/vendor.py` copies it into each skill at the paths in `shared/vendor.toml`; never edit a vendored copy (it carries a header saying so).
+- **Frontmatter stays inside the Agent Skills spec:** only `name`, `description`, `license`, `compatibility`, `metadata`, `allowed-tools`; description ≤ 1,024 characters; `metadata.version` in semver. Claude Code-only keys break claude.ai uploads.
+- **Any change under `skills/<name>/` bumps that skill's `metadata.version`** and adds a line under that skill in `CHANGELOG.md`.
+- **Markdown prose is one line per paragraph** (no hard wraps), in American English.
 
-The first three phases are defined as agent role files in `agents/`:
+## Checks
 
-- `agents/data-project-interviewer.md` — elicits the Project Context Profile.
-- `agents/data-project-indexer.md` — samples `references/` into a cited Practice Selection.
-- `agents/data-project-synthesizer.md` — proposes a right-sized Synthesis Plan plus a roadmap.
+```sh
+uv run --no-project --with pyyaml python tools/validate.py            # everything except the smoke test
+uv run --no-project --with pyyaml python tools/validate.py --smoke    # also render + test the data-liberation project
+python tools/vendor.py                                                # after editing shared/
+```
 
-If your harness supports named sub-agents or tasks, dispatch each phase to the matching file. If it does not, read the file and perform that role inline as that phase. The skill (the main thread) is the memory that passes each phase's output to the next.
+CI runs `tools/validate.py --smoke --spec-tool` on every push and pull request, and the version-bump check on pull requests.
 
 ## Where things are
 
-- `references/` — the on-demand corpus and the `INDEX.md` crosswalk the indexer samples; `context.md` holds the values and the hard gates (privacy law + CARE Principles).
-- `templates/` — placeholder-driven scaffolding artifacts; `directory-tree.md` is the structural source of truth.
-- `agents/` — role definitions: the three interview→sample→synthesize phases above, plus `data-project-tracker` (GitHub Issues/Project sync, Track mode) and `data-project-depositor` (Dataverse deposit, Deposit mode).
-
-## Non-negotiables
-
-Write generated files only into the user's working directory, never into this skill's directory. Keep L0/L1 lightweight. Prefer a `ROADMAP.md` entry over a generated file when unsure. When data is sensitive-human, regulated, or implicates Indigenous data (CARE), couple every identifier/retention/audit affordance with access tiers and contestable governance — see `references/installed-base.md`.
+- `shared/` — source of truth for content both skills vendor; `shared/outline.yaml` maps every reference and template to its Outline section.
+- `tools/` — `validate.py` (the CI entry point), `vendor.py`, and each skill's template validator.
+- `evals/<skill>/` — evaluation cases, kept outside the skill folders so installs stay clean.
+- `history/` — the predecessor repositories' changelogs, plans and retrospectives, plus the monorepo plan.

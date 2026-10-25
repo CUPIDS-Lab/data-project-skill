@@ -1,0 +1,24 @@
+{
+  "should_trigger": [
+    "start a new data collaboration with three nonprofits",
+    "set up a repo for our team's data project",
+    "who should be able to see this data? help with governance",
+    "deposit the processed data to Harvard Dataverse",
+    "get a DOI for our dataset",
+    "share the data with a partner without copying it",
+    "make our dataset discoverable by agents with an ai-catalog",
+    "audit my repo against open data practices",
+    "we finished a sprint, here's what went wrong",
+    "turn our roadmap into GitHub issues"
+  ],
+  "should_not_trigger": [
+    "get the table out of this PDF",
+    "write a data dictionary for this one CSV extract",
+    "scrape this page into a table",
+    "OCR these scanned pages",
+    "train a classifier on this data",
+    "fix my Python import error",
+    "reconcile these totals against the source",
+    "add a new year to the extraction pipeline"
+  ]
+}

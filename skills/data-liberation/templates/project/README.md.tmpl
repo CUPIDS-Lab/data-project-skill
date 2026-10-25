@@ -1,0 +1,98 @@
+# {{PROJECT_NAME}}
+
+{{DESCRIPTION}}
+
+## What & why
+
+_Fill this in during scoping (Outline section 1): the question this data answers, what one row means, the source and who publishes it, who the data is for, and what this project will not extract or publish._
+
+## The data at a glance
+
+<!-- BEGIN generated:headline -->
+_No pipeline run yet: `uv run python -m scripts.pipeline run` fills this in._
+<!-- END generated -->
+
+The dataset is `data/processed/{{PKG_NAME}}.csv`: tidy long form, one row per observation. Every column is defined in [`docs/data-dictionary.md`](docs/data-dictionary.md), including its known caveats. [`data/processed/provenance.csv`](data/processed/provenance.csv) has one row per original file: where it came from, its sha256, the parser and tool versions that read it, and how clean the extraction was. Recipes for pandas, R and DuckDB are in [`docs/filter-pivot-recipes.md`](docs/filter-pivot-recipes.md).
+
+## How to use it
+
+### Python / pandas
+
+```python
+import pandas as pd
+
+df = pd.read_csv("data/processed/{{PKG_NAME}}.csv", dtype=str)  # IDs keep their leading zeros
+# Then convert the columns the dictionary declares numeric:
+# df["votes"] = pd.to_numeric(df["votes"])
+```
+
+### R / tidyverse
+
+```r
+library(readr)
+df <- read_csv("data/processed/{{PKG_NAME}}.csv", col_types = cols(.default = col_character()))
+```
+
+### SQL / DuckDB
+
+```sql
+SELECT * FROM read_csv('data/processed/{{PKG_NAME}}.csv', all_varchar = true) LIMIT 5;
+```
+<!-- IF:PUBLISH -->
+
+### Browse it online
+
+- **Query it:** the Datasette instance at `https://{{PROJECT_SLUG}}.vercel.app/` _(replace with the real address after the first deploy)_. Every view has `.csv` and `.json` links.
+- **Read about it:** the methodology site at `https://{{OWNER}}.github.io/{{PROJECT_SLUG}}/`.
+- **See the originals:** source documents are on DocumentCloud where the project's visibility decision allows; `provenance.csv` links each one.
+<!-- /IF -->
+
+### Finding stories in it
+
+Finding and checking a story is a separate craft. The [*New York Times* data-training materials](https://github.com/nytimes/data-training), especially *How Not To Be Wrong*, are a good guide. The dictionary's caveats and the provenance sidecar are the inputs to that work.
+
+## Reproduce it
+
+```bash
+git clone https://github.com/{{OWNER}}/{{PROJECT_SLUG}}.git
+cd {{PROJECT_SLUG}}
+uv sync
+uv run python -m scripts.pipeline run
+```
+
+`run` fetches any originals not in the repository, checks them against the sha256 in `data/original/manifest.json`, and rebuilds `data/processed/`. It stops with an error rather than write empty or partial data. Re-running it on the same originals produces identical files.
+
+<!-- IF:REFRESH -->
+## Refresh schedule
+
+`.github/workflows/refresh.yml` reruns the pipeline on a schedule and opens a pull request when anything changed, carrying the audit summary diff for review. Nothing reaches `main` without that review. The git history of `data/audit/summary.md` shows when each refresh changed the data.
+
+<!-- /IF -->
+## Corrections
+
+Found a wrong value? Open an issue<!-- IF:PUBLISH --> with the *Data correction* form<!-- /IF --> naming the row and the evidence. Confirmed corrections are fixed in the pipeline and recorded in [`CHANGELOG.md`](CHANGELOG.md) with the affected vintages; earlier values stay in the git history, so anything already cited can be traced.
+
+## Citation
+
+Cite the release you used, so a later correction doesn't silently change what you cited:
+
+```bibtex
+@misc{{{PKG_NAME}},
+  author  = {{{AUTHOR}}},
+  title   = {{{{PROJECT_NAME}}}},
+  year    = {<year of the release you used>},
+  version = {<release tag, for example v2026.05.01>},
+  url     = {https://github.com/{{OWNER}}/{{PROJECT_SLUG}}}
+}
+```
+
+## License
+
+- **Code:** [MIT](LICENSE).
+- **Data:** CC-BY-4.0 for this project's transformations. The publisher's own terms, recorded per source in `provenance.csv` (`source_license`), still apply to the underlying records.
+
+Uses the maintainers do not endorse: _list them here (for example enrichment for enforcement, predictive policing, eviction targeting), adapted to what the data is about._
+
+## Working on it
+
+See [`AGENTS.md`](AGENTS.md) for how the repository works and [`ROADMAP.md`](ROADMAP.md) for what is in scope.

@@ -1,0 +1,27 @@
+# ROADMAP — {{PROJECT_NAME}}
+
+This project follows the ten-section Outline from the [`data-skills`](https://github.com/CUPIDS-Lab/data-skills/blob/main/OUTLINE.md) skills. Each section is marked **now** (in progress or next), **later** (real, deferred on purpose) or **skip** (out of scope, with the reason). A section is finished when its "done when" test passes; link the issue or PR that shows it. Building less now and recording the rest here is the intended workflow, not a shortcut.
+
+| # | Section | Status | Done when… | Owner | Evidence (issue / PR) | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | Scope & gate | now | question, unit of observation, sources and partners written; sensitivity, privacy-law and CARE decided; visibility chosen; exclusions stated |  |  |  |
+| 2 | Acquire | | originals fetched by code, hashed, licensed, with provenance; live source probed first; storage budget set; `--fresh` refetch exists |  |  |  |
+| 3 | Extract | | every page or file triaged; rows reconcile with printed totals; every value traceable to its page and region; failures in a per-run error log |  |  |  |
+| 4 | Model & tidy | | tidy long table validates; duplicates removed before validation; dictionary covers every column; vocabularies tested |  |  |  |
+| 5 | Pipeline & audit | | one command regenerates the data; CI runs tests, audit and a conservation check; empty output fails loudly; reconcile passes or mismatches documented |  |  |  |
+| 6 | Document & cite | | README alone is enough to use the data; quoted numbers are generated and checked; citation and license clear |  |  |  |
+| 7 | Govern & collaborate | | roles named honestly; claimed review gates enforced; correction path exists; sensitivity safeguards in place |  |  |  |
+| 8 | Publish | | chosen surface works, or the embargo is staged; FAIR and accessibility checks done (public or embargoed only) |  |  |  |
+| 9 | Deposit, share & discover | | DOI minted or draft reviewed; partner access declared under the access tiers; discovery published if intended |  |  |  |
+| 10 | Maintain & feedback | | refresh runs as reviewable PRs; open work tracked; each sprint's review filed to `CUPIDS-Lab/data-skills` |  |  |  |
+
+## Blocking items
+
+Anything that must be resolved before the project does the thing it guards. Some are conditional: they come due only when a named event occurs (for example, before ingesting personal data, or before publishing). Treat that event as the gate.
+
+| Item | Guards | Section | Status |
+| --- | --- | --- | --- |
+
+## Sprint feedback
+
+At the end of each sprint, run an after-action review and file each gap with the [sprint-feedback form](https://github.com/CUPIDS-Lab/data-skills/issues/new?template=sprint-feedback.yml) against the section numbers above. Private projects report process lessons only.

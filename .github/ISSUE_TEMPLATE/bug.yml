@@ -1,0 +1,38 @@
+name: Bug in a template or script
+description: Something a skill generates or runs is broken (a template that doesn't render, a scaffold that fails its tests, a validator error).
+title: "[bug] "
+labels: ["bug", "status:triage"]
+body:
+  - type: dropdown
+    id: skill
+    attributes:
+      label: Skill
+      options:
+        - data-liberation
+        - data-project
+        - repository tooling (tools/, CI)
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Skill version
+      description: The `metadata.version` in the skill's SKILL.md, or the release tag.
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. Scaffold a project with ...\n2. Run `uv run pytest`\n3. ..."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual result
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error output
+      render: text

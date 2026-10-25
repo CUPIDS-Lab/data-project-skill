@@ -1,22 +1,28 @@
 name: validate
 
-# Guard the skill's internal consistency on every change: OKF `type` frontmatter
-# on references, balanced/documented template conditionals, well-formed/documented
-# placeholder tokens, and INDEX template paths that resolve. This is the repo
-# practicing the reproducibility and verification it preaches.
+# One gate for the whole repository: layout, Agent Skills spec, links, vendored copies,
+# both skills' template validators, and (on pull requests) per-skill version bumps.
+# See tools/validate.py.
 
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
         with:
-          python-version: "3.12"
-      - name: Validate skill structure
-        run: python scripts/validate.py
+          fetch-depth: 0 # the version-bump check diffs against the base branch
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: false
+          python-version: "3.13"
+      - name: Validate (with the official spec validator and the data-liberation smoke test)
+        run: uv run --no-project --with pyyaml python tools/validate.py --smoke --spec-tool
+      - name: Require a version bump for every changed skill
+        if: github.event_name == 'pull_request'
+        run: uv run --no-project --with pyyaml python tools/validate.py --base origin/${{ github.base_ref }}

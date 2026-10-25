@@ -1,0 +1,13 @@
+# Snakemake wrapper configuration for {{PROJECT_NAME}}.
+# The pipeline's own settings live in scripts/config.py; keep only what the wrapper needs here.
+
+project: "{{PROJECT_SLUG}}"
+
+# The tidy deliverable the pipeline writes; Snakemake uses it to decide whether to re-run.
+deliverable: "data/processed/{{PROJECT_SLUG}}.csv"
+
+paths:
+  original: "data/original"     # immutable originals; never edited in place
+  processed: "data/processed"
+  audit: "data/audit"
+  lookups: "data/lookups"

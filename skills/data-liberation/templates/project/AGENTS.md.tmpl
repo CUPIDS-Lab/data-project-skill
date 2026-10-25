@@ -1,0 +1,70 @@
+# AGENTS.md — {{PROJECT_NAME}}
+
+How to work in this repository, for people and coding agents. `CLAUDE.md` only imports this file, so edit this one.
+
+{{DESCRIPTION}}
+
+## Start here
+
+- `ROADMAP.md` marks each of the ten Outline sections now, later or skip, with its "done when" test. Work only on sections marked now, and check the test before calling a section done.
+- `decision-log.md` records dated decisions and why. Add an entry for any non-obvious choice, linking the issue or PR where it was made.
+- `CHANGELOG.md` records data and schema changes that users need to know.
+- `README.md` is for people using the data; `docs/data-dictionary.md` defines every column.
+
+## Commands
+
+```bash
+uv sync                                          # install
+uv run pytest                                    # tests
+uv run python -m scripts.pipeline run            # fetch → clean → audit → reconcile
+uv run python -m scripts.pipeline fetch --fresh  # re-download originals that may be stale
+uv run nbstripout --install                      # once per clone, if you use notebooks
+```
+
+## Where things are
+
+- `scripts/source.py`: what is fetched (`artifacts()`) and which parser reads each file (`parser_for()`). `scripts/parsers/`: one module per layout era.
+- `scripts/schema.py`: the columns, the natural key and the validation contract.
+- `data/original/`: originals exactly as fetched, with `manifest.json` (URL, sha256). Never edited.
+- `data/processed/`: the dataset and `provenance.csv` (one row per original and parser run).
+- `data/audit/`: generated reports. `summary.md` and `headline.json` are committed; per-run logs are not.
+- `data/lookups/`: hand-kept tables, such as `vocab_<column>.csv` vocabularies (tested against the dictionary).
+
+## Current state
+
+<!-- BEGIN generated:headline -->
+_No pipeline run yet: `uv run python -m scripts.pipeline run` fills this in._
+<!-- END generated -->
+
+## Rules
+
+Add a rule when the project learns one, with the date and the reason.
+
+- **Originals are immutable.** Cleaning reads `data/original/` and writes elsewhere. A changed upstream file is refetched with `--fresh`, which keeps the old hash in the manifest.
+- **Probe before parsing.** Open real files from every era of the source before writing or changing a parser, and record what you found in the decision-log.
+- **One source until there are two.** The registry and concept catalog come with the second source, following the skill's "Adding a second source" procedure.
+- **Failures are loud.** A failed artifact is in `data/audit/extraction_errors.json` and the audit summary; rejected rows are in `data/audit/rejected.csv` with a reason. Never hide a failure, and never fill a gap with sample, synthetic or stale data.
+- **Numbers in prose are generated.** Don't type counts into the README or this file; `audit` fills the generated blocks and a test fails when they are stale.
+- **Schema changes are contract changes.** Changing `LONG_COLUMNS`, a type or the natural key needs a `CHANGELOG.md` entry saying what breaks for users.
+- **Storage budget.** Committed, Git LFS or external storage per source, as recorded in the decision-log; CI fails on any file near 100 MB.
+<!-- IF:PUBLISH -->
+- **Publish only what visibility allows.** Datasette, the Quarto site and DocumentCloud receive only what the visibility and sensitivity decisions in the decision-log permit. Corrections arrive through the *Data correction* issue form and are logged in `CHANGELOG.md`.
+<!-- /IF -->
+<!-- IF:REFRESH -->
+- **Refreshes arrive as pull requests.** The scheduled workflow never commits to `main`; review its audit diff and spot-check sample before merging. A scheduled run can be late or skipped, so check `data/audit/discovery.md` for gaps.
+<!-- /IF -->
+<!-- IF:MULTI_SOURCE -->
+- **Concepts carry caveats.** Every concept in `data/lookups/concepts.yaml` that maps more than one source says what is and is not comparable; a test enforces it.
+<!-- /IF -->
+
+## Pull requests
+
+A pull request says what changed, why, what you checked (tests, the audit summary diff, reconcile), and what you left alone on purpose. A PR that changes data carries the audit diff; a new reconcile mismatch blocks the merge until it is explained.
+
+## Background
+
+The data-liberation skill explains each part: [project-template.md](https://github.com/CUPIDS-Lab/data-skills/tree/main/skills/data-liberation/references/project-template.md) (this layout), [pipeline.md](https://github.com/CUPIDS-Lab/data-skills/tree/main/skills/data-liberation/references/pipeline.md) (cleaning, audit, reconcile, refresh), [data-modeling.md](https://github.com/CUPIDS-Lab/data-skills/tree/main/skills/data-liberation/references/data-modeling.md) (schema, dictionary, provenance)<!-- IF:PUBLISH -->, [publishing.md](https://github.com/CUPIDS-Lab/data-skills/tree/main/skills/data-liberation/references/publishing.md) (Datasette, Quarto, LFS, DocumentCloud)<!-- /IF -->, and the [Outline](https://github.com/CUPIDS-Lab/data-skills/blob/main/OUTLINE.md).
+
+## At the end of a sprint
+
+Run an after-action review of the sprint, then file each gap you found in the skills with the [sprint-feedback form](https://github.com/CUPIDS-Lab/data-skills/issues/new?template=sprint-feedback.yml), against the Outline section numbers in `ROADMAP.md`. Private projects report process lessons only: no data, names or record details.

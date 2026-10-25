@@ -1,0 +1,25 @@
+# Git attributes for {{PROJECT_NAME}}.
+
+# ─── Text files: LF line endings ─────────────────────────────────────────────
+* text=auto eol=lf
+
+# ─── Originals are byte-exact copies of what the publisher served ────────────
+# Never normalize their line endings: the sha256 in the manifest must keep matching.
+data/original/** -text
+
+# ─── Notebooks: strip outputs on commit ──────────────────────────────────────
+# Run `uv run nbstripout --install` once per clone to activate the filter.
+*.ipynb filter=nbstripout
+*.ipynb diff=ipynb
+
+# ─── Storage budget: Git LFS ─────────────────────────────────────────────────
+# Uncomment the patterns for originals that are large binaries (tens of MB, or
+# many files). Run `git lfs install` once per machine first. LFS files can't be
+# served by GitHub Pages, and LFS bandwidth is metered: see publishing.md.
+# data/original/**/*.pdf    filter=lfs diff=lfs merge=lfs -text
+# data/original/**/*.zip    filter=lfs diff=lfs merge=lfs -text
+# data/original/**/*.xlsx   filter=lfs diff=lfs merge=lfs -text
+# data/original/**/*.xls    filter=lfs diff=lfs merge=lfs -text
+# data/original/**/*.tar.gz filter=lfs diff=lfs merge=lfs -text
+# data/original/**/*.dbf    filter=lfs diff=lfs merge=lfs -text
+# docs/_freeze/**/*.png     filter=lfs diff=lfs merge=lfs -text

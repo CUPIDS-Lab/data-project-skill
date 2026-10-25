@@ -1,0 +1,111 @@
+name: Sprint feedback
+description: Report what a sprint learned about the data-liberation or data-project skills. One issue per distinct gap.
+title: "[feedback] "
+labels: ["feedback", "status:triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        File one issue per gap you found while using the skills. Map it to the [Outline](https://github.com/CUPIDS-Lab/data-skills/blob/main/OUTLINE.md) section where the guidance failed, and describe what happened before what you think should change. A local fix you made is the most useful thing you can report. **Private projects: report process lessons only.** No data values, names, record details or screenshots of data.
+  - type: dropdown
+    id: skill
+    attributes:
+      label: Skill
+      options:
+        - data-liberation
+        - data-project
+        - both
+        - not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: section
+    attributes:
+      label: Outline section(s)
+      description: Where the guidance was missing, unclear or wrong.
+      multiple: true
+      options:
+        - "1 Scope & gate"
+        - "2 Acquire"
+        - "3 Extract"
+        - "4 Model & tidy"
+        - "5 Pipeline & audit"
+        - "6 Document & cite"
+        - "7 Govern & collaborate"
+        - "8 Publish"
+        - "9 Deposit, share & discover"
+        - "10 Maintain & feedback"
+        - "The Outline or onboarding itself"
+    validations:
+      required: true
+  - type: dropdown
+    id: harness
+    attributes:
+      label: Where the skill ran
+      options:
+        - Claude Code
+        - claude.ai
+        - Cowork
+        - another agent (say which below)
+    validations:
+      required: true
+  - type: input
+    id: project
+    attributes:
+      label: Project
+      description: Repository URL, or "private project (process lessons only)".
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome attempted, and the "done when" test that failed or was unclear
+      placeholder: "Section 3: rows should reconcile with the printed totals. The skill didn't say what to do when the totals themselves were OCR'd."
+    validations:
+      required: true
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+      description: Facts first, from commits, PRs, issues or logs where you can.
+    validations:
+      required: true
+  - type: textarea
+    id: instead
+    attributes:
+      label: What you did instead
+      description: The workaround or local fix, with a link if it's public.
+  - type: textarea
+    id: files
+    attributes:
+      label: Skill files or commands involved
+      placeholder: "skills/data-liberation/references/extract-pdf.md, `uv run python -m scripts.pipeline run`"
+  - type: dropdown
+    id: cause
+    attributes:
+      label: Likely cause (optional)
+      options:
+        - missing (never addressed)
+        - ambiguous (mentioned but vague)
+        - contradictory (two pieces of guidance disagree)
+        - buried (correct, but found too late)
+        - novel (nothing could have anticipated it)
+        - not sure
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - blocked the sprint
+        - cost rework
+        - friction
+        - suggestion
+    validations:
+      required: true
+  - type: checkboxes
+    id: sensitive
+    attributes:
+      label: Before submitting
+      options:
+        - label: I removed data values, names, record details and anything else sensitive.
+          required: true

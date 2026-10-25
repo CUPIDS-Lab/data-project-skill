@@ -1,0 +1,85 @@
+---
+type: Reference
+title: Harvard Dataverse Deposit (Native API, pyDataverse)
+description: How a data project deposits its processed data, code, and documentation to a Dataverse repository (e.g. Harvard Dataverse) for a citable DOI — the dataset/file/publish workflow, required citation metadata, the data/code/docs→file-category mapping, and the capability-degradation chain (pyDataverse → curl → emitted artifacts).
+resource: https://guides.dataverse.org/en/latest/api/native-api.html
+tags: [accessible, transparent, fair, findable, deposit, dataverse]
+---
+
+# Harvard Dataverse Deposit (Native API)
+
+How a finished project archives its outputs in a Dataverse repository so they are findable, citable (a DOI), and reusable: the deposit surface of Outline section 9, sibling to the OKF knowledge bundle, the ARD catalog, and the OpenSharing share kit. Source: the Dataverse [Native API guide](https://guides.dataverse.org/en/latest/api/native-api.html); clients: [pyDataverse](https://github.com/gdcc/pyDataverse) (official GDCC Python client) and [mcp-dataverse](https://github.com/gdcc/mcp-dataverse) (read-only discovery).
+
+## In one paragraph
+
+A Dataverse *installation* (e.g. `dataverse.harvard.edu`) holds *collections* (each has an `alias`); a collection holds *datasets*; a dataset holds *files* and gets a **DOI at publication**. Depositing is three Native-API calls — create a draft dataset from a citation-metadata JSON, add files (each tagged with a category and folder), then publish — authenticated with an `X-Dataverse-key` token. This skill generates that metadata manifest and runnable deposit scripts from the project it already scaffolded, maps `data/processed`/code/docs onto Dataverse file categories, and leaves the dataset reviewable as a **draft** until a human confirms publication (which mints the DOI and is effectively irreversible).
+
+## Key practices (sampleable units)
+
+- **Three-step deposit** [accessible, transparent] — (1) `POST /api/dataverses/{alias}/datasets` with a `dataset.json` (creates a **draft**, returns the persistent id); (2) `POST /api/datasets/:persistentId/add?persistentId={pid}` once per file (multipart: `file`, `description`, `directoryLabel`, `categories`, `restrict`, `tabularTagIngest`); (3) `POST /api/datasets/:persistentId/actions/publish?persistentId={pid}&type=major|minor` to publish. Header `X-Dataverse-key: {token}` on every write.
+- **Required citation metadata** [documented] — the `citation` block requires **title**, **author** (compound, `authorName` required), **datasetContact** (compound, `datasetContactEmail` required), **dsDescription** (compound, `dsDescriptionValue` required), and **subject** (controlled vocabulary, ≥1). The dataset.json nests these as `datasetVersion.metadataBlocks.citation.fields[]`, each field carrying `typeName` + `value` (primitive = string; compound = array of `{child: {value}}`; controlled-vocab = array of strings).
+- **Subject controlled vocabulary** [documented] — exactly one or more of: Agricultural Sciences; Arts and Humanities; Astronomy and Astrophysics; Business and Management; Chemistry; Computer and Information Science; Earth and Environmental Sciences; Engineering; Law; Mathematical Sciences; Medicine, Health and Life Sciences; Physics; Social Sciences; Other. (Fills `{{DATASET_SUBJECT}}`.)
+- **Files carry category + folder** [documented, accessible] — `categories` tags a file (use **Data** / **Code** / **Documentation**) and `directoryLabel` places it in a virtual folder preserved on download (allowed chars: alphanumerics, `_ - .` and space). `tabularTagIngest=true` triggers tabular ingest for CSV/Stata/SPSS so columns become searchable.
+- **DOI at publish, versioned** [transparent] — a draft has no DOI until published. The first publication must be `type=major` (v1.0); later refreshes publish with `type=minor` (v1.1, v1.2, …), and `type=major` is reserved for a breaking change. Re-deposit updates the draft of the next version rather than creating a new dataset. Reserving a DOI before first publication is possible in the API but untested in these projects; don't promise one.
+
+## Capability & degradation chain (what `procedures/deposit.md` runs)
+
+API token present? → pyDataverse importable? → target collection reachable? Land at the richest tier; never fail the scaffold, and **never publish without explicit confirmation**.
+- **A — pyDataverse (preferred):** `NativeApi(base_url, token)` → `create_dataset(alias, ds.json())` → `upload_datafile(pid, path, df.json())` → (confirmed) `publish_dataset(pid, "major")` the first time, `"minor"` afterward, with `ds.validate_json()` catching metadata errors before the network call.
+- **B — curl Native API (zero-dep):** the generated `deposit-dataverse.sh` runs the three calls with only `curl` + a token; identical result, no Python.
+- **C — emit artifacts, run later:** write `dataset.json` + `deposit-dataverse.sh` + `deposit_dataverse.py` + `DEPOSIT.md`, and hand back the **one command** plus the token/collection the user must set.
+- **D — always:** the `dataset.json` manifest + `DEPOSIT.md` guide are written regardless, so the deposit is reproducible off-skill.
+- **Verification (read-only side-channel):** after publish, `mcp-dataverse` (`search_datasets`, `get_croissant_record`) or a `GET /api/datasets/:persistentId` confirms the record. mcp-dataverse cannot create/upload/publish.
+
+Idempotency: the scripts list existing files from the `:latest` version (the draft when one exists, otherwise the last published version; asking for `:draft` fails on a published dataset with no draft), record the dataset's `persistentId` in `.dataverse-deposit.json` and reuse it (or an explicit `--pid`), so a re-run **updates the same dataset's draft** — replacing files whose names already exist and adding only genuinely new ones — rather than creating a duplicate dataset.
+
+## Versioned / periodically-updated ("streaming") deposits
+
+When the project's data is refreshed on a cadence (monthly/quarterly/annually), follow the Dataverse [data-citation best practices](https://dataverse.org/best-practices/data-citation): keep **one dataset DOI** and publish each refresh as a **new version**, never a new dataset: the first publication is v1.0, later refreshes are minor versions (v1.1, v1.2, …), and only a breaking change (a schema change, a redefined variable) gets a new major version. Earlier guidance said every refresh should be a major version; projects that deposited found minor versions for routine refreshes kept citations stable and the version history readable. A published version is cited by **author, year, title, repository, version, the DOI, and the UNF** — the Universal Numerical Fingerprint Dataverse computes for tabular files, which pins the exact data snapshot independent of format. Re-running the deposit against the recorded `pid` makes a **draft of the next version** automatically.
+
+- **Scheduled re-deposit** [findable, transparent] — with the `UPDATING` flag, emit `templates/ci/dataverse-deposit.yml.tmpl` (as `.github/workflows/dataverse-deposit.yml`): a workflow that runs on `{{DEPOSIT_CRON}}` (derived from the cadence), regenerates `data/processed`, re-deposits a **draft** new version (`--no-publish`), and opens a review issue. It never publishes — minting a version stays a human decision.
+- **Metadata** — record the cadence (`UPDATE_FREQUENCY` → citation `notesText`), the `timePeriodCovered`, and per-release changes in `CHANGELOG.md` (deposited as Documentation), so each version carries its own changelog.
+- **Integrity** — keep `tabularTagIngest=true` for CSVs so Dataverse computes the UNF; always cite the **version + UNF** of the snapshot used.
+- **Restore immutable inputs cheaply** — in a scheduled refresh, restore expensive, immutable originals from a release asset (with their hashes checked against provenance) instead of re-downloading or re-extracting them every run.
+
+## Deposit mechanics (each cost a debug cycle)
+
+These are the Dataverse-specific traps a real deposit hit; the generated scripts encode them so the next project gets them for free.
+
+- **Ingest vs. opaque storage** — Dataverse *ingests* a plain CSV/TSV into a typed `.tab` (per-variable metadata + a UNF), but *unpacks a `.zip`* into individually-ingested members. Ship per-partition files as **plain CSV** (you want the ingest); ship one large combined dump as **`.gz`** (stored opaque, one file). The scripts set `tabularTagIngest` by extension.
+- **Ingest locks the dataset** — a CSV ingest holds a dataset lock and the next file op returns HTTP 400. **Poll `GET /api/datasets/:persistentId/locks` until it is empty between every upload** (`wait_for_locks`), which turns a flaky multi-file deposit into a reliable serial one; budget wall-clock for wide CSVs.
+- **Format the CSV for the ingester at write time** — the ingester types a column from its values, so one stray token demotes a whole numeric column to strings (and drops its UNF). Write UTF-8, `yyyy-MM-dd` dates, one uniformly-typed 2-decimal numeric column, `\n` line terminator + minimal quoting + no index column, and leave missing cells empty. This is a pipeline responsibility (prepare `data/processed` for ingest), not the deposit script's.
+- **Byte-determinism is a deposit requirement** — the UNF is a checksum, so nondeterministic serialization makes a no-op refresh look like a change and churns the file version. Same data in ⇒ same bytes ⇒ same UNF ⇒ no spurious version.
+- **Create vs. update; replace vs. add** — `--collection` **creates**; `--pid` (or a recorded `.dataverse-deposit.json`) **updates** the existing dataset's draft, replacing files whose names already exist (`POST /api/files/{id}/replace`, `forceReplace`) and adding only new ones. Re-running is safe — which unattended CI needs.
+- **Deposit the self-documenting bundle** — alongside the data, deposit the codebook/data dictionary, the provenance sidecar, and the **audit/validation reports** (`data/audit/` reports and `docs/checklists/`), so the archived snapshot carries its own validation and provenance.
+- **Safe-by-default targeting** — the scripts default to the **demo sandbox**; production needs an explicit `--prod` (or `DATAVERSE_URL`), the token is read only from the environment, the API is not called without it, and publish is gated behind `--publish`. In CI, publish only on the scheduled event or a manual `workflow_dispatch`, and add a `concurrency` guard so two refreshes never race on the same dataset.
+- **Metadata from one front-matter source** — build the citation block from the project's own front matter (`README` / `CITATION.cff`: title, authors + ORCIDs, contact, description, keywords, license) so the paper and the deposit cannot drift; keep `subject` to a value Dataverse offers.
+- **Repository-agnostic seam** — Dataverse and Zenodo differ mainly in the metadata schema and the ingest behavior, so keep the orchestration (build → create/update → upload → publish) above a thin per-repository adapter; a **Zenodo** target is then a drop-in rather than a rewrite (route Zenodo to `ROADMAP.md` until built).
+
+## Access & tokens — make sure the agent can actually do this
+
+- **Get a token (Harvard):** log in to `https://dataverse.harvard.edu` → account menu → **API Token** → Create. It is a user-level credential (treat like a password); read it from `DATAVERSE_API_TOKEN` in the environment, never commit it.
+- **Permissions:** the token's user needs *create dataset* in the target collection (`{{DATAVERSE_COLLECTION}}`), which **must already exist and be published**; publishing may require a curator/admin role or trigger a review workflow on some installations.
+- **Safe by default:** the scripts **default to the demo sandbox** `https://demo.dataverse.org` (free, throwaway DOIs); production needs an explicit `--prod` (or `DATAVERSE_URL`). Rehearse the whole path on demo before touching production `https://dataverse.harvard.edu`. Preflight: token set? collection reachable (`GET /api/dataverses/{alias}`)? on a gap, print "missing X → set/grant via Y" and degrade a tier rather than aborting.
+
+## Project artifact → Dataverse mapping
+
+| Project artifact | `categories` | `directoryLabel` | Notes |
+| --- | --- | --- | --- |
+| `data/processed/*` (including `provenance.csv`) | `Data` | `data/processed` | `tabularTagIngest=true` for `.csv`/`.tab`; `data/original/` is not deposited by default |
+| `scripts/`, `pyproject.toml`, `uv.lock`; R: `R/`, `_targets.R`, `DESCRIPTION`, `renv.lock`; optional `Snakefile`, `config.yaml`; each `pipelines/<name>/` | `Code` | `code` | the re-runnable pipeline; link `{{REPO_URL}}` in metadata too |
+| `README.md`, `CHANGELOG.md`, `decision-log.md`, `docs/data-dictionary.md`, `docs/data-card.md`, `knowledge/` (OKF) | `Documentation` | `documentation` | so a reader can interpret the data |
+| `data/audit/*`, `docs/checklists/*` | `Documentation` | `documentation/validation` | the snapshot documents its own validation and provenance |
+| name / PI / contact / description / subject / license | citation `metadataBlocks` | — | `{{PROJECT_NAME}}`, `{{PI_NAME}}`, `{{CONTACT_EMAIL}}`, `{{DESCRIPTION}}`, `{{DATASET_SUBJECT}}`, `{{LICENSE}}` |
+
+## Artifacts it implies
+
+→ `templates/dataverse/dataset.json.tmpl` (citation manifest), `templates/dataverse/deposit-dataverse.sh.tmpl` (curl) + `templates/dataverse/deposit_dataverse.py.tmpl` (pyDataverse), `templates/dataverse/DEPOSIT.md.tmpl` (guide), and `templates/ci/dataverse-deposit.yml.tmpl` (scheduled versioned re-deposit, emitted with `UPDATING`). Rendered into the project's `dataverse/` when the `DATAVERSE` flag is set (section 9); the procedure is `procedures/deposit.md`. The data-management plan, if the project has one, names the deposit target and records the DOI.
+
+## When most relevant
+
+Section 9, when the project wants a citable archive of finished outputs: strong signal on "deposit," "Dataverse," "Harvard Dataverse," "get a DOI," "archive the data," "publish the dataset to a repository." Pairs with the OKF bundle, the data card and the README's per-layer license table (the deposited license). The mechanics above come from test deployments; report anything that breaks through the sprint-feedback form (`_shared/feedback.md`).
+
+## Caveats / conflicts
+
+Publication mints a DOI and is effectively permanent — default to a reviewable **draft** and gate publish behind explicit confirmation. The sensitivity coupling is load-bearing here: never deposit sensitive-human/regulated/Indigenous traces openly — apply the `GOVERNANCE.md` access tiers (`restrict=true`, or desensitize, or withhold) and finish the pre-release checklist and the responsible-data checklist first (`_shared/quality-and-bulletproofing.md`, `_shared/responsible-data.md`). The target collection must exist and be published before deposit; `subject` must come from the controlled list above; and the deposited data should be the regenerable `data/processed` output plus the pipeline, not a frozen one-off.

@@ -1,0 +1,58 @@
+# Data dictionary — {{PROJECT_NAME}}
+
+The hand-maintained record of what each column means, where it comes from, and what is odd about it. Keep it next to the data and change it in the same commit as the data or code it describes. This file has the same structure as the dictionary in `data-liberation`'s project template, so a project that later adds a pipeline keeps one format. If an automated column profile exists (dtype, distinct count, null rate), it is the mechanical counterpart; when the two disagree on a type or meaning, one of them is wrong, so resolve it before merging.
+
+## The dataset
+
+- **Unit of observation:** one row per `<thing>` (for example one row per county-month). Every column below is measured at this grain; getting it wrong is the most common dictionary error.
+- **Key:** the columns that together identify a row uniquely (for example `(source, vintage, observation_id)`).
+- **Sources:** each upstream source, how it was obtained, and its license; per-file hashes and retrieval details are in provenance (`data/processed/provenance.csv`).
+- **Sensitivity:** {{SENSITIVITY_TIER}}.
+- **Update cadence:** static, or re-released `<how often>`.
+- **Row count:** `<N>`, reconciled against the source's own published total where one exists.
+
+## How to read this file
+
+Each column has its own heading with these fields:
+
+- **Type:** the dtype after schema validation: `string`, `Int64`, `Float64`, `boolean`, `date`, `datetime`, or `category`.
+- **Units:** the unit of measure (`USD`, `count`, `mg/L`, `percent 0–100` versus `proportion 0–1`), or `—` for identifiers and text.
+- **Missing values:** how missing is encoded (empty, `NA`, a sentinel such as `-9`) and what it means (not collected, not applicable, or zero). Never let a sentinel pass as a real value.
+- **Source(s):** which upstream artifacts contribute this column, or "pipeline-assigned."
+- **Description:** what the column means and why it exists, in plain English, not a restatement of its name.
+- **Known caveats:** quirks a user must know to avoid mistakes: vintage breakpoints, definitional shifts, values that are not comparable across sources.
+- **Cross-walks:** the `data/lookups/` file(s) this column joins to, if any. Controlled vocabularies in lookups are enforced by a test.
+
+---
+
+## `<column_name>`
+
+- **Type:** `<dtype>`
+- **Units:** `<unit or —>`
+- **Missing values:** `<encoding and meaning>`
+- **Source(s):** `<upstream artifact(s)>`
+- **Description:** `<one or two sentences>`
+- **Known caveats:** `<edge cases, breakpoints, comparability limits>`
+- **Cross-walks:** `<data/lookups/… or N/A>`
+
+_(Copy the block above once per column.)_
+
+---
+
+## Derived columns
+
+For each computed, normalized or summary column, give its formula and the columns it depends on, so analysts reuse one definition instead of each re-deriving their own.
+
+## Known issues
+
+The data problems found and how they were handled: missing values versus zeros, inconsistent spelling or encoding, suspicious sentinels, truncation, totals that do not reconcile with published figures. State what the data can plausibly support (description and comparison far more readily than prediction) and what it cannot.
+
+## Glossary
+
+| Term | Definition |
+| --- | --- |
+| `<term>` | `<plain-language definition; note where this project's usage differs from common usage>` |
+
+<!-- IF:OKF -->## Open-knowledge mapping
+
+This dataset is mirrored as an OKF concept under `knowledge/datasets/`, with one `knowledge/tables/<name>.md` per table: the dataset fields above map to frontmatter (`type`, `title`, `description`, `resource`, `tags`, `timestamp`) and the column entries to each table concept's `# Schema` section.<!-- /IF -->

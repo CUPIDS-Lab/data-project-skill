@@ -1,0 +1,63 @@
+# Depositing {{PROJECT_NAME}} to Dataverse
+
+This project can be archived in a [Dataverse](https://dataverse.org) repository (the project's target: `{{DATAVERSE_URL}}`; the scripts **default to a demo sandbox** — pass `--prod` for production) to get a **citable DOI** and make its data, code, and documentation findable and reusable (the *Findable* + *Accessible* in FAIR). This guide and the two scripts beside it (`deposit-dataverse.sh`, `deposit_dataverse.py`) deposit from `dataset.json` — the citation-metadata manifest generated from this project.
+
+## What gets deposited
+
+| From the project | Uploaded as category | Folder in the dataset |
+| --- | --- | --- |
+| `data/processed/` | **Data** | `data/processed` |
+| `scripts/`, `pyproject.toml`, `uv.lock` (R: `R/`, `_targets.R`, `DESCRIPTION`, `renv.lock`; optional `Snakefile`, `config.yaml`; each `pipelines/<name>/` in a multi-pipeline repository) | **Code** | `code` |
+| `README.md`, `CHANGELOG.md`, `decision-log.md`, `docs/data-dictionary.md`, `docs/data-card.md`, `knowledge/` (OKF) | **Documentation** | `documentation` |
+| `data/audit/*` (audit and reconcile reports), `docs/checklists/*` | **Documentation** | `documentation/validation` |
+| project name · author · contact · description · subject · keywords | citation metadata | — |
+
+`data/original` is **not** uploaded; provenance (`data/processed/provenance.csv`) records where each original came from. The dataset's subject is `{{DATASET_SUBJECT}}` — edit `dataset.json` to add authors, keywords, related publications, or a different subject (from Dataverse's controlled list).
+
+**Prepare `data/processed` for tabular ingest:** write per-partition files as plain CSV (UTF-8, `yyyy-MM-dd` dates, one uniformly-typed 2-decimal numeric column, Unix line endings, no index column, empty cells for missing) so Dataverse types each column and computes a UNF; ship one large combined dump as **`.gz`** (stored opaque) rather than a `.zip`, which Dataverse explodes into individually-ingested members. Deterministic bytes matter — the UNF is a checksum, so a no-op refresh must produce byte-identical files or it churns the version.
+
+## Deposit it
+
+1. **Get an API token.** Log in to `{{DATAVERSE_URL}}` → account menu → **API Token** → Create. Treat it like a password; pass it via the environment, never commit it.
+2. **Pick a target collection.** `{{DATAVERSE_COLLECTION}}` must already exist and be published, and your account must be allowed to create datasets in it.
+3. **Rehearse on the demo sandbox** (the scripts' default target; free, throwaway DOIs). Pass your demo collection alias:
+
+   ```bash
+   DATAVERSE_API_TOKEN=xxxx bash dataverse/deposit-dataverse.sh --collection <your-demo-collection>
+   ```
+
+   Run every command from the project root. This creates a **draft**, uploads every file (waiting for each CSV's ingest lock to clear between uploads), and stops. Open it in the demo UI and confirm the per-partition CSVs show ingested variable metadata and any large combined `.gz` is one opaque file. Do **not** pass `--publish`.
+
+4. **Deposit to production** (`{{DATAVERSE_URL}}`) with `--prod` and your production token + collection. Either client works:
+
+   ```bash
+   # curl, zero dependencies:
+   DATAVERSE_API_TOKEN=xxxx bash dataverse/deposit-dataverse.sh --prod --collection {{DATAVERSE_COLLECTION}}
+
+   # or the official Python client (richer validation):
+   DATAVERSE_API_TOKEN=xxxx uv run --with pyDataverse python dataverse/deposit_dataverse.py --prod --collection {{DATAVERSE_COLLECTION}}
+   ```
+
+   It creates a **draft**, uploads the files above, writes `.dataverse-deposit.json` (so the next run updates this dataset in place instead of duplicating), and prints the `persistentId` (`doi:…`). Nothing is public yet. Add `DRY_RUN=1` to preview without writing anything.
+
+**Running it from an agent.** An agent's permission mode may block the upload because it looks like data leaving the machine. Approve that exact command explicitly (not a broader rule), and record the approval as a dated rule in `AGENTS.md`; the script's file list, not the agent, decides what is uploaded.
+
+## Draft → review → publish
+
+A deposit run stops at a **draft** and offers to publish. **Review the draft in the web UI first** — publishing mints the DOI and is effectively permanent. Publish when ready by answering the prompt, or later with `bash dataverse/deposit-dataverse.sh --prod --pid <doi> --publish` (`--no-publish` to never publish). Each subsequent refresh, re-run with `--prod --pid <doi>`: the scripts update the same dataset in place (replace changed files, add new) and, when you publish, add a new version under the same DOI: v1.0 the first time, then a minor version (v1.1, v1.2, …) for each refresh, unless you pass `--major` for a breaking change such as a schema change. The scheduled `dataverse-deposit.yml` runs the same code path but stops at the draft. Run the `docs/checklists/pre-release-checklist.md` and confirm the license (`{{LICENSE}}`) before publishing.
+
+After publishing, record the DOI in `README.md`, `CITATION.cff` (`identifiers:`), the data card and the data-management plan (if the project has one), add a CHANGELOG entry, and verify the record — e.g. via the read-only `mcp-dataverse` server (`search_datasets`, `get_croissant_record`) or `curl "{{DATAVERSE_URL}}/api/datasets/:persistentId?persistentId=<doi>"`.
+
+<!-- IF:UPDATING -->## Periodically-updated data (versioned deposits)
+
+This dataset is refreshed **{{UPDATE_FREQUENCY}}**. Follow the Dataverse [data-citation best practices](https://dataverse.org/best-practices/data-citation): keep **one DOI** for the dataset and publish each refresh as a **new version**, not a new dataset: the first publication is v1.0, later refreshes are minor versions (v1.1, v1.2, …), and a breaking change (a schema change, a redefined variable) gets a new major version with the reason in `CHANGELOG.md`. Each published version is independently citable by its **version number + UNF** (the Universal Numerical Fingerprint Dataverse computes for tabular files), so a reader can cite and reproduce the exact snapshot they used.
+
+- **Re-deposit a new version:** re-run the deposit (`bash dataverse/deposit-dataverse.sh --prod --pid <doi> --no-publish`). Because `.dataverse-deposit.json` records the dataset's persistent id (or you pass `--pid`), the upload becomes a **draft of the next version** of the same dataset — replacing changed files, adding new ones — rather than a duplicate.
+- **Automated cadence:** the scheduled workflow `.github/workflows/dataverse-deposit.yml` runs {{UPDATE_FREQUENCY}}, prepares that draft version, and opens an issue for review. It never publishes — a maintainer reviews and runs `--publish` to mint the version.
+- **Record what changed:** note each release's changes in `CHANGELOG.md` (deposited as Documentation), so every version carries its own changelog.
+- **Cite a specific version:** include the version and UNF, e.g. *"{{PI_NAME}}, {{YEAR}}, \"{{PROJECT_NAME}}\", {{DATAVERSE_URL}}, V1.2, UNF:6:…"*.
+<!-- /IF -->
+
+<!-- IF:SENSITIVE -->## Sensitive data — do not deposit openly
+
+This project handles **{{SENSITIVITY_TIER}}** data. Do **not** deposit identifiable or restricted traces to a public repository. First apply the access tiers in `docs/governance/GOVERNANCE.md` and complete the `docs/checklists/responsible-data-checklist.md`: desensitize before anything leaves the controlled tier, or upload affected files as restricted (`RESTRICT_DATA=1 bash dataverse/deposit-dataverse.sh`, which sets `restrict:true` on `data/` files), or withhold them and deposit only the documentation and code. Releasing an identifier without its governance is exactly the theater this project refuses to ship.<!-- /IF -->

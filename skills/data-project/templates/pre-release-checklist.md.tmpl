@@ -1,0 +1,67 @@
+# Pre-release checklist — {{PROJECT_NAME}}
+
+Run this before any number leaves the project: a release, a publication, a deposit or a share. It has two parts. **Can the data be trusted at all** (the Quartz bad-data checks, grouped by who should fix each problem) and **is the release defensible** (bulletproofing: reconcile against the source's own totals, recompute key figures a second way, have someone else replicate them). It is Outline section 5's last "done when" item. Prefer pasting it into the release issue as a task list; keep it as this file when it must ship with the release or deposit. Record what you found and how you handled it in `docs/data-dictionary.md` ("Known issues") and `decision-log.md`.
+
+Release: `<version or date>` · Run by: `<name>` · Signed off by: `<name>` on `<YYYY-MM-DD>`
+
+## Part 1: can the data be trusted?
+
+### Problems the source should fix (ask the publisher; document what you can't get fixed)
+
+- [ ] Values missing where you expected data, with no explanation.
+- [ ] Zeros standing in for missing values, or the reverse.
+- [ ] Sentinel values (`65535`, `-1`, `9999`, `1900-01-01`) that actually mean "unknown."
+- [ ] Inconsistent spelling or capitalization that fragments one category into several.
+- [ ] Inconsistent date or number formats (`MM/DD` mixed with `DD/MM`, thousands separators in some rows).
+- [ ] Missing units or metadata, so a column has no defined meaning.
+- [ ] Signs of truncation, for example exactly 65,536 or 1,048,576 rows.
+
+### Problems you should fix (in the pipeline, never by editing originals)
+
+- [ ] Text garbled by an encoding or line-ending mismatch.
+- [ ] Data locked in PDFs or scans that must be extracted (see the `data-liberation` skill), with the extraction audited.
+- [ ] The wrong aggregation level for the question.
+- [ ] Inconsistent human data entry (free text where codes were expected).
+- [ ] Money not adjusted for inflation, or seasonal series compared without accounting for seasonality.
+- [ ] A non-random or biased sample that does not support the intended claim.
+- [ ] A margin of error that is large or unknown.
+
+### Problems an expert should weigh in on
+
+- [ ] A source of uncertain trustworthiness, or one with an interest in the result.
+- [ ] An opaque collection method.
+- [ ] False precision.
+- [ ] Outliers nobody can explain.
+- [ ] Results that hold only under one of many possible specifications.
+- [ ] An index or composite that hides the variation that matters.
+
+### Problems a programmer should help with
+
+- [ ] Data that needs re-aggregation or reshaping in code.
+- [ ] OCR or extraction that needs tuning to recover values reliably.
+
+## Part 2: is the release defensible?
+
+### Integrity
+
+- [ ] Row counts match expected totals; no stage of the pipeline lost rows silently (the conservation check passes).
+- [ ] Grouping on key fields shows no stray spellings, whitespace or near-duplicate records; duplicates were removed before validation.
+- [ ] Numeric ranges and dates are plausible; nothing falls outside the period the data covers.
+- [ ] Missing values, zeros and sentinel codes are distinguished, so "no data" is never averaged in as a number.
+
+### Recomputation
+
+- [ ] Each key figure was recomputed a second way (another query or method) and the two agree.
+- [ ] A random sample, drawn on a stable key, was checked by hand against the originals.
+- [ ] The source's printed totals reconcile, or each mismatch is documented.
+- [ ] Surprising or convenient results were traced to their cause before being reported.
+- [ ] Every number quoted in the README or other prose is generated from the pipeline, not typed by hand.
+
+### Independent review
+
+- [ ] Someone other than the author replicated the key results from the originals without copying the queries.<!-- IF:SOLO --> (Single-steward project: if no second person is available, say so in the release notes rather than ticking this box.)<!-- /IF -->
+- [ ] The procedures behind every figure are recorded (pipeline code, `decision-log.md`), so the work can be reproduced and defended.
+
+<!-- IF:SENSITIVE -->## Sensitive data
+
+This project holds **{{SENSITIVITY_TIER}}** data. Do the verification inside the controlled tier, share only desensitized samples for review, treat any field that could re-identify someone as both a quality and a privacy problem, and confirm the release respects the access tiers in `docs/governance/GOVERNANCE.md`. Complete `docs/checklists/responsible-data-checklist.md` as well.<!-- /IF -->

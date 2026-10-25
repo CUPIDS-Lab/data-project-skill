@@ -1,0 +1,28 @@
+# Local guardrails for {{PROJECT_NAME}} that run before each commit.
+# Install once per clone: `uv run pre-commit install` (or `pre-commit install`).
+# Keep the ruff rev in step with the ruff version in pyproject.toml's dev group.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.2
+    hooks:
+      - id: ruff-check    # lint
+      - id: ruff-format   # format
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^data/original/   # originals are immutable; never rewrite their bytes
+      - id: end-of-file-fixer
+        exclude: ^data/original/
+      - id: check-added-large-files   # keep large data and binaries out of history
+        args: ["--maxkb=50000"]       # GitHub rejects files over 100 MB; fail well before that
+      - id: check-merge-conflict
+      - id: detect-private-key        # never commit secrets
+<!-- IF:NOTEBOOKS -->
+
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.9.1
+    hooks:
+      - id: nbstripout    # clear notebook outputs before committing
+<!-- /IF -->

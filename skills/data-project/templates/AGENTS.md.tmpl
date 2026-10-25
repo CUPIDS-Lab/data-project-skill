@@ -1,0 +1,54 @@
+# AGENTS.md — {{PROJECT_NAME}}
+
+How to work in this repository, for people and agents. Read it before changing anything. `CLAUDE.md` contains only `@AGENTS.md`, and any other agent-tool pointer file points here; if they ever disagree, this file wins.
+
+{{DESCRIPTION}}
+
+## Start here
+
+1. This project follows the ten-section [Outline](https://github.com/CUPIDS-Lab/data-skills/blob/main/OUTLINE.md). `ROADMAP.md` marks each section now, later or skip, with its "done when" test and the evidence that it passes.
+2. The five working files are the ones kept current: `README.md` (what and why, how to use the data), this file, `ROADMAP.md`, `decision-log.md` (dated decisions, tagged **Assumed** or **Private** where they apply) and `CHANGELOG.md`.
+<!-- IF:GH -->3. Open work is in the section issues: `gh issue list --label section:<N>` (or filter by the `section:*` labels on GitHub). Discussion happens there; decisions go to `decision-log.md` with a link back.<!-- /IF -->
+
+## Non-negotiables
+
+- **Originals are immutable.** Never edit anything under `data/original/` in place. Everything in `data/processed/` is regenerated from the originals by code.
+- **Visibility is {{VISIBILITY}}; sensitivity is {{SENSITIVITY_TIER}}.** Never send this project's documents or data to a hosted service (OCR, LLM, publishing) that the visibility or sensitivity decision forbids. <!-- IF:SENSITIVE -->Follow the access tiers in `docs/governance/GOVERNANCE.md`; every identifier, retention or audit feature ships with its access tier and remedy.<!-- /IF -->
+- **No secrets in the repository**, including notebook outputs and example configs.
+- **Numbers quoted in prose are generated** from the pipeline's audit outputs, never typed by hand.
+- **Deposit, publish or share only on the owner's explicit confirmation.**
+
+## Commands
+
+<!-- IF:PIPELINE -->```sh
+uv sync                                   # install
+uv run pytest                             # tests
+uv run python -m scripts.pipeline run     # discover, fetch, clean, audit
+```
+<!-- /IF -->
+<!-- IF:PIPELINES -->Each pipeline is its own project: `cd pipelines/<name> && uv sync && uv run pytest`. CI discovers pipelines by their `pyproject.toml`. Land a new pipeline in its own PR titled `Add <name> pipeline`, with the README's pipeline table updated in the same PR; shared plumbing lives in `pipelines/_core/`.<!-- /IF -->
+<!-- IF:NOTEBOOKS -->Run `nbstripout --install` once per clone so notebook outputs never reach history.<!-- /IF -->
+
+## Task notes
+
+- **Adding a source:** probe the live source first, record its origin, license and access path in provenance at fetch time, and confirm the project may use it. Ask the people who collected the data what it means before interpreting it.
+- **Changing the data or schema:** update `docs/data-dictionary.md` in the same change, add a CHANGELOG line, and a decision-log entry for any non-obvious choice.
+- **Releasing or sharing:** finish the pre-release checklist, apply the access tiers, and stop at a draft until the owner confirms.
+
+## How we work
+
+- Branch and open a PR; never commit straight to `{{DEFAULT_BRANCH}}` in a shared repository. PR bodies say **What changed / Why / What I checked / Left alone on purpose**.
+- Several agents at once: one git worktree each, stage explicit paths (never `git add -A`), and `git fetch` before merging or auditing.
+- If an agent's permission mode blocks a legitimate command (for example an approved upload), the owner approves that exact command and records it under Project rules; never widen it.
+<!-- IF:SOLO -->- One steward ({{PI_NAME}}) makes and records decisions; there is no second reviewer, so PR bodies and the decision-log are the review record.<!-- /IF -->
+<!-- IF:COLLAB -->- Review rules and who owns which paths are in `CONTRIBUTING.md` and `CODEOWNERS`.<!-- /IF -->
+
+## Project rules
+
+Dated rules specific to this project, newest first, each with its reason.
+
+- {{DATE}} — Scaffolded with the `data-project` skill {{SKILL_VERSION}}; visibility {{VISIBILITY}}, sensitivity {{SENSITIVITY_TIER}} (see `decision-log.md`).
+
+## At the end of each sprint
+
+Run an after-action review of the sprint and file each gap with the [sprint-feedback form](https://github.com/CUPIDS-Lab/data-skills/issues/new?template=sprint-feedback.yml), against the Outline section numbers. Private projects report process lessons only: no data values, names or record details.

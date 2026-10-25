@@ -1,0 +1,59 @@
+# ─── Python / uv ─────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.venv/
+.uv-cache/
+
+# ─── Test and lint caches ────────────────────────────────────────────────────
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ─── HTTP cache and partial downloads ────────────────────────────────────────
+.requests-cache.sqlite
+*.part
+
+# ─── Secrets and local config ────────────────────────────────────────────────
+.env
+.env.local
+
+# ─── Storage budget: originals ───────────────────────────────────────────────
+# Default: originals are committed (large binaries via Git LFS, see .gitattributes).
+# For originals too large or too many for git, keep them outside it: uncomment the
+# two lines below for that source. data/original/manifest.json stays committed with
+# each file's URL and sha256, and `fetch` re-downloads and verifies them.
+# data/original/<source>/**
+# !data/original/manifest.json
+
+# ─── Processed outputs ───────────────────────────────────────────────────────
+# The CSV is committed (CI fails on any file near GitHub's 100 MB limit); the
+# Parquet and SQLite copies are rebuilt from it.
+data/processed/*.parquet
+data/processed/*.db
+data/processed/metadata.yaml
+
+# ─── Audit outputs ───────────────────────────────────────────────────────────
+# The Markdown reports (summary, reconcile, discovery) and headline.json are
+# committed, so every refresh PR carries the audit diff. Per-run logs, run
+# metadata and the reject file stay local; their counts are in summary.md.
+data/audit/*.json
+!data/audit/headline.json
+data/audit/*.csv
+data/audit/*.txt
+
+# ─── Quarto (publishing only) ────────────────────────────────────────────────
+/_site/
+/.quarto/
+# docs/_freeze/ is committed: it lets CI re-render without re-running code.
+
+# ─── OS / editor ─────────────────────────────────────────────────────────────
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~

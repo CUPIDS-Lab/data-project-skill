@@ -1,0 +1,50 @@
+# CI for {{PROJECT_NAME}}. Runs on every pull request and on pushes to the default branch.
+# The token guard always runs. Keep the block for this project's toolchain (Python with uv is the
+# default; the R block is commented out) and delete the other. A project rendered from
+# data-liberation's template already has .github/workflows/tests.yml; add only the token-guard step
+# there instead of using this file.
+
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [{{DEFAULT_BRANCH}}]
+  workflow_dispatch:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Fail if any unfilled template token remains. Searches for the literal double-open-brace
+      # marker (written with bracket expressions so this file stays placeholder-free) but skips
+      # GitHub Actions expressions (the dollar-prefixed form) that reference secrets or inputs.
+      - name: Check for unfilled template tokens
+        run: |
+          if grep -rIn --exclude-dir=.git -P '(?<![$])[{][{]' .; then
+            echo "::error::Unfilled template tokens found (see matches above). Fill or remove them before merging."
+            exit 1
+          fi
+          echo "No unfilled template tokens found."
+
+      # --- Python (uv) ---
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.13"
+          enable-cache: true
+      - name: Install
+        run: uv sync
+      - name: Lint
+        run: uv run ruff check .
+      - name: Test
+        run: uv run pytest -q
+      - name: Pipeline CLI starts
+        run: uv run python -m scripts.pipeline --help
+
+      # --- R (targets + renv): replace the Python block above with this one ---
+      # - uses: r-lib/actions/setup-r@v2
+      # - uses: r-lib/actions/setup-renv@v2
+      # - name: Pipeline plan (dry run)
+      #   run: Rscript -e "targets::tar_manifest()"

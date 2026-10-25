@@ -1,0 +1,52 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        # No `lfs: true`: tests run on committed fixtures, which saves LFS bandwidth.
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          python-version: "3.13"
+
+      - name: Install
+        run: uv sync
+
+      - name: Lint
+        run: |
+          uv run ruff check scripts tests
+          uv run ruff format --check scripts tests
+
+      - name: Type-check (advisory)
+        continue-on-error: true
+        run: uv run mypy scripts
+
+      - name: Test (schema, build checks, generated numbers, vocabularies)
+        run: uv run pytest -q
+
+      - name: Command line loads
+        run: |
+          uv run python -m scripts.pipeline --help
+          uv run python -m scripts.pipeline run --help
+
+      - name: Storage budget (no committed file near GitHub's 100 MB limit)
+        # LFS files are small pointers in git, so they pass; anything over 95 MiB
+        # belongs in Git LFS or external storage with its URL and sha256 in the manifest.
+        run: |
+          git ls-tree -r -l HEAD | awk '$4 != "-" && $4 > 99614720 { print "too large:", $4, $5; bad = 1 } END { exit bad }'

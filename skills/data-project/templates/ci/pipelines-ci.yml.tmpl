@@ -1,0 +1,103 @@
+# Multi-pipeline CI for {{PROJECT_NAME}}: one repository hosting several data-liberation-shaped
+# pipelines under pipelines/<name>/, each with its own pyproject.toml.
+#
+# The `discover` job lists every pipelines/*/pyproject.toml and the `test` job fans out over the
+# result, so adding a pipeline needs no edit to this file. Each pipeline is tested from its own
+# directory with `uv sync && uv run pytest` on Python 3.13. The shared package pipelines/_core/
+# (if present) is tested by its own job and is not part of the pipeline matrix.
+#
+# Static check: any directory under pipelines/ without a pyproject.toml fails the build, so a
+# half-landed pipeline is caught instead of silently skipped.
+
+name: pipelines-ci
+
+on:
+  pull_request:
+  push:
+    branches: [{{DEFAULT_BRANCH}}]
+  workflow_dispatch:
+
+jobs:
+  # Fail if any unfilled template token remains. Searches for the literal double-open-brace marker
+  # (written with bracket expressions so this file stays placeholder-free) but skips GitHub Actions
+  # expressions (the dollar-prefixed form) so workflow files are not flagged.
+  tokens:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check for unfilled template tokens
+        run: |
+          if grep -rIn --exclude-dir=.git -P '(?<![$])[{][{]' .; then
+            echo "::error::Unfilled template tokens found (see matches above). Fill or remove them before merging."
+            exit 1
+          fi
+          echo "No unfilled template tokens found."
+
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      pipelines: ${{ steps.find.outputs.pipelines }}
+      core: ${{ steps.find.outputs.core }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Every pipeline directory has a pyproject.toml
+        run: |
+          set -euo pipefail
+          missing=0
+          for d in pipelines/*/; do
+            [ -d "$d" ] || continue
+            if [ ! -f "${d}pyproject.toml" ]; then
+              echo "::error::${d} has no pyproject.toml; every pipeline (and _core) must be a uv project."
+              missing=1
+            fi
+          done
+          exit "$missing"
+      - name: List pipelines
+        id: find
+        run: |
+          set -euo pipefail
+          names="$(find pipelines -mindepth 2 -maxdepth 2 -name pyproject.toml -printf '%h\n' 2>/dev/null \
+            | xargs -r -n1 basename | grep -v '^_' | sort -u | jq -R . | jq -cs .)"
+          echo "pipelines=${names:-[]}" >> "$GITHUB_OUTPUT"
+          if [ -f pipelines/_core/pyproject.toml ]; then echo "core=true" >> "$GITHUB_OUTPUT"; else echo "core=false" >> "$GITHUB_OUTPUT"; fi
+          echo "Discovered pipelines: ${names:-[]}"
+
+  core:
+    needs: discover
+    if: ${{ needs.discover.outputs.core == 'true' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pipelines/_core
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.13"
+          enable-cache: true
+      - run: uv sync
+      - run: uv run pytest -q
+
+  test:
+    needs: discover
+    if: ${{ needs.discover.outputs.pipelines != '[]' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        pipeline: ${{ fromJSON(needs.discover.outputs.pipelines) }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pipelines/${{ matrix.pipeline }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.13"
+          enable-cache: true
+      - name: Install
+        run: uv sync
+      - name: Test
+        run: uv run pytest -q
+      - name: CLI starts
+        run: uv run python -m scripts.pipeline --help

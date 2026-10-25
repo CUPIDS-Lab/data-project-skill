@@ -1,0 +1,127 @@
+{
+  "skill_name": "data-project",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I have a CSV of city eviction filings. Can you set up a repo for it?",
+      "expected_output": "Short scoping (section 1), then a plan showing the five working files and which sections are now/later/skip, approved before writing. Scaffolds only the five working files plus the data dictionary and data/ layout; no pipeline, governance or OKF bundle.",
+      "files": [],
+      "expectations": [
+        "Asks about or records sensitivity and visibility before scaffolding (eviction filings name people)",
+        "Waits for approval before writing files",
+        "Creates README.md, AGENTS.md, CLAUDE.md, ROADMAP.md, decision-log.md, CHANGELOG.md",
+        "Does not create GOVERNANCE.md, CHARTER.md, checklists, an OKF bundle or a deposit kit unless the user marked those sections now",
+        "Does not mention levels L0-L5"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Set up a reproducible Python project for analyzing eviction data, with a pipeline that re-runs when the data is refreshed.",
+      "expected_output": "Scopes, then scaffolds the pipeline with data-liberation's project template (uv, pyproject.toml, scripts/, python -m scripts.pipeline run) and a refresh workflow, not a conda/Snakemake stack; Snakemake only if asked, as a wrapper.",
+      "files": [],
+      "expectations": [
+        "Uses pyproject.toml with uv and code under scripts/",
+        "Does not require Snakemake or environment.yml",
+        "Includes a recurring refresh that opens a reviewable PR"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "We're starting a multi-partner project with sensitive tenant records across three housing nonprofits. Help me set up the repository.",
+      "expected_output": "Marks sensitivity = sensitive-human, so section 7 safeguards are now regardless of other deferrals: GOVERNANCE with access tiers, retention, remedy; CHARTER with roles; the responsible-data checklist filled from the scoping conversation; docs under docs/governance/ and docs/checklists/; one issue per now section because there is a team.",
+      "files": [],
+      "expectations": [
+        "Treats governance safeguards as required now because the data is sensitive",
+        "Fills the responsible-data checklist from the scoping answers rather than leaving it blank",
+        "Any approval-by-PR rule is paired with a branch-protection step",
+        "Plans one issue per now section"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Audit this repository against open, reproducible, and inclusive data standards and tell me what's missing.",
+      "expected_output": "Read-only audit: verifies the checkout is level with origin, scores the repo against each Outline section's done-when test, prints a prioritized gap table by section, and offers remediation without modifying the repo.",
+      "files": [],
+      "expectations": [
+        "Does not modify the repository",
+        "Reports gaps organized by Outline section, not by level",
+        "Checks the checkout against the remote default branch first"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "We're publishing this eviction dataset so other agents can find and use it. Set up agent discovery.",
+      "expected_output": "Section 9 discovery: generates ai-catalog.json and DISCOVERY.md with domain-anchored URNs and the spec version the template uses; records hosting at .well-known and registry registration as ROADMAP items.",
+      "files": [],
+      "expectations": [
+        "Generates ai-catalog.json and DISCOVERY.md",
+        "Defers hosting and registry registration to ROADMAP rows rather than claiming they are done"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "We've finished the analysis. Deposit the processed data, code, and documentation to Harvard Dataverse so we get a DOI.",
+      "expected_output": "Section 9 deposit via procedures/deposit.md: gates on sensitivity first; maps data/processed to Data, scripts/ and pipeline files to Code, README and docs/data-dictionary.md to Documentation; defaults to the demo sandbox; stops at a draft and publishes only on explicit confirmation.",
+      "files": [],
+      "expectations": [
+        "Checks sensitivity before depositing",
+        "Defaults to the demo sandbox or a dry run",
+        "Does not publish (mint the DOI) without explicit confirmation",
+        "Never asks to commit the API token"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "We deposit this dataset to Harvard Dataverse and refresh it every quarter. Set that up.",
+      "expected_output": "Emits the deposit kit plus a scheduled re-deposit workflow that creates a draft new version and opens a review issue; first refresh is a major version, later refreshes minor.",
+      "files": [],
+      "expectations": [
+        "The scheduled workflow creates a draft version and does not publish on its own",
+        "States the versioning rule: first refresh major, later refreshes minor"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "We want to share our processed datasets with a partner organization without giving them a copy of the data. Wire up OpenSharing.",
+      "expected_output": "Emits the opensharing/ declaration kit gated by GOVERNANCE access tiers; does not run a server or vend credentials.",
+      "files": [],
+      "expectations": [
+        "Emits share.json and SHARING.md",
+        "States that it does not run a sharing server or issue credentials",
+        "Ties what enters the share to the governance access tiers"
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "We're liberating four different data sources into one repo, each with its own pipeline. Set up CI that tests all of them, and make sure adding a fifth later doesn't mean editing the workflow.",
+      "expected_output": "Multi-pipeline repo: pipelines/<name>/ each a data-liberation-shaped project, shared plumbing in pipelines/_core/, CI discovers pipelines/*/pyproject.toml and runs each pipeline's tests.",
+      "files": [],
+      "expectations": [
+        "CI discovers pipelines by pyproject.toml, not by Snakefile",
+        "Each pipeline has its own pyproject.toml and tests",
+        "Shared plumbing goes in a shared core rather than being copied between pipelines"
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "It's just me on this project, but set up governance properly.",
+      "expected_output": "Writes an honest single-steward governance statement and correction path; no committee, no approval-by-PR rule without branch protection.",
+      "files": [],
+      "expectations": [
+        "Describes a single steward rather than inventing roles or reviewers",
+        "Does not claim PR-approval gates that nothing enforces"
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "We just finished a two-week sprint and the skill's advice on reconciling OCR'd totals was useless. What should I do with that?",
+      "expected_output": "Helps run a short after-action review and prepares a sprint-feedback issue for CUPIDS-Lab/data-skills against section 3, with the sensitive-details check; files it only on confirmation.",
+      "files": [],
+      "expectations": [
+        "Points to the sprint-feedback form on CUPIDS-Lab/data-skills",
+        "Maps the gap to an Outline section (3 Extract)",
+        "Asks the user to remove sensitive details and confirms before filing"
+      ]
+    }
+  ]
+}

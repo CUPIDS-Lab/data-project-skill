@@ -1,123 +1,47 @@
 # Changelog
 
-All notable changes to the `data-project` skill are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/); the skill aims at semantic versioning.
+Changes to the skills in this repository, recorded per skill. The format follows [Keep a Changelog](https://keepachangelog.com/); each skill follows semantic versioning on its own line and is tagged `<skill>--v<version>`.
 
-## [0.10.0] — 2026-07-23
+Pre-monorepo history: [`data-project`](history/data-project/CHANGELOG.md) (through 0.10.0) and [`data-liberation`](history/data-liberation/CHANGELOG.md) (through 0.4.0).
 
-Hardens the Dataverse deposit kit with the mechanics from a real (sandbox-tested) deposit, synthesized from three Dataverse-deposit after-action reports, so future projects get them for free.
+## Repository
 
-### Changed
-- **Dataverse deposit kit hardened.** `deposit-dataverse.sh` + `deposit_dataverse.py` now poll the dataset **lock** between uploads (a CSV ingest holds a lock and the next upload 400s); **create-or-update idempotently** — `--collection` creates, `--pid` (or the recorded `.dataverse-deposit.json`) updates the existing dataset's draft, replacing files by name and adding only new ones; set **`tabularTagIngest`** for CSV/TSV (ship a large combined dump as `.gz`, stored opaque, not a `.zip`, which Dataverse explodes into members); **default to the demo sandbox** and require an explicit `--prod` for production; and deposit the **audit/validation reports** (`docs/checklists`) so the snapshot documents its own validation. The scheduled `dataverse-deposit.yml` gains a `concurrency` guard and targets production in place (`--prod --pid`, with the DOI as a repo variable). `references/dataverse-deposit.md`, `templates/dataverse/DEPOSIT.md.tmpl`, the `data-project-depositor` agent, and `SKILL.md` Deposit mode capture the ingest-vs-opaque / lock / format-for-ingester / byte-determinism / front-matter-metadata / repository-agnostic-seam (Zenodo) lessons.
+### [Unreleased]
 
-### Notes
-- The companion reports' pipeline/PDF/Survey findings (multi-source abstraction, live-source Survey, PDFium, loud-drop guards) target the sibling `data-liberation` skill and are out of scope for this repo.
+#### Added
+- **One repository for both skills** (`skills/data-project/`, `skills/data-liberation/`), with `data-liberation`'s history imported from `CUPIDS-Lab/data-liberation-skill`. Repository files (CI, evals, changelog, retros) live at the root so installs stay clean.
+- **The Outline** (`OUTLINE.md`, source `shared/OUTLINE.md`): ten sections, each with an outcome and a "done when" test, replacing both skills' L0–L5 ladders. `shared/outline.yaml` maps every reference and template to the section that owns it.
+- **`shared/`** content vendored into both skills by `tools/vendor.py`, with a CI drift check.
+- **`tools/validate.py`**, the single CI gate: layout, Agent Skills spec (also via the official `agentskills validate`), links, section ownership, vendoring, both skills' template validators, and a per-skill version-bump check on pull requests.
+- **Feedback intake:** a sprint-feedback issue form keyed to the Outline's sections, a bug form, labels (`skill:*`, `section:*`, `cause:*`, `severity:*`, `status:*`), and a workflow that labels issues from their form answers. `CONTRIBUTING.md` documents triage.
+- **Evals** for both skills under `evals/` (behavior cases and trigger queries, including near-misses between the two skills).
+- **Releases:** `release.yml` builds an upload-ready zip per skill on `<skill>--v*` tags and attaches it to the GitHub release; `tools/build_zips.py` builds them locally.
 
-## [0.9.0] — 2026-07-23
+## data-project
 
-Makes FAIR **explicit and measurable** instead of informal, and adds a one-flowing-line-per-paragraph documentation style.
+### [0.11.0] — Unreleased
 
-### Added
-- **FAIR maturity backbone.** New `references/fair-maturity.md` turns the skill's informal "aims at FAIR" into an explicit, level-gated practice: the FAIR sub-principles (F/A/I/R) verbatim, the **FAIR-DSM** maturity model (Content / Representation / Hosting) crosswalked to L0–L5, the "FAIR is a continuum / FAIR enough" grounding for lean-by-default, the FAIR-is-not-open reconciliation with CARE (A1.2 access tiers), and the machine-actionable Maturity-Indicator framing. New templates: `FAIR-CHECKLIST.md` (a per-principle self-assessment mapping each facet to what satisfies it in this repo and the level that adds it → `docs/`), `codemeta.json` (machine-readable software metadata; repo root, from L2), and `CITATION.cff` (how to cite; repo root, from L1). Synthesized from 14 Nature *Scientific Data* papers on FAIR, FAIRification, FAIR maturity, and FAIR-for-software/workflows/AI. Wired into `SKILL.md` (Step 6, reference map, what's-built), `references/INDEX.md` (§A/§B/§C), `references/escalation-levels.md`, `references/context.md`, and `templates/directory-tree.md`.
+#### Changed
+- **Outline instead of levels.** `SKILL.md` is a router over the Outline's sections, with the hard rules first. Projects start with five working files (README, AGENTS.md + `CLAUDE.md`, ROADMAP, decision-log, CHANGELOG); every other artifact is generated only when its section is in scope. ROADMAP tracks the ten sections as now/later/skip.
+- **Agents became procedures.** `references/procedures/` holds `scope.md` (from the interviewer), `scaffold.md`, `tracking.md` (from the tracker), `deposit.md` (from the depositor) and `audit.md`. The indexer and synthesizer are removed; they only selected artifacts by level.
+- **Visibility and honest governance.** Scoping decides private, embargoed or public. Review gates ship only with a branch-protection step, and solo projects get a single-steward variant (`SOLO` flag).
+- **One project shape.** Pipelines use `data-liberation`'s template (uv, `pyproject.toml`, `scripts/`); Snakemake is an optional wrapper. Multi-pipeline CI discovers `pipelines/*/pyproject.toml` (it previously looked for a `Snakefile` no pipeline had, so nothing was tested). `references/multi-pipeline.md` replaces the landing and stamping references.
+- **Deposit kit:** finds the project root correctly (it previously looked for `data/processed` inside `dataverse/`), maps `scripts/` and `docs/data-dictionary.md`, and versions refreshes as major the first time and minor after.
+- **Consolidated references.** The values spine, responsible data, governance, FAIR and standards, quality and bulletproofing, and the nine practice digests moved to shared references (substance kept). Tokens `LEVEL`, `ROADMAP_ROWS`, `TRACKING_ROWS`, `MILESTONE_TITLE` and flags `NESTED_SKILLS`, `WIKI`, `WHY` are removed; `DATE`, `SKILL_VERSION`, `VISIBILITY` and `SOLO` are added.
+- Frontmatter fits the Agent Skills spec (the `argument-hint` key, rejected by claude.ai uploads, is removed) and the description no longer competes with `data-liberation` for "data dictionary."
 
-### Changed
-- **Documentation style: one flowing line per paragraph.** `SKILL.md` now requires every Markdown prose paragraph and list item to be a single flowing line with no hard-wrapped line breaks (tables, fenced code, and frontmatter keep their structural breaks). Enforced across the repo: reflowed the six Markdown files that still hard-wrapped prose or list items (`agents/data-project-depositor.md`, `references/landing-a-pipeline.md`, `references/stamping-and-shared-core.md`, `templates/ard/DISCOVERY.md.tmpl`, `templates/dataverse/DEPOSIT.md.tmpl`, `templates/opensharing/SHARING.md.tmpl`); the rest already complied.
+#### Removed
+- `references/INDEX.md`, `references/escalation-levels.md`, `agents/`, nested-skill templates, wiki seeds, `NEXT-STEPS`, `LICENSE-NOTE`, `environment.yml`, and the separate Python `pyproject.toml` template. Two checklists and two canvases were merged into `pre-release-checklist` and `scope-canvas`.
 
-## [0.8.0] — 2026-06-23
+## data-liberation
 
-De-clutters the generated repo and makes the governance docs load-bearing. At L3/L4 the skill used to drop ~24 docs into the project **root**, several of which (`CHARTER`, `INSTALLED-BASE`, `collaboration-protocol`, `contributed-data-intake`, `PROJECT-MANAGEMENT`, `data-management-plan`) were written once and then referenced by no agent process. This release condenses overlaps, groups the rest under a `docs/` tree, and wires what remains into `AGENTS.md` and the nested skills. **This changes the generated-repo layout only — the menu and lean-by-default are unchanged.**
+### [0.5.0] — Unreleased
 
-### Changed
-- **Grouped `docs/` tree.** Generated governance/reference docs now land under `docs/`: `docs/governance/` (`GOVERNANCE`, `CHARTER`, `data-management-plan`), `docs/checklists/` (responsible-data, bulletproofing, data-quality, accessibility), and `docs/data-card.md`. The GitHub **community-health** files (`CONTRIBUTING`, `CODE_OF_CONDUCT`, `CODEOWNERS`) stay at the repo root — GitHub only auto-detects them in root / `.github/` / top of `docs/` — as do the active working docs (`README`, `AGENTS`, `CHANGELOG`, `LICENSE`, `ROADMAP`, `decision-log`, `DATA-DICTIONARY`, `NEXT-STEPS`). `templates/directory-tree.md` is the structural source of truth.
-- **Condensed five templates into their natural homes** (no capability lost): `INSTALLED-BASE` → a values-spine section of `GOVERNANCE`; `ROLES` and `collaboration-protocol` → sections of `CHARTER`; `PROJECT-MANAGEMENT` → a "How we track work" section of `CONTRIBUTING`; `contributed-data-intake` → a section of `data-management-plan`; and a Glossary section was added to `DATA-DICTIONARY` so a separate `GLOSSARY.md` is unnecessary. The five standalone templates were deleted.
-- **Wired governance into agent processes.** `AGENTS.md` now carries a `docs/` index that points at `GOVERNANCE`/`CHARTER`/the DMP/the checklists **at the decision points they govern**, so they are consulted rather than filed-and-forgotten; the nested `.skills/` and `CODEOWNERS` reference the new paths.
-- **Repointed every intra-repo doc link** (~60 references across ~25 files) to the new `docs/…` paths and merge targets, and updated the skill's own crosswalk and digests: `references/INDEX.md` §B/§C, `references/escalation-levels.md`, the "Artifacts it implies" mappings in `propublica`/`responsible-data-handbook`/`collaboration-architecture`/`installed-base`/`github`, `SKILL.md` (Step 6, Deposit mode, "what's built"), the synthesizer/depositor agents, `evals.json` (eval #3 + a new docs-layout eval #11), and the README. Validator stays green (22 references, 63 templates).
-
-## [0.7.0] — 2026-06-23
-
-Revisions from the **second** real build's after-action report (Colorado Environmental Data Hub), which exercised the skill across **four** `data-liberation` pipelines in one repo. The `pipelines/<name>/` monorepo layout has existed since 0.4.0 but was never made *operational* — every new friction clustered at that seam. This release closes it, opt-in and lean-by-default.
-
-### Added
-- **Auto-discovered multi-pipeline CI.** New `templates/ci/pipelines-ci.yml.tmpl`: a `discover` job globs `pipelines/*/Snakefile` into a JSON array and a `test` job fans out over it via a build matrix (`fail-fast: false`), so adding a pipeline needs **no** workflow edit — with a documented static-matrix fallback ("land the matrix row in the same PR as the directory"). New `PIPELINES` flag (multi-pipeline monorepo; distinct from the singular `PIPELINE`), documented in `SKILL.md` and guarded by `scripts/validate.py`; emitted **instead of** the single-project `github-actions-ci.yml`. The scheduled `dataverse-deposit.yml` rebuilds every pipeline before its one versioned deposit when `PIPELINES` is set.
-- **First-class "land a pipeline" sub-flow.** New `references/landing-a-pipeline.md`: the ordered procedure (isolated worktree → scaffold a self-contained `pipelines/<name>/` → auto-discovered CI → repo-doc registration → one PR `Add <name> pipeline (#NN)` with `Closes #NN` → green → merge → verify `origin`), a **registration checklist** naming every surface a landed pipeline must update, and a `<!-- data-project:pipeline=<name> -->` marker convention.
-- **Shared-core stance.** New `references/stamping-and-shared-core.md`: when (~3 pipelines) and how to factor domain-agnostic plumbing into a shared core (`src/<pkg>/` or `pipelines/_core/`) versus keep domain logic per pipeline, and how to **stamp a sibling** instead of copy-pasting. Wired from `references/context.md`.
-- **Two evals** (multi-pipeline CI scaffold; land-a-pipeline) in `evals/evals.json`.
-
-### Changed
-- **Multi-agent / shared-working-tree isolation.** `SKILL.md` Guardrails and `references/github.md` now prescribe a **git worktree per agent**, **explicit-path staging (never `git add -A`/`.`)** in a shared dirty tree, and `git fetch` + verify `origin/<default-branch>` before merging or auditing; Audit mode fetches/verifies first; `README.md`'s scaffold example no longer models `git add -A`.
-- **Close issues on landing, and reconcile the monorepo.** `data-project-tracker` closes a pipeline/task issue from its merged landing PR (`Closes #N`) rather than a roadmap diff, flags **built-but-open / closed-but-unbuilt** issues, and reconciles `pipelines/*` against the repo's documented pipelines (the marker surfaces), flagging under-registration.
-- **Novice-legibility pass finished.** Rewrote the L4 `accessibility-checklist` and `data-dictionary` templates so each item/column is self-contained (what / where / how / pass-vs-fail; allowed-values and missingness-encoding examples) and prompts filling one pass per output / per dataset / per pipeline.
-- **Housekeeping.** Corrected the stale framework-digest count in `references/INDEX.md` (~14 → ~15) and wired the two new references into INDEX §B/§C, `SKILL.md`'s reference map + "what's built", and `templates/directory-tree.md` (per-pipeline `environment.yml` + landing/shared-core pointers).
-
-## [0.6.1] — 2026-06-22
-
-### Changed
-- **Consolidated the `references/` corpus (23 → 20 digests).** Merged the two same-source clusters into multi-section digests: the git/GitHub code-review and project-management digests → `references/github.md`, and the three ProPublica guides (collaborative · contributed-data · bulletproofing) → `references/propublica.md`. Repointed every citation (INDEX §A/§B, `SKILL.md`, the `data-project-tracker` binding, README "draws on") and normalized the `quartz-bad-data-guide` heading. No content was dropped — each merged source survives as a labelled section keeping its goal-tagged practices and its own artifact mapping.
-- **Validator: digests must stay sampleable.** `scripts/validate.py` now checks that every non-spine `references/*.md` is cited as a bare `` `slug` `` in `INDEX.md` — catching an orphaned digest or rename drift (e.g. a merged file whose new slug was never wired in).
-
-## [0.6.0] — 2026-06-22
-
-### Added
-- **L5 OpenSharing zero-copy sharing.** New `references/open-sharing-protocol.md` digest and a `templates/opensharing/` kit (`share.json` Share→Schema→Asset declaration, `share-profile.example.json` recipient profile, `SHARING.md` serve/consume guide). When the `OPENSHARING` flag is set, the skill maps the project's processed tables (**Table**), file/doc directories (**Volume**), and `.skills/` (**AgentSkill**) onto the [OpenSharing](https://github.com/OpenSharing-IO/OpenSharing) protocol (Linux Foundation; Delta-Sharing-compatible), so the project can be shared across organizations **in place** via temporary, scoped credentials instead of by copying. The skill emits only the declaration — it never runs a sharing server or vends credentials — and what enters a share is gated by the `GOVERNANCE.md` access tiers; the filled recipient profile (which holds a bearer token) is gitignored.
-- New `OPENSHARING` flag and `OPENSHARING_ENDPOINT` / `SHARE_STORAGE_BASE` tokens, documented in `SKILL.md` and guarded by `scripts/validate.py` (the JSON-template check already covers `templates/opensharing/`). Wired into `references/INDEX.md` (§A/§B/§C), `references/escalation-levels.md`, `templates/directory-tree.md`, the L4 `data-management-plan`, the L3 `release-and-share` nested skill, the project `AGENTS.md`, and `.gitignore`.
-
-### Changed
-- Refreshed `references/okf-open-knowledge-format.md` to position OpenSharing alongside OKF (OKF shares the understanding; OpenSharing shares the assets, and an OKF bundle can itself be shared as a Volume), and updated the top-level `AGENTS.md` to describe the L5 publish/share surfaces and the current agent roster.
-- Audit pass: bumped the scaffold's `ruff-pre-commit` pin (`v0.6.9` → `v0.15.18`), annotated the now-archived Data Cards Playbook code repo, and named OpenSharing as the fourth L5 surface in the Dataverse and ARD digests.
-
-## [0.5.0] — 2026-06-20
-
-### Added
-- **Periodically-updated ("streaming") Dataverse deposits.** A menu option (an interview cadence question → the `UPDATING` flag) for data refreshed monthly/quarterly/annually. Per the Dataverse data-citation best practices, each refresh is published as a **new version under one DOI** (cited by version + UNF), not a new dataset. New `templates/ci/dataverse-deposit.yml.tmpl` scheduled workflow re-deposits a **draft** new version on the cadence (`DEPOSIT_CRON`), then opens a review issue — it never auto-publishes (minting a version stays a human decision). `dataset.json` gains version/frequency/time-period metadata (`notesText`, `timePeriodCovered`); `DEPOSIT.md` and the L4 `data-management-plan` document the versioning + citation policy. New `UPDATE_FREQUENCY` / `DEPOSIT_CRON` tokens and `UPDATING` flag, wired into `SKILL.md`, the interviewer / synthesizer / depositor agents, `references/dataverse-deposit.md`, `references/INDEX.md`, and `references/escalation-levels.md`.
-
-### Changed
-- **Workflow templates may use GitHub Actions `${{ … }}` secrets/inputs.** `scripts/validate.py` and the scaffolded-repo CI token-guard now ignore the `$`-prefixed brace form (only a bare `{{ … }}` is treated as an unfilled skill token), so deposit/CI workflow templates can reference repository secrets.
-
-## [0.4.0] — 2026-06-19
-
-A combined release: the **L5 Harvard Dataverse deposit** capability, plus revisions from the first real build's after-action report (Colorado Environmental Data Hub). GitHub "Track mode" and the external-prerequisite preflight/degradation chain were already in place (`SKILL.md` Track mode + Step 6.5, the `data-project-tracker` agent, `references/github-project-management.md`); the AAR work closes the remaining gaps that build had to improvise, keeping every addition opt-in and lean-by-default.
-
-### Added
-- **L5 Harvard Dataverse deposit.** New `references/dataverse-deposit.md` digest, a `templates/dataverse/` kit (`dataset.json` citation manifest, `deposit-dataverse.sh` curl + `deposit_dataverse.py` pyDataverse deposit scripts, `DEPOSIT.md` guide), and a `data-project-depositor` agent. At L5 the skill can archive a project's processed data (category **Data**), code (**Code**), and documentation (**Documentation**) to a Dataverse repository for a citable DOI, mapping project metadata to the Native API citation block. A new **Deposit mode** (`/data-project deposit`) runs the capability chain (pyDataverse → curl → emit-and-hand-off), is idempotent via `.dataverse-deposit.json`, gates sensitive data through `GOVERNANCE.md` access tiers, and stops at a reviewable draft — publishing (which mints the DOI) only on explicit confirmation.
-- New `DATAVERSE` flag and `DATAVERSE_URL` / `DATAVERSE_COLLECTION` / `DATASET_SUBJECT` tokens, documented in `SKILL.md` and guarded by `scripts/validate.py` (the JSON-template check now also covers `templates/dataverse/`). Wired into `references/INDEX.md` (§A/§B/§C), `references/escalation-levels.md`, `templates/directory-tree.md`, the L4 `data-management-plan`, and the L3 `release-and-share` nested skill.
-- **Notebook hygiene (`NOTEBOOKS` flag).** When a project uses notebooks, the scaffold wires up output-stripping as a git filter: `*.ipynb filter=nbstripout diff=ipynb` in `.gitattributes`, a one-time `nbstripout --install` note in `AGENTS.md`, and `nbstripout` in the conda environment — complementing the existing pre-commit hook so outputs never land in history. Clones without the filter degrade gracefully. Documented in `SKILL.md` and guarded by `scripts/validate.py`.
-- **Multi-pipeline monorepo shape.** `templates/directory-tree.md` and `references/context.md` now specify the `data-liberation` hand-off: a `data-project` repo hosts *N* pipelines under `pipelines/<name>/`, each mapped 1:1 to a tracked issue/sub-issue under the umbrella `ROADMAP.md`/board.
-- **Conditional ("becomes-sensitive-when") sensitivity.** A first-class disposition for data that is public now but becomes sensitive when a named event occurs: the interviewer captures the trigger, the synthesizer emits it as a **blocking** ROADMAP item gating the sensitive build, and `installed-base.md` / `escalation-levels.md` / `ROADMAP.md.tmpl` document the deferred-but-enforced coupling.
-- **Context-rich fast path.** `SKILL.md` and the interviewer now infer the full Project Context Profile from supplied design docs (a `/context/` dump) and present it for confirmation instead of running a cold-start questionnaire; the single human approval gate is unchanged.
-
-### Changed
-- **Curated vs. bulk raw data.** The "raw is immutable + git-ignored" convention now distinguishes **bulk/external/re-downloadable** raw (git-ignored) from a small **curated source-of-record** (tracked via a `.gitignore` carve-out, documented immutable). Updated `gitignore.tmpl` (carve-out idiom), `context.md`, `AGENTS.md.tmpl`, `README.md.tmpl`, `directory-tree.md`, the interviewer, and `SKILL.md` Step 6.
-- **Resolved `src/` vs `scripts/` divergence.** `src/<pkg>/` is stated as the repo-wide package location; a nested `data-liberation` pipeline's own `scripts/` may stay local to its `pipelines/<name>/`. Aligned `collaboration-architecture.md` and `directory-tree.md`, and corrected the stale `pipelines/Snakefile` reference in `evals.json` to the root single-pipeline default.
-- **Guardrails.** `SKILL.md` now recommends branch → PR → merge when scaffolding into a shared repo, and adds a template-authoring rule (instructions written for the newcomer who executes them). `escalation-levels.md` notes that CI first appears at L2+.
-
-## [0.3.0] — 2026-06-18
-
-### Added
-- **L5 agent discovery (Agentic Resource Discovery / ARD).** New `references/agentic-resource-discovery.md` digest and `templates/ard/{ai-catalog.json,DISCOVERY.md}.tmpl`: at L5, when a project exposes agentic resources (nested `.skills/`, a published dataset, an MCP/A2A service), the skill emits a repo-scope `ai-catalog.json` manifest advertising them, plus a `DISCOVERY.md` companion documenting the entries and the checklist to promote the catalog to the host `.well-known/` path and an org/ecosystem registry (those higher deployment scopes are deferred to `ROADMAP.md`). Pairs with the OKF bundle as the publish layer.
-- New `ARD` flag and `ARD_SPEC_VERSION` / `ARD_HOST_DOMAIN` / `ARD_HOST_IDENTIFIER` tokens, documented in `SKILL.md` and guarded by `scripts/validate.py` — which now also checks that the ARD JSON template stays valid JSON when rendered with conditionals on and off. Wired into `references/INDEX.md` (§A/§B/§C), `references/escalation-levels.md`, `templates/directory-tree.md`, `templates/README.md.tmpl`, and the synthesizer.
-
-## [0.2.1] — 2026-06-17
-
-### Fixed
-- Python pipeline correctness: the `Snakefile` now invokes `python -m {{PKG_NAME}}.…` (the installed package) instead of the non-importable `src.{{PKG_NAME}}.…`, and `pip install -e .` is part of setup.
-- Standardized the reproducible workflow and its config at the repo root (`Snakefile`, `config.yaml`, `_targets.R`) so the documented `snakemake -n` from the project root resolves the workflow and its `configfile`.
-- Added an `R/` source directory to the canonical tree for the R variant (the place `_targets.R` sources its stage functions), and generalized the `PKG_NAME` note for both stacks.
-- Aligned the Python version across `environment.yml` and `pyproject.toml`/ruff (3.12).
-- README/AGENTS/CONTRIBUTING templates now self-document the `ROADMAP.md` fallback for not-yet-generated governance/collaboration docs, and the contributor environment setup is toolchain-gated (Python or R).
-- Standardized `CODEOWNERS` role handles to match `ROLES.md`.
-- Removed stale "MVP/roadmap" markers left over from the L0–L2 milestone (eval #3, six reference digests, INDEX wording) now that every template is built.
-- Corrected the OKF reference's `resource:` URL, wired the previously-orphaned USDS Playbook digest into the INDEX crosswalk, and clarified the Data Cards license phrasing.
-
-### Added
-- Repo-level `CHANGELOG.md`, `CITATION.cff`, and `CONTRIBUTING.md`.
-- `scripts/validate.py` and a `validate` GitHub Actions workflow that check OKF `type` frontmatter, template conditional/token consistency, and INDEX path resolution on every change.
-
-## [0.2.0] — 2026-06-17
-
-### Added
-- Full **L0–L5** template coverage: the R (renv + targets) variant and CI; the L3 collaboration/governance set (`CONTRIBUTING`, `CODE_OF_CONDUCT`, `ROLES`, `CODEOWNERS`, `GOVERNANCE`, `CHARTER`, `collaboration-protocol`, `contributed-data-intake`) and nested `.skills/`; the L4 responsible-data/QA/accessibility set plus the `INSTALLED-BASE` values spine and a `data-card`; and the L5 OKF knowledge bundle, `LICENSE-NOTE`, and canvases.
-- Six remaining reference digests (USDS, ProPublica Bulletproofing/Collaborative/Collaborate, Quartz Bad Data, OKF), completing the 14-framework corpus, plus the Data Cards Playbook.
-
-## [0.1.0] — 2026-06-17
-
-### Added
-- Initial release: the `data-project` orchestrator `SKILL.md`; the interviewer, indexer, and synthesizer agents; the L0–L2 templates (structure, documentation, the Python conda + Snakemake stack); the reference corpus and the `INDEX.md` crosswalk; the lean-by-default, graded (L0–L5), right-sized workflow with a `ROADMAP.md` now/later mechanism.
+#### Changed
+- **Outline instead of levels.** `SKILL.md` is a router with non-negotiables first; a one-off extraction still generates nothing but the data. The description fits the spec's 1,024-character limit (it was 1,237).
+- **Single-source by default.** The source registry and concept catalog arrive with the second source, not on day one.
+- **Lessons from real projects:** probe the live source before writing parsers, a fresh per-run error log, `--fresh` refetch, deduplication before validation, a row-count conservation check at every stage, loud failure on empty output (never substituting synthetic data), samples on stable keys, lookup-vocabulary tests, a storage budget with a CI file-size check, generated numbers in docs with a staleness test, and reconciliation at the finest shared grain.
+- **Extraction guidance rewritten** for 2026: PDFium-first for born-digital PDFs, tested trust of embedded OCR layers, a dated comparison of OCR, layout and vision-model parsers and hosted APIs with benchmark caveats, parser manifests and audit sampling for model-based extraction, hosted-OCR cost and agreement guardrails, and the sensitivity gate before any upload. New `extract-api.md` (REST APIs, BI dashboards, ArcGIS layers) and an ephemeral-sources section in `extract-web.md`.
+- **Provenance vocabulary:** `extraction_method` and `extraction_quality` are separate columns, one row per extract, deterministic.
+- **Template:** `PROJECT_SLUG` is now kebab-case and `PKG_NAME` (new) is snake_case; Python ≥ 3.12 with CI on 3.13; pandera ≥ 0.24; current GitHub Actions; publishing files generated only when publishing is in scope (file groups in `references/project-template.md`); a data-correction issue form and a real reject file; `.gitignore`, the refresh workflow and the docs agree on which audit files are committed.
+- `references/context.md` split into `lineage-and-landscape.md` and the shared values and standards references.

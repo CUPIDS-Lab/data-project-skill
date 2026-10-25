@@ -1,0 +1,66 @@
+# {{PROJECT_NAME}}
+
+{{DESCRIPTION}}
+
+A {{LAB_NAME}} data project. Visibility: **{{VISIBILITY}}**. Sensitivity: **{{SENSITIVITY_TIER}}**. Toolchain: **{{TOOLING}}**.
+
+## What & why
+
+- **Question:** <the question this data answers, in a sentence or two a newcomer understands>.
+- **Unit of observation:** one row per <thing>.
+- **Sources:** <each source, its access path and license; details in `docs/data-dictionary.md` and provenance>.
+- **Design partners:** <who builds this>. **Beneficiaries:** <who it is for>.
+- **What we won't liberate or publish:** <exclusions and why>.
+
+Progress against the ten-section [Outline](https://github.com/CUPIDS-Lab/data-skills/blob/main/OUTLINE.md) is tracked in `ROADMAP.md`; how to work here is in `AGENTS.md`.
+
+## Using the data
+
+Original source files live in `data/original/` and are never edited in place. The tidy outputs in `data/processed/` are regenerated from them by code; `docs/data-dictionary.md` explains every column (type, units, missingness, caveats).
+
+<!-- IF:PIPELINE -->```sh
+git clone {{REPO_URL}}
+cd {{PROJECT_SLUG}}
+uv sync                                   # install (Python >= 3.12)
+uv run python -m scripts.pipeline run     # regenerate data/processed/ from the originals
+uv run pytest                             # tests
+```
+
+For the R variant: `make restore` (renv) then `make pipeline` (targets).
+<!-- /IF -->
+<!-- IF:PIPELINES -->This repository holds several pipelines under `pipelines/<name>/`, each its own project (`cd pipelines/<name> && uv sync && uv run python -m scripts.pipeline run`).
+
+| Pipeline | Source | Output |
+| --- | --- | --- |
+| `<name>` | <source> | `pipelines/<name>/data/processed/` |
+<!-- /IF -->
+<!-- IF:SENSITIVE -->Sensitive data is **not** in this repository. Access is tiered; see `docs/governance/GOVERNANCE.md` for the tiers and how to request access.<!-- /IF -->
+
+## Documentation
+
+- `docs/data-dictionary.md`: every column, its type, units, missingness and caveats.
+- `decision-log.md`: why key choices were made. `CHANGELOG.md`: what changed and when.
+<!-- IF:COLLAB -->- `CONTRIBUTING.md` and `docs/governance/`: how to collaborate here and who may touch what.<!-- /IF -->
+<!-- IF:DATAVERSE -->- `dataverse/DEPOSIT.md`: how the data, code and documentation are deposited for a citable DOI.<!-- /IF -->
+<!-- IF:OPENSHARING -->- `opensharing/SHARING.md`: how partners get zero-copy access, governed by the access tiers.<!-- /IF -->
+<!-- IF:ARD -->- `ai-catalog.json`, `DISCOVERY.md`: what agents can discover here.<!-- /IF -->
+
+## Citation
+
+Please cite this project as described in `CITATION.cff`: {{PI_NAME}}, *{{PROJECT_NAME}}*, {{LAB_NAME}}, {{YEAR}}.
+
+## License
+
+Code, data and documentation are licensed separately, because the law treats them differently and a single license rarely fits all three. Without an explicit license, reuse defaults to "all rights reserved," which quietly forbids the reuse an open project invites.
+
+| Layer | Covers | License (SPDX) |
+| --- | --- | --- |
+| Code | `scripts/`, pipelines, notebooks | `{{LICENSE}}` (see `LICENSE`) |
+| Data | `data/processed/` and released tables | `<CC-BY-4.0 or CC0-1.0>` |
+| Documentation | README, `docs/`, figures | `<CC-BY-4.0>` |
+
+`LICENSE` governs the code. Choose the data license by how much attribution you need: CC BY 4.0 requires credit, CC0 maximizes reuse. Upstream sources can constrain what may be re-released; reconcile the data license with each source's terms (recorded in provenance) before publishing.
+
+## Contact
+
+{{PI_NAME}} · {{CONTACT_EMAIL}} · {{LAB_NAME}}. To report an error in the data<!-- IF:GH -->, open a "Data issue" on GitHub or<!-- /IF --> email the address above.

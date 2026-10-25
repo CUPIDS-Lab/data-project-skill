@@ -1,0 +1,29 @@
+name: labels
+
+# Keep the repository's labels in sync with .github/labels.yml.
+
+on:
+  push:
+    branches: [main]
+    paths: [.github/labels.yml]
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Create or update every label
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json, subprocess, yaml
+          for label in yaml.safe_load(open(".github/labels.yml")):
+              subprocess.run(["gh", "label", "create", label["name"], "--force",
+                              "--color", label["color"], "--description", label["description"]],
+                             check=True)
+          PY

@@ -1,0 +1,85 @@
+# Scheduled Dataverse re-deposit for {{PROJECT_NAME}} — periodically-updated ("streaming") data.
+# On the configured cadence ({{UPDATE_FREQUENCY}}) this regenerates the processed data, uploads it
+# to Dataverse as a NEW DRAFT VERSION (one DOI, successive versions — cite the version + UNF), and
+# opens an issue asking a maintainer to review and publish. It NEVER publishes on its own: minting a
+# version DOI stays a human decision (see DEPOSIT.md and the Dataverse data-citation best practices,
+# https://dataverse.org/best-practices/data-citation).
+#
+# Setup: add a repository secret DATAVERSE_API_TOKEN and a repository variable DATAVERSE_PID (the
+# dataset DOI) under Settings -> Secrets and variables -> Actions. The deposit targets production
+# (--prod) and updates that dataset in place. The deposit step uses curl only (no Python needed).
+# Cache expensive, immutable inputs (for example restore originals from a release asset) and
+# recompute only the moving tail rather than re-deriving everything each run. Versioning: the
+# first publication is v1.0; later refreshes publish as minor versions under the same DOI.
+
+name: dataverse-deposit
+
+on:
+  schedule:
+    - cron: "{{DEPOSIT_CRON}}"   # {{UPDATE_FREQUENCY}}
+  workflow_dispatch:             # also allow manual runs
+
+permissions:
+  contents: read
+  issues: write
+
+# Serialize refreshes so two runs never race on the same dataset.
+concurrency:
+  group: dataverse-deposit
+  cancel-in-progress: false
+
+jobs:
+  deposit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Regenerate data/processed from the originals before depositing. Python projects use uv
+      # (data-liberation's shape); a multi-pipeline repository rebuilds every pipelines/<name>/ so
+      # the one dataset (one DOI) captures all of them. For an R project, replace these two steps
+      # with r-lib/actions/setup-r@v2 + r-lib/actions/setup-renv@v2 and `Rscript -e "targets::tar_make()"`.
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.13"
+          enable-cache: true
+      - name: Rebuild processed data
+        run: |
+          set -euo pipefail
+          if [ -d pipelines ]; then
+            for p in pipelines/*/; do
+              case "$(basename "$p")" in _*) continue ;; esac
+              (cd "$p" && uv sync && uv run python -m scripts.pipeline run)
+            done
+          else
+            uv sync && uv run python -m scripts.pipeline run
+          fi
+
+      - name: Deposit a new DRAFT version and open a review issue
+        env:
+          DATAVERSE_API_TOKEN: ${{ secrets.DATAVERSE_API_TOKEN }}
+          DATAVERSE_PID: ${{ vars.DATAVERSE_PID }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DATAVERSE_API_TOKEN}" ]; then
+            echo "::error::Set the DATAVERSE_API_TOKEN repository secret so the scheduled deposit can run."
+            exit 1
+          fi
+          script=""
+          for s in dataverse/deposit-dataverse.sh ./deposit-dataverse.sh; do
+            if [ -f "$s" ]; then script="$s"; break; fi
+          done
+          [ -n "$script" ] || { echo "::error::deposit-dataverse.sh not found"; exit 1; }
+          kitdir="$(dirname "$script")"
+          # Target the PRODUCTION dataset in place (--prod --pid); --no-publish leaves a DRAFT for a human to publish.
+          pid_args=""; [ -n "${DATAVERSE_PID:-}" ] && pid_args="--pid ${DATAVERSE_PID}"
+          bash "$script" --prod $pid_args --no-publish
+          url="$(grep -o '"url":"[^"]*"' "$kitdir/.dataverse-deposit.json" 2>/dev/null | head -n1 | cut -d'"' -f4 || true)"
+          {
+            echo 'A scheduled **{{UPDATE_FREQUENCY}}** refresh uploaded a new **draft** version to Dataverse (one DOI, successive versions).'
+            echo ''
+            echo "- Draft: ${url:-see collection {{DATAVERSE_COLLECTION}} at {{DATAVERSE_URL}}}"
+            echo "- Review the data and license, then publish to mint the version: $script --publish"
+            echo '- Cite the published version by its number + UNF (see DEPOSIT.md).'
+          } > /tmp/dv-issue.md
+          gh issue create --title "Review Dataverse draft — {{UPDATE_FREQUENCY}} refresh $(date +%F)" --body-file /tmp/dv-issue.md

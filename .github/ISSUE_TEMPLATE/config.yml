@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: How feedback is triaged
+    url: https://github.com/CUPIDS-Lab/data-skills/blob/main/CONTRIBUTING.md#feedback-and-triage
+    about: What happens to a sprint-feedback issue after you file it.
+  - name: The Outline
+    url: https://github.com/CUPIDS-Lab/data-skills/blob/main/OUTLINE.md
+    about: The ten sections every feedback issue is filed against.

@@ -1,0 +1,107 @@
+"""{{PROJECT_NAME}} pipeline command line.
+
+    uv run python -m scripts.pipeline run            # fetch → clean → audit → reconcile
+    uv run python -m scripts.pipeline run --fresh    # same, re-downloading every original
+    uv run python -m scripts.pipeline fetch | clean | audit | reconcile
+
+`discover` (list what is upstream and what is new) and `publish` (build and serve
+the Datasette database) appear when `scripts/discover.py` and `scripts/publish.py`
+are part of the project. Exit codes are non-zero whenever a stage fails, so CI and
+the refresh workflow stop instead of shipping partial or empty data.
+"""
+
+from __future__ import annotations
+
+import argparse
+import importlib.util
+import sys
+
+PROG = "{{PROJECT_SLUG}}"
+DESCRIPTION = "{{DESCRIPTION}}"
+
+
+def _has(module: str) -> bool:
+    return importlib.util.find_spec(module) is not None
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(prog=PROG, description=DESCRIPTION)
+    p.add_argument("-q", "--quiet", action="store_true", help="Hide per-artifact progress.")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    run_p = sub.add_parser("run", help="fetch → clean → audit → reconcile, stopping on failure")
+    fetch_p = sub.add_parser("fetch", help="Download missing originals into data/original/")
+    clean_p = sub.add_parser("clean", help="Parse, deduplicate, validate, write data/processed/")
+    sub.add_parser("audit", help="Write data/audit/summary.md and refresh generated numbers")
+    sub.add_parser("reconcile", help="Compare against the source's printed totals")
+    for sp in (run_p, fetch_p):
+        sp.add_argument("--fresh", action="store_true", help="Re-download every original.")
+    for sp in (run_p, clean_p):
+        sp.add_argument(
+            "--strict",
+            action="store_true",
+            help="Exit 1 if any artifact failed or rows were rejected.",
+        )
+    if _has("scripts.discover"):
+        sub.add_parser("discover", help="List artifacts upstream and flag new ones")
+    if _has("scripts.publish"):
+        pub = sub.add_parser("publish", help="Datasette: build | serve | deploy <provider>")
+        pub.add_argument("publish_args", nargs=argparse.REMAINDER)
+    return p
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _build_parser().parse_args(argv)
+    show = not args.quiet
+
+    # Imports are local so `--help` stays fast and each command pays only its own cost.
+    if args.cmd == "fetch":
+        from scripts.fetch import fetch_all
+
+        return fetch_all(fresh=args.fresh, show_progress=show)
+    if args.cmd == "clean":
+        from scripts.clean import clean_all
+
+        return clean_all(strict=args.strict, show_progress=show)
+    if args.cmd == "audit":
+        from scripts.audit import audit_all
+
+        return audit_all()
+    if args.cmd == "reconcile":
+        from scripts.reconcile import reconcile_all
+
+        return reconcile_all()
+    if args.cmd == "discover":
+        from scripts.discover import discover_all
+
+        return discover_all()
+    if args.cmd == "publish":
+        from scripts.publish import main as publish_main
+
+        return publish_main(args.publish_args or ["build"])
+    if args.cmd == "run":
+        from scripts.audit import audit_all
+        from scripts.clean import clean_all
+        from scripts.fetch import fetch_all
+        from scripts.reconcile import reconcile_all
+
+        stages = [
+            lambda: fetch_all(fresh=args.fresh, show_progress=show),
+            lambda: clean_all(strict=args.strict, show_progress=show),
+            audit_all,
+            reconcile_all,
+        ]
+        if _has("scripts.discover"):
+            from scripts.discover import discover_all
+
+            stages.insert(0, discover_all)
+        for stage in stages:
+            rc = stage()
+            if rc != 0:
+                return rc
+        return 0
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

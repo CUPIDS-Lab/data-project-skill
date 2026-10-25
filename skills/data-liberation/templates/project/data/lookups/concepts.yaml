@@ -1,0 +1,16 @@
+# Concept catalog: one entry per concept that more than one source measures.
+# A concept is not a rename: its caveats say what is and is not comparable.
+# See "Concept catalogs" in the data-liberation skill's data-modeling.md.
+#
+# - concept: enrollment.headcount_fall_total
+#   description: Total fall headcount enrollment, all students, all levels.
+#   sources:
+#     source_a:
+#       variable: EFTOTLT
+#       vintages: ["2010-"]
+#     source_b:
+#       variable: TOTAL_HEADCOUNT
+#       vintages: ["2018-"]
+#   caveats:
+#     - "Residency breakdowns differ between the sources; only the total compares."
+[]

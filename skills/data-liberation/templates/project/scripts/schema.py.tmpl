@@ -1,0 +1,95 @@
+"""Canonical schema for {{PROJECT_NAME}}: the contract every parser's output obeys.
+
+`LONG_COLUMNS` and the pandera model together are the machine-enforced side of the
+data dictionary (`docs/data-dictionary.md` is the human side). Changing either is
+a schema change: record it in `CHANGELOG.md` with what breaks for users.
+
+Order of operations in `clean`: deduplicate on the natural key, then validate.
+Rows that fail a row-level check go to the reject file with a reason
+(`split_valid`); a frame-level failure (a missing or unexpected column) fails the
+whole artifact, which is recorded in the run's error log.
+"""
+
+from __future__ import annotations
+
+import pandas as pd
+import pandera.pandas as pa
+from pandera.typing.pandas import Series
+
+# ─── Columns ────────────────────────────────────────────────────────────────
+#
+# Replace `observation_id` with the project's real identifying columns and add the
+# measurement column(s). `source` and `vintage` stay: they join to provenance.csv.
+
+LONG_COLUMNS: list[str] = [
+    "source",  # the source slug (scripts/config.py SOURCE_SLUG)
+    "vintage",  # the period the artifact covers, read from its file name or content
+    "observation_id",  # placeholder natural key: replace with the real key column(s)
+]
+
+# The natural key: unique across the processed CSV. Dedup and sort use it, and
+# audit samples are drawn on it, so never use an upstream row number or ObjectId.
+KEY_COLUMNS: list[str] = ["source", "vintage", "observation_id"]
+
+
+class CanonicalLong(pa.DataFrameModel):
+    """The processed table. Keep dtypes honest: IDs, FIPS and ZIP codes stay
+    strings; counts are nullable `Int64` so zero and missing stay distinct, e.g.
+
+        votes: Series[pd.Int64Dtype] = pa.Field(ge=0, nullable=True)
+    """
+
+    source: Series[str] = pa.Field(description="Source slug")
+    vintage: Series[str] = pa.Field(description="Period the source artifact covers")
+    observation_id: Series[str] = pa.Field(
+        description="Placeholder: replace with the project's natural-key column(s)."
+    )
+
+    class Config:
+        strict = True  # unknown columns fail loudly
+        coerce = True  # parsers may be loose with dtypes; the schema does the final cast
+        unique = KEY_COLUMNS
+
+
+def normalize_long(df: pd.DataFrame) -> pd.DataFrame:
+    """Keep `LONG_COLUMNS` in order and validate; raises on any failure."""
+    missing = [c for c in LONG_COLUMNS if c not in df.columns]
+    if missing:
+        raise ValueError(f"missing required columns {missing}; got {list(df.columns)}")
+    return CanonicalLong.validate(df[LONG_COLUMNS].copy())
+
+
+def dedupe(df: pd.DataFrame) -> tuple[pd.DataFrame, int]:
+    """Drop rows that repeat the natural key, keeping the last (the latest reading
+    or correction wins). Returns the frame and the number of rows dropped."""
+    if df.empty:
+        return df, 0
+    keep = ~df.duplicated(subset=KEY_COLUMNS, keep="last")
+    return df.loc[keep], int((~keep).sum())
+
+
+def split_valid(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Validate `df`, returning `(valid, rejected)`.
+
+    `rejected` keeps the failing rows' original values plus a `reject_reason`. Raises
+    when a failure is not tied to specific rows (for example a missing column).
+    """
+    missing = [c for c in LONG_COLUMNS if c not in df.columns]
+    if missing:
+        raise ValueError(f"missing required columns {missing}; got {list(df.columns)}")
+    frame = df[LONG_COLUMNS].copy()
+    try:
+        valid = CanonicalLong.validate(frame, lazy=True)
+        return valid, frame.iloc[0:0].assign(reject_reason=pd.Series(dtype="object"))
+    except pa.errors.SchemaErrors as exc:
+        cases = exc.failure_cases
+    if "index" not in cases.columns or cases["index"].isna().any():
+        raise ValueError(f"frame-level schema failure:\n{cases}")
+    cases = cases.assign(
+        index=cases["index"].astype(frame.index.dtype),
+        reason=cases["column"].astype(str) + ": " + cases["check"].astype(str),
+    )
+    reasons = cases.groupby("index")["reason"].agg(lambda r: "; ".join(sorted(set(r))))
+    bad = frame.index.intersection(reasons.index)
+    rejected = df.loc[bad].assign(reject_reason=reasons.loc[bad].values)
+    return normalize_long(frame.drop(index=bad)), rejected

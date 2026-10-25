@@ -1,0 +1,82 @@
+name: Task
+description: One unit of work, filed against the Outline section it moves forward.
+labels: [task]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One issue is one unit of work, so progress stays legible and one assignee owns it. Pick the Outline section this task belongs to; it maps to the `section:N` label and to the matching row in `ROADMAP.md`. The section issues opened by `.github/seed-github.sh` use the same fields, so re-running the script updates them instead of duplicating them.
+  - type: input
+    id: summary
+    attributes:
+      label: Outcome
+      description: One sentence stating what this task delivers, so a teammate without your context can tell what "done" looks like.
+      placeholder: Reconcile the processed totals against the publisher's printed totals.
+    validations:
+      required: true
+  - type: dropdown
+    id: section
+    attributes:
+      label: Outline section
+      description: The section of the Outline (https://github.com/CUPIDS-Lab/data-skills/blob/main/OUTLINE.md) this task moves forward. Add the matching `section:N` label.
+      options:
+        - "1 Scope & gate"
+        - "2 Acquire"
+        - "3 Extract"
+        - "4 Model & tidy"
+        - "5 Pipeline & audit"
+        - "6 Document & cite"
+        - "7 Govern & collaborate"
+        - "8 Publish"
+        - "9 Deposit, share & discover"
+        - "10 Maintain & feedback"
+    validations:
+      required: true
+  - type: textarea
+    id: done-when
+    attributes:
+      label: Done when
+      description: Observable checks that must all be true to close this issue. Start from the section's "done when" test in ROADMAP.md.
+      value: |
+        - [ ]
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - High
+        - Medium
+        - Low
+    validations:
+      required: false
+  - type: dropdown
+    id: size
+    attributes:
+      label: Size
+      description: A rough effort estimate for planning, not a commitment.
+      options:
+        - S
+        - M
+        - L
+    validations:
+      required: false
+  - type: dropdown
+    id: blocking
+    attributes:
+      label: Blocking?
+      description: Whether this gates another task or a guarded action (ingesting sensitive data, publishing, depositing). If yes, add the `blocking` label and link what it blocks.
+      options:
+        - "No"
+        - "Yes"
+    validations:
+      required: false
+  - type: input
+    id: links
+    attributes:
+      label: Links
+      description: The ROADMAP row, sources, prior PRs or decision-log entries that ground the task.
+      placeholder: ROADMAP.md section 5; decision-log.md 2026-06-17
+    validations:
+      required: false
