@@ -239,7 +239,7 @@ One row in `provenance.csv` per source artifact and parser run:
 
 | Column | Values |
 |---|---|
-| `extraction_method` | `ocr:<engine>` (`ocr:tesseract`, `ocr:paddleocr`), `layout:<tool>` (`layout:pp-structurev3`, `layout:mineru`), `vlm:<model>@<revision>` (`vlm:oxr-1.0@c1a1dcb`), `cv:<model>`, or `manual` for hand transcription |
+| `extraction_method` | `ocr:<engine>` (`ocr:tesseract`, `ocr:paddleocr`), `layout:<tool>` (`layout:pp-structurev3`, `layout:mineru`), `vlm:<model>@<revision>` (`vlm:olmocr-2@<revision>`), `cv:<model>`, or `manual` for hand transcription |
 | `extraction_quality` | `clean` (two readings agree and totals reconcile), `caveats` (reconciled with a documented review queue or exceptions), `degraded` (unreconciled values remain, or the engine's measured error rate is material) |
 | `extraction_notes` | path to the parser manifest, the embedded-layer test result, the audit sample size and errors found, the reconcile result |
 
