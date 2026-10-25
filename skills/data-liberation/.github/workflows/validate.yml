@@ -1,0 +1,33 @@
+# Validate the skill and its bundled project template.
+#
+# Single-repo successor to the old cross-repo scaffold-e2e + dispatch pair.
+# `scripts/validate.py` lints the templates under `templates/project/`,
+# renders them to a temp dir (the same transform the agent performs when
+# scaffolding), and — with `--smoke` — runs `uv sync` + ruff + pytest on the
+# rendered project, so a template edit that breaks the scaffold fails here.
+
+name: validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: false
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Validate templates + smoke-test the rendered project
+        run: python scripts/validate.py --smoke

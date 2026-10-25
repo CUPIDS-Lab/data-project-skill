@@ -1,0 +1,281 @@
+---
+title: "Filter / pivot recipes"
+---
+
+# Filter / Pivot Recipes — {{PROJECT_NAME}}
+
+> The processed CSV is **tidy long**: one row per observation, one
+> column per variable. The wide views readers expect (year × variable
+> matrices, source-comparison columns, geographic roll-ups) are
+> generated on demand. This file is the cookbook.
+>
+> Recipes ship in three stacks — **Python/pandas**, **R/tidyverse**,
+> and **SQL/DuckDB** — all reading the same canonical CSV at
+> `data/processed/{{PROJECT_SLUG}}.csv`. Pick the one that matches
+> the consumer audience (**{{CONSUMER_STACK}}** by default for this
+> project). Add more stacks as common downstream uses emerge.
+
+## Setup
+
+### Python / pandas
+
+```python
+import pandas as pd
+
+df = pd.read_csv(
+    "data/processed/{{PROJECT_SLUG}}.csv",
+    dtype=str,  # safe default — coerce specific columns below
+)
+
+# Coerce numeric columns explicitly:
+# df["votes"] = pd.to_numeric(df["votes"], errors="coerce")
+```
+
+### R / tidyverse
+
+```r
+library(readr); library(dplyr); library(tidyr)
+
+df <- read_csv(
+  "data/processed/{{PROJECT_SLUG}}.csv",
+  col_types = cols(.default = col_character())
+)
+
+# Coerce numeric columns explicitly:
+# df <- df |> mutate(votes = as.integer(votes))
+```
+
+### SQL / DuckDB
+
+```sql
+-- Use the DuckDB CLI (`duckdb`), the `duckdb` Python package, or paste
+-- straight into the published Datasette SQL editor (Datasette uses SQLite,
+-- not DuckDB, but the SELECT/GROUP BY/PIVOT syntax below is portable for
+-- everything except `read_csv()`; Datasette already has the data loaded).
+
+-- For local DuckDB sessions, create a reusable view over the CSV so the
+-- recipes below can just `FROM data` instead of repeating the path:
+CREATE OR REPLACE VIEW data AS
+SELECT *
+FROM read_csv(
+  'data/processed/{{PROJECT_SLUG}}.csv',
+  -- Keep ID-like columns as text so leading zeros survive.
+  types = {'observation_id': 'VARCHAR', 'vintage': 'VARCHAR', 'source': 'VARCHAR'}
+);
+
+-- Sanity check:
+SELECT COUNT(*) AS rows, COUNT(DISTINCT source) AS sources FROM data;
+```
+
+---
+
+## Recipe 1 — Single-vintage wide pivot
+
+*"Show me 2024 only, one row per `observation_id`, with the
+project's numeric columns side by side."*
+
+### pandas
+
+```python
+v2024 = df.query("vintage == '2024'")
+
+wide = v2024.pivot_table(
+    index="observation_id",
+    columns="source",                 # or whatever the categorical to spread is
+    values="<numeric_column>",        # replace with the project's actual measure
+    aggfunc="first",                  # or "sum" if rows can repeat
+)
+```
+
+### tidyverse
+
+```r
+wide <- df |>
+  filter(vintage == "2024") |>
+  pivot_wider(
+    id_cols     = observation_id,
+    names_from  = source,
+    values_from = `<numeric_column>`
+  )
+```
+
+### DuckDB
+
+```sql
+-- DuckDB has a native PIVOT statement; the inner SELECT is the long form
+-- you want to spread, the ON clause is the categorical that becomes columns.
+PIVOT (
+  SELECT observation_id, source, "<numeric_column>"
+  FROM data
+  WHERE vintage = '2024'
+)
+ON source
+USING first("<numeric_column>");  -- or SUM(...) if rows can repeat
+```
+
+---
+
+## Recipe 2 — Year × source matrix of counts
+
+*"How many rows from each source, in each vintage?"* This is what
+the audit report shows you, but generated on demand for slicing
+by reader.
+
+### pandas
+
+```python
+counts = (
+    df.groupby(["vintage", "source"])
+      .size()
+      .unstack("source", fill_value=0)
+      .sort_index()
+)
+```
+
+### tidyverse
+
+```r
+counts <- df |>
+  count(vintage, source) |>
+  pivot_wider(names_from = source, values_from = n, values_fill = 0) |>
+  arrange(vintage)
+```
+
+### DuckDB
+
+```sql
+PIVOT (
+  SELECT vintage, source FROM data
+)
+ON source
+USING count(*)
+GROUP BY vintage
+ORDER BY vintage;
+```
+
+---
+
+## Recipe 3 — Roll up to a coarser geography
+
+*"Aggregate from precinct to district (or county, or state)."*
+Requires a crosswalk under `data/lookups/`. The pattern is the
+same regardless of the specific geography — left-join the crosswalk,
+group, aggregate.
+
+### pandas
+
+```python
+# Suppose data/lookups/precinct_to_district.csv has columns: precinct, district
+crosswalk = pd.read_csv("data/lookups/precinct_to_district.csv", dtype=str)
+
+district_totals = (
+    df.merge(crosswalk, on="precinct", how="left")
+      .groupby(["vintage", "district"])
+      ["<numeric_column>"]
+      .sum()
+      .reset_index()
+)
+```
+
+### tidyverse
+
+```r
+crosswalk <- read_csv("data/lookups/precinct_to_district.csv",
+                      col_types = cols(.default = col_character()))
+
+district_totals <- df |>
+  left_join(crosswalk, by = "precinct") |>
+  group_by(vintage, district) |>
+  summarise(total = sum(as.integer(`<numeric_column>`), na.rm = TRUE),
+            .groups = "drop")
+```
+
+### DuckDB
+
+```sql
+SELECT
+  d.vintage,
+  c.district,
+  SUM(TRY_CAST(d."<numeric_column>" AS BIGINT)) AS total
+FROM data d
+LEFT JOIN read_csv(
+    'data/lookups/precinct_to_district.csv',
+    types = {'precinct': 'VARCHAR', 'district': 'VARCHAR'}
+  ) c
+  USING (precinct)
+GROUP BY d.vintage, c.district
+ORDER BY d.vintage, c.district;
+```
+
+---
+
+## Recipe 4 — Cross-source concept comparison
+
+*"For every observation_id where source A and source B both
+report the same `concept`, show both values side by side."*
+
+This is what the `concept` column is for. Sources that name the
+same underlying thing differently are harmonized via
+`data/lookups/concepts.yaml`; this recipe is the payoff.
+
+### pandas
+
+```python
+compare = (
+    df.dropna(subset=["concept"])
+      .pivot_table(
+          index=["vintage", "observation_id", "concept"],
+          columns="source",
+          values="<value_column>",
+          aggfunc="first",
+      )
+      .reset_index()
+)
+```
+
+### tidyverse
+
+```r
+compare <- df |>
+  filter(!is.na(concept)) |>
+  pivot_wider(
+    id_cols     = c(vintage, observation_id, concept),
+    names_from  = source,
+    values_from = `<value_column>`
+  )
+```
+
+### DuckDB
+
+```sql
+PIVOT (
+  SELECT vintage, observation_id, concept, source, "<value_column>"
+  FROM data
+  WHERE concept IS NOT NULL
+)
+ON source
+USING first("<value_column>");
+```
+
+---
+
+## Why long-then-pivot, not wide-as-primary
+
+The tidy long format is the project's contract. Wide is a view.
+The reasons:
+
+- **New vintages don't change the schema.** A new year of data is
+  new rows, not new columns. Wide-as-primary forces a column-add
+  every refresh; tidy-long doesn't.
+- **The same canonical CSV serves every downstream use.** A
+  pandas notebook, an R analysis, a SQL load, a Datasette
+  publish — all of them read the same file.
+- **Auditing is uniform.** `audit.py` reports null rates per
+  column. In wide layouts, "null rate of `votes_2017`" is a
+  different question from "null rate of `votes_2018`"; in tidy
+  long, "null rate of `votes`" is the question, and any vintage
+  imbalance shows up in source coverage.
+
+There are exceptions — see `references/data-modeling.md` ("When
+wide-as-primary is OK") in the data-liberation skill. CVR-style
+ballot-image data is the canonical case. But the default is long.

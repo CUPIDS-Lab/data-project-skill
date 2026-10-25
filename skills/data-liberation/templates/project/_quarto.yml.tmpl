@@ -1,0 +1,60 @@
+# Quarto site config for {{PROJECT_NAME}}.
+#
+# Run `quarto preview` locally to develop. Run `quarto publish gh-pages`
+# ONCE locally to create the gh-pages branch and configure GitHub Pages;
+# after that, `.github/workflows/gh-pages.yml` renders and deploys on
+# every push to main that touches docs/, _quarto.yml, or data/processed/.
+
+project:
+  type: website
+  output-dir: _site
+  # Render only these directories; everything else (scripts/, data/) is
+  # not part of the documentation site.
+  render:
+    - "docs/*.qmd"
+    - "docs/*.md"
+
+website:
+  title: "{{PROJECT_NAME}}"
+  description: "{{DESCRIPTION}}"
+  site-url: "https://{{OWNER}}.github.io/{{PROJECT_SLUG}}/"
+  repo-url: "https://github.com/{{OWNER}}/{{PROJECT_SLUG}}"
+  repo-actions: [edit, issue]
+
+  navbar:
+    background: primary
+    left:
+      - href: docs/index.qmd
+        text: Home
+      - href: docs/data-dictionary.md
+        text: Data dictionary
+      - href: docs/filter-pivot-recipes.md
+        text: Recipes
+      - href: docs/methodology.qmd
+        text: Methodology
+      - href: docs/changelog.qmd
+        text: Changelog
+    right:
+      - icon: github
+        href: https://github.com/{{OWNER}}/{{PROJECT_SLUG}}
+        aria-label: GitHub repository
+      - text: "Datasette →"
+        href: https://{{PROJECT_SLUG}}.vercel.app/
+
+format:
+  html:
+    theme: cosmo
+    # To add custom CSS, create docs/styles.css and uncomment the next line:
+    # css: docs/styles.css
+    toc: true
+    toc-location: right
+    code-copy: true
+    code-overflow: wrap
+    smooth-scroll: true
+
+# Freeze: cache executed code outputs so the GitHub Action can re-render
+# the site quickly without re-running every code block. `auto` re-runs
+# only when the source .qmd file changes. Commit the _freeze/ directory
+# so CI can use it.
+execute:
+  freeze: auto

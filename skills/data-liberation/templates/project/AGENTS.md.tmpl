@@ -1,0 +1,225 @@
+# AGENTS.md — {{PROJECT_NAME}}
+
+> Architecture brief and contribution guide. Read this first if you are
+> coming to the project — human or AI assistant — and intend to add a
+> source, fix a parser, change the schema, or update the deployment.
+
+## What this project is
+
+{{DESCRIPTION}}
+
+This is a **data liberation pipeline** in the tradition of PUDL,
+BoulderPublicData/Election-Results, and the IPEDS pipeline: immutable
+originals on disk → per-source parsers → a single canonical tidy
+deliverable, with provenance and audit reports versioned alongside.
+The deliverable lives at `data/processed/{{PROJECT_SLUG}}.csv` (and
+`.parquet`, and `.db` for Datasette).
+
+## Quickstart
+
+```bash
+uv sync                                          # install everything
+uv sync --extra publish                          # also install Datasette + sqlite-utils
+uv run pytest -q                                  # run the test suite
+uv run python -m scripts.pipeline --help          # see all subcommands
+uv run python -m scripts.pipeline run             # discover → fetch → clean → audit
+uv run python -m scripts.publish build            # build SQLite for Datasette
+uv run python -m scripts.publish serve            # serve Datasette locally on :8001
+```
+
+## Layout
+
+| Path | What lives there |
+|---|---|
+| `scripts/` | Pipeline code. `pipeline.py` is the CLI entry; every other module is a phase. |
+| `scripts/sources.py` | `Source` ABC with `discover` + `ingest` contract. |
+| `scripts/parsers/` | Per-source-and-vintage parser modules. Each exposes `parse(path)`. |
+| `scripts/schema.py` | Canonical column list + pandera schema. The contract parsers obey. |
+| `scripts/concepts.py` | Cross-source harmonization (optional; multi-source projects only). |
+| `scripts/publish.py` | SQLite + metadata.yaml builder; serves and deploys Datasette. |
+| `scripts/upload_documentcloud.py` | Uploads source PDFs / scans / FOIA responses to DocumentCloud; writes URLs back into `provenance.csv`. Idempotent (skips files already uploaded by sha256). |
+| `data/original/` | Immutable raw downloads. Never edit in place. LFS-tracked for large files. |
+| `data/processed/` | Tidy long-form deliverable + `.db` + `metadata.yaml` + `provenance.csv`. |
+| `data/audit/` | Auto-generated; do not hand-edit. |
+| `data/lookups/` | Hand-maintained crosswalks (FIPS, code systems, `concepts.yaml`). |
+| `docs/` | Quarto site: `.qmd` files for methodology, tutorials, long-form dictionary. |
+| `_quarto.yml` | Quarto site config. Renders to `_site/` (gitignored) and gh-pages branch. |
+| `.gitattributes` | Git LFS rules — what gets stored via pointer files. |
+| `.github/workflows/` | CI: tests on by default; refresh / publish / gh-pages opt-in. |
+
+## Design decisions worth defending
+
+**The schema is a contract.** `LONG_COLUMNS` + the pandera class
+together are a *contract* the processed CSV obeys. Parsers translate
+the publisher's contract into this contract; `_normalize.py` helpers
+are reusable contract-preserving operations. Two failure modes look
+similar but require different fixes: a *contract violation* means
+the parser produced something the schema rejected (fix the parser);
+a *contract change* means the project decided to evolve `LONG_COLUMNS`
+or a dtype (a schema migration — document in `docs/changelog.qmd`).
+Concept-catalog entries function as contracts at the
+cross-source-equivalence level. See
+`references/data-modeling.md#the-canonical-schema` in the
+`data-liberation` Claude skill.
+
+**Tidy long, not wide.** One row per observation, one column per
+variable, harmonization-by-concept-column. This makes cross-source
+comparison and time-series analysis straightforward; the wide pivot is
+a downstream consumer choice (see `docs/filter-pivot-recipes.md`).
+
+**No imputation in the pipeline.** The pipeline emits what the sources
+say; missingness is preserved. Imputation is the analyst's choice, not
+ours to impose. (Rubin's MCAR/MAR/MNAR classification belongs in the
+data dictionary's caveat section, per column.)
+
+**`dtype=str` by default.** Leading zeros (precinct IDs, FIPS, ZIP)
+survive a round trip through the pipeline. Numeric columns are
+explicitly cast in the schema with nullable `Int64` so missingness is
+preserved.
+
+**Per-vintage parsers, not omnibus parsers.** When upstream layout
+changes between years, branch by vintage. Don't pile cases into one
+function — the readability cost compounds and the boundary cases get
+missed.
+
+**Errors are durable, not fatal.** A failing parser writes to
+`data/audit/extraction_errors.json` and the pipeline continues. CI
+fails when the audit shows new errors or `clean --fail-on-empty`
+trips. This keeps a partial refresh useful while still surfacing
+regressions loudly.
+
+**Immutable originals.** `data/original/` is write-once. The pipeline
+never edits in place; a new vintage is a new file under a new
+directory.
+
+**Four publish surfaces, not one.** Datasette is the *data
+interface* (Vercel/Fly/Cloud Run); Quarto + GitHub Pages is the *prose
+about the data*; LFS + Releases are the *bulk distribution* layer;
+DocumentCloud is the *source documents themselves* with reader UI,
+auto-OCR, page-anchored permalinks, and embed iframes that the Quarto
+site drops inline. Each plays to its strengths. The architectural
+constraint that LFS does not work with GitHub Pages is why publishing
+is split across surfaces rather than one workflow — see
+`references/toolchain-lfs.md` and `references/toolchain-documentcloud.md`
+in the data-liberation skill. DocumentCloud closes the gap LFS leaves:
+where LFS dumps raw artifacts as opaque downloads, DocumentCloud gives
+the reader a page-anchored permalink with searchable OCR text.
+
+## Deployment surface
+
+| Layer | Where | How |
+|---|---|---|
+| Documentation site | `https://{{OWNER}}.github.io/{{PROJECT_SLUG}}/` | `gh-pages.yml` workflow renders `docs/*.qmd` to gh-pages branch |
+| Queryable data | `https://{{PROJECT_SLUG}}.vercel.app/` (or Fly / Cloud Run) | `publish.yml` workflow runs `python -m scripts.publish deploy` |
+| Bulk download | GitHub Releases attached to each tagged version | Manual via the GitHub UI, or `release.yml` if configured |
+| Source documents | `https://www.documentcloud.org/projects/<id>` (one project per source slug) | `uv sync --extra documentcloud` then `uv run python -m scripts.upload_documentcloud --source <slug>`. Project IDs + access levels live in `data/lookups/documentcloud_projects.yaml`. Credentials in `.env` (`DOCUMENTCLOUD_USERNAME` / `DOCUMENTCLOUD_PASSWORD`) — gitignored. |
+
+The `metadata.yaml` Datasette reads is generated from
+`docs/data-dictionary.md` by `scripts/publish.py:generate_metadata`.
+Edit the dictionary; rebuild; the published interface picks up the
+new descriptions.
+
+## Known limitations
+
+(List the project's actual known limitations here as they accumulate.
+Examples: a specific vintage uses scanned PDFs, certain columns are
+imputed-but-not-marked, FIPS codes are missing for a subset of records.
+This is the section reporters and downstream users read.)
+
+## Governance
+
+Decisions to make explicit *before* the project ships a first vintage.
+See `references/project-template.md#governance` in the
+`data-liberation` Claude skill for the full checklist.
+
+- **Source license.** The upstream's terms are documented per source
+  in `data/processed/provenance.csv` (and in this AGENTS.md if the
+  source carries non-default terms that affect the project's
+  redistributable license).
+- **Data subjects.** Who is in this dataset, and what's the right
+  posture for them? PII redaction policy lives in `scripts/publish.py`
+  and per-column in `docs/data-dictionary.md` *Known caveats*.
+- **DocumentCloud access posture.** Which sources are uploaded as
+  `public`, `organization`, or `private` (the three DocumentCloud
+  access levels). Default: `public` for liberated public-record
+  corpora. Use `organization` for in-progress liberation or
+  unresolved FOIA responses, `private` for sensitive review.
+  Schema-of-record is `data/lookups/documentcloud_projects.yaml`;
+  the rationale per source lives here.
+- **Out-of-scope uses.** Uses the maintainers do not endorse —
+  named explicitly in the README's *Governance* section. Common
+  examples: enrichment for enforcement, predictive policing,
+  eviction targeting, immigration enforcement. Adapt to the
+  dataset's subject matter.
+- **Schema-revision discipline.** A change to `LONG_COLUMNS` or to
+  a column's declared dtype is a *contract change*, not a bug fix.
+  Require an entry in `docs/changelog.qmd` naming what breaks
+  downstream.
+- **Concept-catalog amendments.** A new cross-source equivalence
+  requires a non-empty caveats list naming what is and isn't
+  comparable. A concept with no caveats is a foot-gun.
+- **Refresh-PR review checklist.** Reviewers look at: row-count
+  delta in `data/audit/summary-*.md`, new entries in
+  `extraction_errors.json`, new "Empty sources" flags, reconcile
+  mismatches. The `refresh.yml.disabled` template's PR-body
+  checklist makes this explicit.
+- **Error-reporting + correction path.** Downstream users open a
+  GitHub issue (template: *Data correction*); corrections land as
+  PRs with a `docs/changelog.qmd` entry naming the affected
+  vintages. Don't silently rewrite history; downstream consumers
+  may have cited the previous values.
+- **Citation guidance.** The README's BibTeX block includes a
+  vintage tag. Each refresh ships under a GitHub Release tag
+  (e.g., `v2026.05.01`) so citations to a specific vintage remain
+  stable even after corrections.
+
+## How to add a new source
+
+1. Add a `Source` subclass to `scripts/sources.py` with `name`,
+   `label`, and `discover` + `ingest` methods.
+2. Register it in `scripts/config.py::SOURCES`.
+3. Write per-vintage parser(s) under `scripts/parsers/<source>_<vintage>.py`,
+   each exposing `parse(path: Path) -> pd.DataFrame`.
+4. Add a small fixture under `tests/fixtures/<source>_<vintage>_small.<ext>`
+   and a test under `tests/test_<source>_<vintage>.py`.
+5. If this is a multi-source project introducing a new harmonization
+   point, extend `data/lookups/concepts.yaml` with the new concept and
+   document the caveats.
+6. Run `uv run python -m scripts.pipeline run` and check the audit
+   under `data/audit/summary-*.md`.
+
+## How to add a new vintage
+
+1. Add the new URL to `discover()` in the relevant `Source`.
+2. Run `uv run python -m scripts.pipeline discover` and confirm it
+   shows up.
+3. Run `fetch` to pull it.
+4. Run `clean` — if it errors, decide whether the change is a layout
+   migration (new vintage-branch in the parser) or a quirk (handle in
+   place).
+5. Update `docs/changelog.qmd` with what changed and any new caveats.
+6. Commit, preferably via PR with the audit diff visible.
+
+## How to refresh the published Datasette + Quarto site
+
+1. `uv run python -m scripts.pipeline run` (locally, to confirm
+   nothing's broken).
+2. `uv run python -m scripts.publish build` then
+   `uv run python -m scripts.publish serve` to inspect locally.
+3. Commit and push; `publish.yml` and `gh-pages.yml` (once enabled)
+   deploy from main automatically.
+
+## References
+
+The Claude `data-liberation` skill at the root of this project
+(or `~/.claude/skills/data-liberation/` if used as a user-level
+skill) contains deeper references on:
+
+- `references/data-modeling.md` — tidy long-form, schema-as-contract, concept catalogs, the five-dimension quality framework, pandera validation
+- `references/cleaning-and-standardization.md` — the 9-step parser-time pipeline (profile / structural fixes / dedup / missing values / outliers / normalization / validation + reject port / PII redaction / docs); Jaro-Winkler + Levenshtein for fuzzy matching; Rubin's MCAR/MAR/MNAR for missingness; the impossible-value range table
+- `references/toolchain-documentcloud.md` — DocumentCloud as the fourth publishing surface (source PDFs with reader UI + auto-OCR + page-anchored permalinks + embed iframes); upload patterns; access levels as a governance decision; the `documentcloud_url` + `documentcloud_access` columns in `provenance.csv` for chain-of-custody from CSV row → source page
+- `references/discovery-and-audit.md` — pre-extraction bulletproofing; discover/audit/reconcile patterns; recurring-refresh
+- `references/project-template.md` — full skeleton spec; the *Governance* section is the source of truth for the checklist above
+- `references/toolchain-pdf.md`, `toolchain-tabular.md`, `toolchain-documents.md`, `toolchain-scraping.md` — extraction toolchain decision trees
+- `references/toolchain-datasette.md`, `toolchain-quarto.md`, `toolchain-lfs.md` — the three publishing surfaces in depth
+- `references/movement-history.md` — civic-data lineage, the empowering-intermediary framing, and the critical perspectives every project should keep in view

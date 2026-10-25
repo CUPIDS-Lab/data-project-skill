@@ -1,0 +1,204 @@
+# {{PROJECT_NAME}}
+
+{{DESCRIPTION}}
+
+A reproducible data-liberation pipeline producing a tidy long-form
+dataset from public sources, with provenance, audit reports, an
+interactive [Datasette](https://datasette.io/) instance, a
+methodology site rendered with [Quarto](https://quarto.org/) on
+GitHub Pages, and the source documents themselves hosted on
+[DocumentCloud](https://www.documentcloud.org/) — so every published
+number traces back, page by page, to the original it came from.
+
+## A peek at the data
+
+| source | vintage | observation_id | concept | ... |
+|---|---|---|---|---|
+| example | 2023 | a | temperature | ... |
+| example | 2023 | b | temperature | ... |
+| example | 2024 | c | _(null)_ | ... |
+
+Full schema in [`docs/data-dictionary.md`](docs/data-dictionary.md);
+sample recipes for Python/pandas, R/tidyverse, and SQL/DuckDB in
+[`docs/filter-pivot-recipes.md`](docs/filter-pivot-recipes.md).
+
+## How to use it
+
+### Browse it
+
+The published Datasette instance is at:
+
+> **`https://{{PROJECT_SLUG}}.vercel.app/`** *(replace with your actual URL after first deploy)*
+
+Click into the `{{PROJECT_SLUG}}` table to browse. The faceting on
+the left filters by `source`, `vintage`, and other categorical
+columns; the SQL editor at the top runs arbitrary queries; every
+view has a `.csv` and `.json` sibling for downstream tooling.
+
+### Read about it
+
+The methodology site at
+**`https://{{OWNER}}.github.io/{{PROJECT_SLUG}}/`** has:
+
+- A long-form data dictionary with vintage breakpoints and caveats
+- How the pipeline extracts and reconciles each source
+- Per-vintage changelog
+- Citation guidance
+
+### Python / pandas
+
+```python
+import pandas as pd
+
+df = pd.read_csv(
+    "data/processed/{{PROJECT_SLUG}}.csv",
+    dtype=str,  # safe default — coerce specific columns explicitly below
+)
+
+# Coerce numeric columns where the schema declares them numeric:
+# df["votes"] = pd.to_numeric(df["votes"], errors="coerce")
+
+# Or pull directly from the published instance:
+# df = pd.read_csv("https://{{PROJECT_SLUG}}.vercel.app/{{PROJECT_SLUG}}/{{PROJECT_SLUG}}.csv?_size=max")
+```
+
+### R / tidyverse
+
+```r
+library(readr)
+library(dplyr)
+
+df <- read_csv(
+  "data/processed/{{PROJECT_SLUG}}.csv",
+  col_types = cols(.default = col_character())
+)
+
+# Coerce numeric columns explicitly:
+# df <- df |> mutate(votes = as.integer(votes))
+
+# Or pull directly from the published instance:
+# df <- read_csv("https://{{PROJECT_SLUG}}.vercel.app/{{PROJECT_SLUG}}/{{PROJECT_SLUG}}.csv?_size=max")
+```
+
+### SQL / DuckDB
+
+```sql
+-- Query the CSV directly — no load step, no schema definition needed.
+-- Use the DuckDB CLI, the duckdb Python package, or paste into the
+-- published Datasette SQL editor.
+
+SELECT *
+FROM read_csv('data/processed/{{PROJECT_SLUG}}.csv')
+LIMIT 5;
+
+-- DuckDB infers types, which can lose leading zeros on ID-like columns.
+-- Pin string-typed columns explicitly when leading zeros matter:
+SELECT *
+FROM read_csv(
+  'data/processed/{{PROJECT_SLUG}}.csv',
+  types = {'observation_id': 'VARCHAR', 'vintage': 'VARCHAR'}
+)
+LIMIT 5;
+```
+
+### Find stories in it
+
+The dataset is the input to a separate craft — finding the story, sanity-checking the finding, and writing it without overclaiming. The [*New York Times* data-training materials](https://github.com/nytimes/data-training) are the canonical newsroom reference for that practice: brainstorming story angles from a dataset, verification habits that prevent common misreadings, and editorial review of data stories. The materials are Google-Sheets-first (the [Google Sheets cheat sheets](https://github.com/nytimes/data-training/tree/master/Google-sheets-cheat-sheets) translate cleanly to the pandas / R / DuckDB recipes above), but the *methodological* content — especially [*How-Not-To-Be-Wrong*](https://github.com/nytimes/data-training/blob/master/Various-tip-sheets/How-Not-To-Be-Wrong.docx) and [*Data-Stories-Brainstorming-Guide*](https://github.com/nytimes/data-training/blob/master/Various-tip-sheets/Data-Stories-Brainstorming-Guide.docx) — is what makes a story honest. This project's data dictionary, provenance sidecar, and caveats sections are the *inputs* to that practice; the practice itself is downstream.
+
+## Movement context
+
+This project participates in a longer tradition of public-interest
+data liberation: the Sunlight Foundation's mid-2010s push to make
+government data machine-readable; the [PUDL](https://catalystcoop-pudl.readthedocs.io/)
+energy-data project; the Boulder Public Data
+[Election-Results](https://github.com/BoulderPublicData/Election-Results)
+and adjacent repos. See the `data-liberation` Claude skill's
+`references/movement-history.md` for the broader landscape.
+
+## Reproducibility
+
+Everything is reproducible from clone:
+
+```bash
+git clone https://github.com/{{OWNER}}/{{PROJECT_SLUG}}.git
+cd {{PROJECT_SLUG}}
+git lfs install                                     # if not already
+git lfs pull                                        # pull large files
+uv sync                                             # install Python deps
+uv run python -m scripts.pipeline run               # rebuild data/processed/
+```
+
+The same input produces an identical SQLite file; that's the
+[Baked Data](https://simonwillison.net/2021/Jul/28/baked-data/)
+pattern.
+
+## Refresh schedule
+
+Configured via `.github/workflows/refresh.yml` (rename from
+`.disabled` to enable). Default cadence: weekly on Mondays at
+13:00 UTC. Each successful refresh opens a PR with the new audit;
+merging triggers re-deploy of both the Datasette instance and the
+methodology site.
+
+## Citation
+
+```bibtex
+@misc{{{PROJECT_SLUG}},
+  author = {{{AUTHOR}}},
+  title  = {{{{PROJECT_NAME}}}},
+  year   = {{2026}},
+  note   = {{Liberated dataset}},
+  url    = {{https://github.com/{{OWNER}}/{{PROJECT_SLUG}}}}
+}
+```
+
+## License
+
+- **Data:** [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/)
+- **Code:** [MIT](LICENSE)
+
+If you cite or republish, please link back to this repository and to
+the upstream sources documented in `data/processed/provenance.csv`.
+**Note:** the source's terms-of-use may carry forward — see Governance
+below.
+
+## Governance
+
+Civic-data projects publish information about people, institutions, and
+systems whose interests aren't always aligned with publication. This
+project commits to the following:
+
+- **Source license is honored.** The upstream publisher's terms, where
+  applicable, are documented in `data/processed/provenance.csv` and
+  propagate forward; the CC-BY license above applies to the
+  *project's* transformations, not to upstream content.
+- **PII redaction at the publish boundary.** The originals retain
+  whatever the publisher published; the processed CSV obeys this
+  project's redaction policy, documented per column in
+  `docs/data-dictionary.md` under each variable's *Known caveats*.
+- **Out-of-scope uses.** The maintainers do not endorse downstream
+  uses for enforcement, predictive policing, eviction targeting, or
+  immigration enforcement. (Customize this list to the dataset's
+  actual subject matter.)
+- **Error-reporting path.** Open a GitHub issue using the *Data
+  correction* template; corrections are logged in
+  `docs/changelog.qmd` with the affected vintages named and
+  propagated on the next refresh — never silently rewritten.
+- **Vintage tagging for citation.** Each refresh ships under a
+  GitHub Release tag (e.g., `v2026.05.01`); cite that tag if you
+  want the dataset you cited to remain stable.
+- **Source-document chain of custody.** Every source artifact lives
+  on DocumentCloud (URL recorded per source × vintage in
+  `data/processed/provenance.csv`'s `documentcloud_url` column),
+  with reader-facing OCR and page-level permalinks. Following a
+  published number back to its origin is a click, not a download.
+  Per-source access posture (public / organization / private) is
+  recorded in `data/lookups/documentcloud_projects.yaml`.
+
+See `references/project-template.md#governance` in the
+`data-liberation` Claude skill for the full governance checklist.
+
+## Contributing
+
+See [`AGENTS.md`](AGENTS.md) for architecture, conventions, and how
+to add a new source or vintage. Issues and PRs welcome.

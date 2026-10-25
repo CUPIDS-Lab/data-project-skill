@@ -1,0 +1,314 @@
+"""Build SQLite + metadata for Datasette publishing.
+
+Three subcommands:
+  * `build` — convert `data/processed/<project>.csv` + `provenance.csv` into
+    a single SQLite file. Declares composite primary key, indexes facetable
+    columns, adds foreign keys. Idempotent: same input produces same `.db`.
+  * `serve` — build and run `datasette serve` locally for inspection.
+  * `deploy <provider>` — build and run `datasette publish <provider>` to ship.
+
+Also generates `data/processed/metadata.yaml` from `docs/data-dictionary.md`
+so the per-column descriptions stay in sync between the hand-maintained
+reference and the published interface.
+
+See `references/toolchain-datasette.md` for the full Datasette toolchain.
+"""
+
+from __future__ import annotations
+
+import argparse
+import re
+import shutil
+import subprocess
+import sys
+
+import structlog
+import yaml
+
+from scripts.config import (
+    DOCS,
+    METADATA_YAML,
+    PROCESSED_CSV,
+    PROCESSED_DB,
+    PROVENANCE_CSV,
+)
+
+log = structlog.get_logger()
+
+DATA_DICTIONARY_MD = DOCS / "data-dictionary.md"
+
+# Which columns to declare as the composite primary key on the main table.
+# Override if the canonical schema's key differs from the default observation key.
+PRIMARY_KEY: list[str] = ["source", "vintage", "observation_id"]
+
+# Columns to facet by default in Datasette. Override per project — typically
+# the categorical columns readers will filter on (source, vintage, geography).
+FACET_COLUMNS: list[str] = ["source", "vintage"]
+
+# Columns to enable SQLite FTS5 on. Empty list = no FTS.
+# Override per project; typical: narrative columns like ("title", "description").
+FTS_COLUMNS: list[str] = []
+
+# Datasette plugins to install at deploy time. Override per project — the
+# defaults work for most civic-data tables. See references/toolchain-datasette.md
+# for the full plugin catalog.
+DEPLOY_PLUGINS: list[str] = [
+    "datasette-cluster-map",
+    "datasette-render-markdown",
+]
+
+
+# ─── Build ───────────────────────────────────────────────────────────────────
+
+
+def build(force: bool = True) -> int:
+    """Convert processed CSV + provenance → SQLite, generate metadata.yaml.
+
+    `force=True` (default) rebuilds from scratch each time — the SQLite file
+    is a deterministic function of the canonical CSV.
+    """
+    if not PROCESSED_CSV.exists():
+        log.error(
+            "build_no_processed_csv",
+            path=str(PROCESSED_CSV),
+            hint="run `python -m scripts.pipeline clean` first",
+        )
+        return 1
+
+    if shutil.which("sqlite-utils") is None:
+        log.error("build_no_sqlite_utils", hint="install with `uv sync --extra publish`")
+        return 1
+
+    table = "{{PROJECT_SLUG}}"
+
+    if force and PROCESSED_DB.exists():
+        PROCESSED_DB.unlink()
+        log.info("removed_existing_db", path=str(PROCESSED_DB))
+
+    # Main table — text dtypes by default; coerce explicit numeric columns
+    # via `--type <col> INTEGER|REAL` in `sqlite-utils transform` afterward.
+    pk_args: list[str] = []
+    for c in PRIMARY_KEY:
+        pk_args.extend(["--pk", c])
+    _run_sqlite_utils(["insert", str(PROCESSED_DB), table, str(PROCESSED_CSV), "--csv", *pk_args])
+
+    # Provenance table — joined to main via (source, vintage).
+    if PROVENANCE_CSV.exists():
+        _run_sqlite_utils(
+            [
+                "insert",
+                str(PROCESSED_DB),
+                "provenance",
+                str(PROVENANCE_CSV),
+                "--csv",
+                "--pk",
+                "source",
+                "--pk",
+                "vintage",
+            ]
+        )
+        # Foreign key — sqlite-utils raises if it already exists, so allow failure.
+        try:
+            _run_sqlite_utils(
+                [
+                    "add-foreign-key",
+                    str(PROCESSED_DB),
+                    table,
+                    "source",
+                    "provenance",
+                    "source",
+                ]
+            )
+        except subprocess.CalledProcessError:
+            pass
+
+    # Indexes for faceting performance.
+    for col in FACET_COLUMNS:
+        try:
+            _run_sqlite_utils(["create-index", "--if-not-exists", str(PROCESSED_DB), table, col])
+        except subprocess.CalledProcessError as exc:
+            log.warning("index_failed", column=col, error=str(exc))
+
+    # Full-text search on narrative columns, if configured.
+    if FTS_COLUMNS:
+        _run_sqlite_utils(
+            [
+                "enable-fts",
+                str(PROCESSED_DB),
+                table,
+                *FTS_COLUMNS,
+                "--replace",
+            ]
+        )
+
+    log.info("built_db", path=str(PROCESSED_DB), table=table)
+
+    # Generate metadata.yaml from the data dictionary.
+    generate_metadata()
+    return 0
+
+
+def _run_sqlite_utils(args: list[str]) -> None:
+    """Wrapper around `sqlite-utils <args>` that logs and surfaces errors."""
+    cmd = ["sqlite-utils", *args]
+    log.info("sqlite_utils", cmd=" ".join(cmd))
+    subprocess.run(cmd, check=True)
+
+
+# ─── Metadata generation ─────────────────────────────────────────────────────
+
+
+def generate_metadata() -> None:
+    """Generate `data/processed/metadata.yaml` from `docs/data-dictionary.md`.
+
+    Parses the dictionary's per-column sections (## `column_name`) and emits
+    the corresponding Datasette metadata structure. Hand-maintained header
+    fields (title, license, etc.) come from a small template merged with the
+    auto-generated columns.
+    """
+    columns = _parse_data_dictionary()
+
+    metadata = {
+        "title": "{{PROJECT_NAME}}",
+        "description_html": "{{DESCRIPTION}}",
+        "license": "CC-BY-4.0",
+        "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "source": "{{PROJECT_NAME}} pipeline",
+        "source_url": "https://github.com/example/{{PROJECT_SLUG}}",
+        "databases": {
+            "{{PROJECT_SLUG}}": {
+                "description": "{{DESCRIPTION}}",
+                "tables": {
+                    "{{PROJECT_SLUG}}": {
+                        "description": "Tidy long-form output of the {{PROJECT_NAME}} pipeline.",
+                        "sort": "vintage",
+                        "facets": FACET_COLUMNS,
+                        "columns": {col: desc for col, desc in columns.items()},
+                    },
+                    "provenance": {
+                        "description": "Per-extract provenance: source URL, sha256, retrieval timestamp.",
+                    },
+                },
+            },
+        },
+    }
+
+    METADATA_YAML.parent.mkdir(parents=True, exist_ok=True)
+    METADATA_YAML.write_text(yaml.safe_dump(metadata, sort_keys=False))
+    log.info("wrote_metadata", path=str(METADATA_YAML), columns=len(columns))
+
+
+def _parse_data_dictionary() -> dict[str, str]:
+    r"""Extract `## \`column_name\`` → first-sentence-of-description mapping.
+
+    The dictionary's per-column format is:
+        ## `column_name`
+        - **Type:** ...
+        - **Description:** One or two sentences in plain English.
+        ...
+    We grab the column name from the H2 heading and the first sentence from
+    the Description bullet. Anything more sophisticated is the human's job
+    to do directly in metadata.yaml.
+    """
+    if not DATA_DICTIONARY_MD.exists():
+        return {}
+
+    text = DATA_DICTIONARY_MD.read_text()
+    columns: dict[str, str] = {}
+
+    # Match `## `column_name`` followed (anywhere before the next H2) by a
+    # `- **Description:** ...` bullet. Capture both.
+    pattern = re.compile(
+        r"^## `([^`]+)`\s*\n(.*?)(?=^## |\Z)",
+        flags=re.MULTILINE | re.DOTALL,
+    )
+    desc_pattern = re.compile(r"\*\*Description:\*\*\s*(.+?)(?=\n-|\n\n|\Z)", flags=re.DOTALL)
+
+    for match in pattern.finditer(text):
+        col = match.group(1)
+        body = match.group(2)
+        desc_match = desc_pattern.search(body)
+        if desc_match:
+            first_sentence = desc_match.group(1).strip().split("\n")[0].strip()
+            columns[col] = first_sentence
+        else:
+            columns[col] = ""
+
+    return columns
+
+
+# ─── Serve and deploy ────────────────────────────────────────────────────────
+
+
+def serve(port: int = 8001) -> int:
+    """Build and run `datasette serve` locally."""
+    if build() != 0:
+        return 1
+    if shutil.which("datasette") is None:
+        log.error("serve_no_datasette", hint="install with `uv sync --extra publish`")
+        return 1
+    cmd = [
+        "datasette",
+        "serve",
+        str(PROCESSED_DB),
+        "--metadata",
+        str(METADATA_YAML),
+        "--port",
+        str(port),
+        "-o",
+    ]
+    log.info("serve", cmd=" ".join(cmd))
+    subprocess.run(cmd)
+    return 0
+
+
+def deploy(provider: str = "vercel", project: str | None = None) -> int:
+    """Build and run `datasette publish <provider>`."""
+    if build() != 0:
+        return 1
+    if shutil.which("datasette") is None:
+        log.error("deploy_no_datasette", hint="install with `uv sync --extra publish`")
+        return 1
+    cmd = ["datasette", "publish", provider, str(PROCESSED_DB), "--metadata", str(METADATA_YAML)]
+    if provider == "vercel":
+        cmd += ["--project", project or "{{PROJECT_SLUG}}"]
+    elif provider == "fly":
+        cmd += ["--app", project or "{{PROJECT_SLUG}}"]
+    elif provider == "cloudrun":
+        cmd += ["--service", project or "{{PROJECT_SLUG}}"]
+    for plugin in DEPLOY_PLUGINS:
+        cmd += ["--install", plugin]
+    log.info("deploy", cmd=" ".join(cmd))
+    subprocess.run(cmd, check=True)
+    return 0
+
+
+# ─── CLI entry ───────────────────────────────────────────────────────────────
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        prog="python -m scripts.publish",
+        description="Build SQLite + metadata for Datasette publishing.",
+    )
+    sub = parser.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("build", help="Build data/processed/<project>.db + metadata.yaml")
+    s_serve = sub.add_parser("serve", help="Build and serve Datasette locally")
+    s_serve.add_argument("--port", type=int, default=8001)
+    s_deploy = sub.add_parser("deploy", help="Build and run `datasette publish`")
+    s_deploy.add_argument("provider", choices=["vercel", "fly", "cloudrun", "heroku"])
+    s_deploy.add_argument("--project", help="Project / app / service name")
+
+    args = parser.parse_args(argv)
+
+    if args.cmd == "build":
+        return build()
+    if args.cmd == "serve":
+        return serve(port=args.port)
+    if args.cmd == "deploy":
+        return deploy(provider=args.provider, project=args.project)
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

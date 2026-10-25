@@ -1,0 +1,50 @@
+"""Filesystem paths, HTTP defaults, and the source registry.
+
+This is the only module that imports concrete `Source` subclasses — every other
+module reaches sources through `SOURCES`.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from scripts.sources import Source
+
+# ─── Paths ──────────────────────────────────────────────────────────────────
+
+ROOT = Path(__file__).resolve().parent.parent
+DATA = ROOT / "data"
+DATA_ORIGINAL = DATA / "original"
+DATA_PROCESSED = DATA / "processed"
+DATA_AUDIT = DATA / "audit"
+DATA_LOOKUPS = DATA / "lookups"
+DOCS = ROOT / "docs"
+
+# Auto-create on import — these are write-targets the pipeline expects to exist.
+for _p in (DATA_ORIGINAL, DATA_PROCESSED, DATA_AUDIT, DATA_LOOKUPS, DOCS):
+    _p.mkdir(parents=True, exist_ok=True)
+
+# Canonical processed-output paths. Match what scripts/publish.py reads from.
+PROCESSED_CSV = DATA_PROCESSED / "{{PROJECT_SLUG}}.csv"
+PROCESSED_PARQUET = DATA_PROCESSED / "{{PROJECT_SLUG}}.parquet"
+PROCESSED_DB = DATA_PROCESSED / "{{PROJECT_SLUG}}.db"
+PROVENANCE_CSV = DATA_PROCESSED / "provenance.csv"
+METADATA_YAML = DATA_PROCESSED / "metadata.yaml"
+
+# ─── HTTP defaults ──────────────────────────────────────────────────────────
+
+USER_AGENT = "{{PROJECT_SLUG}}/0.1 (research; edit contact in scripts/config.py)"
+REQUEST_TIMEOUT_S = 30
+CACHE_PATH = ROOT / ".requests-cache.sqlite"
+CACHE_EXPIRE_S = 24 * 3600  # 24h; override per-source if a publisher is more dynamic
+
+# ─── Source registry ────────────────────────────────────────────────────────
+#
+# Add entries here as `SOURCES[slug] = SubclassOfSource`. The registry is the
+# single point of truth — discover/fetch/clean walk it.
+
+SOURCES: dict[str, type[Source]] = {
+    # "boulder_county_sov": BoulderCountySoV,
+}

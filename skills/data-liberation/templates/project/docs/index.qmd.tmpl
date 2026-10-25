@@ -1,0 +1,47 @@
+---
+title: "{{PROJECT_NAME}}"
+subtitle: "{{DESCRIPTION}}"
+---
+
+A reproducible data-liberation pipeline producing a tidy, well-documented
+public dataset.
+
+## What this is
+
+{{DESCRIPTION}} The deliverable is a long-form tidy dataset with one
+row per observation, joined to per-extract provenance, audited every
+time it's regenerated, and published in three forms:
+
+- **Browse and query interactively** at the [Datasette instance](https://{{PROJECT_SLUG}}.vercel.app/).
+- **Bulk-download** the latest CSV / Parquet from the
+  [GitHub Releases](https://github.com/{{OWNER}}/{{PROJECT_SLUG}}/releases) page.
+- **Reproduce from scratch** by cloning the repository and running
+  `uv run python -m scripts.pipeline run` — full instructions in the
+  [README](https://github.com/{{OWNER}}/{{PROJECT_SLUG}}#reproducibility).
+
+## What's where
+
+| Document | Purpose |
+|---|---|
+| [Data dictionary](data-dictionary.md) | Column-by-column reference, dtypes, value sets, caveats |
+| [Filter / pivot recipes](filter-pivot-recipes.md) | Python/pandas, R/tidyverse, SQL/DuckDB patterns for common questions |
+| [Methodology](methodology.qmd) | How each source is extracted, validated, and harmonized |
+| [Changelog](changelog.qmd) | Per-vintage changes, schema migrations, known issues |
+
+## Citation
+
+If you use this dataset, please cite:
+
+```bibtex
+@misc{{{PROJECT_SLUG}},
+  author = {{{AUTHOR}}},
+  title  = {{{{PROJECT_NAME}}}},
+  year   = {{2026}},
+  url    = {{https://github.com/{{OWNER}}/{{PROJECT_SLUG}}}}
+}
+```
+
+## License
+
+Data: [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/).
+Code: [MIT](https://github.com/{{OWNER}}/{{PROJECT_SLUG}}/blob/main/LICENSE).

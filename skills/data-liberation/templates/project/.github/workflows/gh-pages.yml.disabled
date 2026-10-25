@@ -1,0 +1,61 @@
+# Opt-in: rename to gh-pages.yml to enable.
+#
+# Renders the Quarto site at `_quarto.yml` + `docs/*.qmd` to the
+# `gh-pages` branch on every push to main that touches docs, the
+# Quarto config, or processed data.
+#
+# Prerequisites:
+#   1. Run `quarto publish gh-pages` ONCE locally to create the
+#      gh-pages branch and configure GitHub Pages (Quarto can't do
+#      this from CI; the branch must already exist).
+#   2. `permissions: contents: write` below allows the action to push
+#      to gh-pages.
+#   3. The freeze cache (`docs/_freeze/`) is committed; the action
+#      uses it to skip re-running expensive code on every render.
+#
+# Note: Git LFS does NOT work with GitHub Pages. Don't reference
+# LFS-tracked files from `.qmd` pages — they'll serve as pointer
+# text. Either embed small samples (non-LFS) under `docs/`, or link
+# out to the Datasette URL / GitHub Releases for full files.
+
+name: gh-pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "_quarto.yml"
+      - "data/processed/**"   # rebuild when data changes (for embedded samples)
+  workflow_dispatch:
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # required to push to gh-pages branch
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true   # pull LFS so we can embed sample data in docs
+
+      - name: Set up Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Sync dependencies (publish extras for any docs code blocks)
+        run: uv sync --extra publish
+
+      - name: Render and publish to gh-pages
+        uses: quarto-dev/quarto-actions/publish@v2
+        with:
+          target: gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

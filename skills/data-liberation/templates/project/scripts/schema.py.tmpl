@@ -1,0 +1,94 @@
+"""Canonical schema for {{PROJECT_NAME}}.
+
+The contract between parsers and downstream consumers. Every parser's
+output must validate against `CanonicalLong` (via `normalize_long`).
+Schema drift is caught here.
+
+See `references/data-modeling.md` in the data-liberation skill for the
+conventions this file follows.
+"""
+
+from __future__ import annotations
+
+import pandas as pd
+import pandera.pandas as pa
+from pandera.typing.pandas import DataFrame, Series
+
+# ─── Canonical column list ──────────────────────────────────────────────────
+#
+# Edit this to match the project's actual unit of observation. `source` and
+# `vintage` are required by convention — they join to `provenance.csv`. Add
+# domain-specific identifying columns (precinct/contest/candidate, unitid/
+# year/variable, etc.) and the measurement column(s) here.
+
+LONG_COLUMNS: list[str] = [
+    "source",  # registry slug; joins to provenance
+    "vintage",  # year or version string
+    "observation_id",  # natural-key placeholder — replace with project's actual key
+    "concept",  # cross-source harmonization key (nullable, single-source projects ignore)
+]
+
+
+# ─── pandera schema ─────────────────────────────────────────────────────────
+
+
+class CanonicalLong(pa.DataFrameModel):
+    """The canonical schema for processed outputs.
+
+    Edit columns to match the project's actual unit of observation. The
+    `source` and `vintage` columns are required by convention — they join
+    to `provenance.csv`.
+
+    The `concept` column is the harmonization-as-a-column pattern from
+    the IPEDS pipeline. Use it when ≥2 sources measure the same
+    underlying thing under different names; otherwise leave it nullable
+    and unused.
+    """
+
+    source: Series[str] = pa.Field(description="Source registry slug")
+    vintage: Series[str] = pa.Field(description="Year or version of source")
+
+    # ───── project-specific columns ─────
+    # Replace the placeholder below with the actual variables. Common
+    # patterns for civic data:
+    #
+    #   precinct: Series[str] = pa.Field(nullable=True)
+    #   contest:  Series[str] = pa.Field()
+    #   candidate: Series[str] = pa.Field(nullable=True)
+    #   votes:    Series[pd.Int64Dtype] = pa.Field(ge=0, nullable=True)
+    #
+    # Keep dtypes honest. Strings stay strings (ZIP codes, FIPS, district
+    # numbers). Counts are non-negative integers; prefer nullable Int64
+    # over int64 so missingness is preserved.
+    observation_id: Series[str] = pa.Field(
+        description="Placeholder — replace with the project's natural-key column(s)."
+    )
+
+    # Harmonization key (optional; nullable by default)
+    concept: Series[str] = pa.Field(
+        nullable=True,
+        description="Cross-source harmonization key. Null when row doesn't participate.",
+    )
+
+    class Config:
+        strict = True  # reject unknown columns — catches schema drift loudly
+        coerce = True  # let parsers be loose with dtypes; the schema does the final cast
+
+
+def normalize_long(df: pd.DataFrame) -> DataFrame[CanonicalLong]:
+    """Coerce a parser's raw output to the canonical schema.
+
+    Parsers may produce extra working columns during cleaning; this helper
+    keeps only `LONG_COLUMNS`, reorders, coerces dtypes via pandera, and
+    validates. Call this at the end of every parser's `parse()`.
+
+    Raises pandera.errors.SchemaError(s) if validation fails — let it
+    propagate up so the failure is durable in `data/audit/extraction_errors.json`.
+    """
+    missing = [c for c in LONG_COLUMNS if c not in df.columns]
+    if missing:
+        raise ValueError(
+            f"normalize_long: missing required columns: {missing}. Got: {list(df.columns)}"
+        )
+    df = df[LONG_COLUMNS].copy()
+    return CanonicalLong.validate(df)

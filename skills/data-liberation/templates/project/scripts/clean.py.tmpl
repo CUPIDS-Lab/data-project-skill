@@ -1,0 +1,176 @@
+"""Clean orchestrator: runs every Source.ingest(), validates, writes outputs.
+
+Produces three artifacts under `data/processed/`:
+  * `{{PROJECT_SLUG}}.csv`  — the canonical tidy CSV
+  * `{{PROJECT_SLUG}}.parquet` — same content, preserved dtypes
+  * `provenance.csv` — one row per (source, vintage), joined to manifests
+
+Errors raised by individual artifacts are caught and routed to
+`scripts.audit.record_extraction_error` — durable not fatal. The
+`--fail-on-empty` flag is the CI catch for silent regressions.
+"""
+
+from __future__ import annotations
+
+import json
+
+import pandas as pd
+import structlog
+
+from scripts.concepts import concept_for, load_concepts
+from scripts.config import (
+    DATA_ORIGINAL,
+    PROCESSED_CSV,
+    PROCESSED_PARQUET,
+    PROVENANCE_CSV,
+    SOURCES,
+)
+from scripts.schema import LONG_COLUMNS, normalize_long
+
+log = structlog.get_logger()
+
+
+def clean_all(fail_on_empty: bool = False, source: str | None = None) -> int:
+    """Run every source's ingest(), concatenate, validate, write. Returns exit code."""
+    if not SOURCES:
+        log.info("clean_empty_registry", hint="see scripts/config.py::SOURCES")
+        print("No sources registered. Add classes to scripts/config.py::SOURCES.")
+        # Empty registry is not an error; the `run` driver expects to be able
+        # to call clean on a fresh project. Write an empty deliverable and
+        # exit cleanly. `--fail-on-empty` still trips in CI for regressions.
+        if fail_on_empty:
+            return 2
+        pd.DataFrame(columns=LONG_COLUMNS).to_csv(PROCESSED_CSV, index=False)
+        return 0
+
+    # Local import to avoid the audit ↔ clean circular import on startup.
+    from scripts.audit import record_extraction_error
+
+    concepts = load_concepts()
+    frames: list[pd.DataFrame] = []
+    total_errors = 0
+
+    for slug, cls in SOURCES.items():
+        if source and slug != source:
+            continue
+        src = cls()
+        try:
+            artifacts = list(src.discover())
+        except Exception as exc:  # noqa: BLE001
+            log.error("discover_failed_in_clean", source=slug, error=str(exc))
+            total_errors += 1
+            continue
+
+        for art in artifacts:
+            if not art.local_path.exists():
+                log.warning(
+                    "artifact_not_fetched",
+                    source=slug,
+                    vintage=art.vintage,
+                    path=str(art.local_path),
+                )
+                continue
+            try:
+                df = src.ingest(art)
+                # Tag with source/vintage and ensure schema compliance.
+                df = df.assign(source=slug, vintage=art.vintage)
+                df = _attach_concept(df, concepts)
+                df = normalize_long(df)
+                frames.append(df)
+                log.info("ingested", source=slug, vintage=art.vintage, rows=len(df))
+            except Exception as exc:  # noqa: BLE001 — durable not fatal
+                record_extraction_error(source=slug, artifact=art, error=exc)
+                total_errors += 1
+
+    if not frames:
+        log.warning("clean_no_rows")
+        if fail_on_empty:
+            print("FAIL: clean produced zero rows. See data/audit/extraction_errors.json.")
+            return 2
+        # Write a schema-shaped empty CSV so downstream consumers don't crash
+        # on a missing-file or missing-columns error.
+        pd.DataFrame(columns=LONG_COLUMNS).to_csv(PROCESSED_CSV, index=False)
+        return 0
+
+    combined = pd.concat(frames, ignore_index=True)
+    combined.to_csv(PROCESSED_CSV, index=False)
+    combined.to_parquet(PROCESSED_PARQUET, index=False)
+    log.info("wrote_processed", csv=str(PROCESSED_CSV), rows=len(combined))
+
+    prov = _provenance_from_manifests()
+    prov.to_csv(PROVENANCE_CSV, index=False)
+    log.info("wrote_provenance", path=str(PROVENANCE_CSV), rows=len(prov))
+
+    if fail_on_empty and len(combined) == 0:
+        print("FAIL: clean wrote zero rows.")
+        return 2
+    return 0
+
+
+def _attach_concept(df: pd.DataFrame, concepts: dict) -> pd.DataFrame:
+    """Fill the `concept` column from the catalog when the catalog is non-empty.
+
+    Single-source projects leave the catalog empty and the column stays NA.
+    The lookup key is `(source, vintage, variable)`; this implementation
+    treats the natural-key column `observation_id` as the variable name —
+    override if the project's schema uses a different mapping key.
+    """
+    if not concepts:
+        if "concept" not in df.columns:
+            df = df.assign(concept=pd.NA)
+        return df
+    if "concept" in df.columns and df["concept"].notna().any():
+        return df  # parser already attached concepts; respect that
+    df = df.copy()
+    df["concept"] = [
+        concept_for(row["source"], row["vintage"], row.get("observation_id", ""), concepts)
+        for _, row in df.iterrows()
+    ]
+    return df
+
+
+def _provenance_from_manifests() -> pd.DataFrame:
+    """Build provenance.csv from each source's manifest.json."""
+    rows: list[dict] = []
+    if not DATA_ORIGINAL.exists():
+        return pd.DataFrame(
+            columns=[
+                "source",
+                "vintage",
+                "source_url",
+                "retrieved_at",
+                "sha256",
+                "extraction_quality",
+                "extraction_notes",
+                "documentcloud_url",
+                "documentcloud_access",
+            ]
+        )
+    for source_dir in sorted(DATA_ORIGINAL.iterdir()):
+        if not source_dir.is_dir():
+            continue
+        manifest_path = source_dir / "manifest.json"
+        if not manifest_path.exists():
+            continue
+        try:
+            manifest = json.loads(manifest_path.read_text())
+        except json.JSONDecodeError:
+            continue
+        for rel, entry in manifest.items():
+            vintage = rel.split("/", 1)[0] if "/" in rel else ""
+            rows.append(
+                {
+                    "source": source_dir.name,
+                    "vintage": vintage,
+                    "source_url": entry.get("url", ""),
+                    "retrieved_at": entry.get("fetched_at", ""),
+                    "sha256": entry.get("sha256", ""),
+                    "extraction_quality": "clean",  # override per-source for OCR/scraped
+                    "extraction_notes": "",
+                    # Populated by scripts/upload_documentcloud.py after a
+                    # successful upload; empty for files not (yet) on DocumentCloud.
+                    "documentcloud_url": entry.get("documentcloud_url", ""),
+                    "documentcloud_access": entry.get("documentcloud_access", ""),
+                }
+            )
+    return pd.DataFrame(rows)

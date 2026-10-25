@@ -1,0 +1,41 @@
+# Git LFS configuration for {{PROJECT_NAME}}.
+#
+# Files matching these patterns are stored as LFS pointers in Git and
+# fetched separately. Contributors must run `git lfs install` once per
+# machine before cloning.
+#
+# IMPORTANT: LFS does not work with GitHub Pages. The Quarto site
+# (rendered to the gh-pages branch by `.github/workflows/gh-pages.yml`)
+# cannot embed LFS-tracked files directly. Link out to the Datasette
+# instance or to GitHub Releases for full-file downloads.
+#
+# Per-file size limits by GitHub plan: Free/Pro 2GB, Team 4GB,
+# Enterprise Cloud 5GB. Files exceeding the limit will be rejected
+# at push time.
+
+# ─── Source artifacts (almost always large) ──────────────────────────────────
+data/original/**/*.pdf  filter=lfs diff=lfs merge=lfs -text
+data/original/**/*.zip  filter=lfs diff=lfs merge=lfs -text
+data/original/**/*.xlsx filter=lfs diff=lfs merge=lfs -text
+data/original/**/*.xls  filter=lfs diff=lfs merge=lfs -text
+data/original/**/*.tar.gz filter=lfs diff=lfs merge=lfs -text
+data/original/**/*.dbf  filter=lfs diff=lfs merge=lfs -text
+
+# ─── Large processed outputs ─────────────────────────────────────────────────
+data/processed/*.parquet filter=lfs diff=lfs merge=lfs -text
+data/processed/*.db      filter=lfs diff=lfs merge=lfs -text
+
+# ─── Quarto freeze cache (image outputs from executed code) ──────────────────
+# These can grow large for figure-heavy notebooks; LFS keeps the main
+# branch lean. The _freeze cache is still committed (just via LFS),
+# so the GitHub Action can use it.
+docs/_freeze/**/*.png filter=lfs diff=lfs merge=lfs -text
+docs/_freeze/**/*.pdf filter=lfs diff=lfs merge=lfs -text
+
+# ─── Text patterns (normalize line endings; not LFS) ─────────────────────────
+*.py text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.qmd text eol=lf
+*.csv text eol=lf

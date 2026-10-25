@@ -1,0 +1,57 @@
+# Opt-in: rename to publish.yml to enable.
+#
+# Builds the SQLite + metadata.yaml from the canonical CSV and deploys
+# the Datasette instance. Triggered when refresh PRs are merged
+# (push to main on data/processed/**) or manually from the Actions tab.
+#
+# Prerequisites:
+#   1. `uv sync --extra publish` succeeds locally
+#   2. A first manual `uv run python -m scripts.publish deploy --provider vercel`
+#      has succeeded and configured the Vercel project
+#   3. A `VERCEL_TOKEN` secret is set in the repo (Settings → Secrets)
+#
+# For Fly.io: swap to `--provider fly` and set `FLY_API_TOKEN`. For
+# Cloud Run: swap to `--provider cloudrun` and set GCP credentials via
+# google-github-actions/auth.
+
+name: publish
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "data/processed/**"
+      - "scripts/publish.py"
+      - "docs/data-dictionary.md"
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true   # processed Parquet/.db may be LFS-tracked
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Sync dependencies (publish extras)
+        run: uv sync --extra publish
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Build and deploy via scripts.publish
+        # Routes through `scripts.publish deploy` so changes to publish
+        # logic (plugins, flags, metadata) live in one place. Override
+        # the provider / project name here if your project uses Fly or
+        # Cloud Run instead.
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: uv run python -m scripts.publish deploy vercel --project {{PROJECT_SLUG}}

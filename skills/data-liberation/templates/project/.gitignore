@@ -1,0 +1,55 @@
+# ─── Python / uv ─────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+build/
+dist/
+.venv/
+.uv-cache/
+
+# ─── Test caches ─────────────────────────────────────────────────────────────
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ─── HTTP cache (requests-cache) ─────────────────────────────────────────────
+.requests-cache.sqlite
+
+# ─── Secrets / local config ──────────────────────────────────────────────────
+.env
+.env.local
+
+# ─── Auto-generated outputs (committed selectively per project) ──────────────
+# Parquet is often large; commit only if sub-10MB. CSV deliberately committed.
+data/processed/*.parquet
+data/processed/*.db
+data/processed/metadata.yaml
+
+# Audit reports — regenerated on every run.
+data/audit/*.md
+data/audit/*.json
+data/audit/*.txt
+
+# NOTE: docs/variables.md and docs/variables.csv ARE committed — they're
+# the auto-generated column profile that the refresh PR carries alongside
+# data changes, and Quarto needs them to render the variables page. The
+# Quarto-cached _freeze/ directory below follows the same logic.
+
+# ─── Quarto ──────────────────────────────────────────────────────────────────
+# The rendered site goes to gh-pages; not needed in main branch.
+/_site/
+/.quarto/
+
+# NOTE: docs/_freeze/ SHOULD be committed — it's the cache that lets the
+# GitHub Action skip re-running expensive code on every render. Do not add
+# it here.
+
+# ─── OS / editor ─────────────────────────────────────────────────────────────
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~

@@ -1,0 +1,72 @@
+# Opt-in: rename to refresh.yml to enable.
+#
+# Runs the pipeline on a schedule, opens a PR if data changed. Pair
+# with `publish.yml` and `gh-pages.yml` so merging the PR triggers a
+# re-deploy of the Datasette instance and the methodology site.
+#
+# Default cadence: Mondays 13:00 UTC. Adjust the cron for sources
+# that publish on a different rhythm.
+
+name: refresh
+
+on:
+  schedule:
+    - cron: "0 13 * * 1"   # Mondays 13:00 UTC
+  workflow_dispatch:        # manual trigger from the Actions tab
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true   # need raw data to rebuild
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Sync dependencies
+        run: uv sync --all-extras
+
+      - name: Discover
+        run: uv run python -m scripts.pipeline discover
+
+      - name: Fetch
+        run: uv run python -m scripts.pipeline fetch
+
+      - name: Clean
+        run: uv run python -m scripts.pipeline clean --fail-on-empty
+
+      - name: Audit
+        run: uv run python -m scripts.pipeline audit
+
+      - name: Reconcile (advisory if registry empty)
+        continue-on-error: true
+        run: uv run python -m scripts.pipeline reconcile
+
+      - name: Open PR with refreshed data
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore(refresh): scheduled data refresh"
+          title: "chore(refresh): scheduled data refresh"
+          body: |
+            Scheduled refresh from `.github/workflows/refresh.yml`.
+
+            Review the audit summary under `data/audit/` before merging.
+            Merging will trigger `publish.yml` and `gh-pages.yml` to
+            redeploy the Datasette instance and methodology site.
+          branch: refresh/scheduled
+          add-paths: |
+            data/original/**
+            data/processed/**
+            data/audit/**
+            docs/variables.md
+            docs/variables.csv

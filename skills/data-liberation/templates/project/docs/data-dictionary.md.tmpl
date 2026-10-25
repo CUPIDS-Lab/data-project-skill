@@ -1,0 +1,94 @@
+---
+title: "Data dictionary"
+---
+
+# Data Dictionary — {{PROJECT_NAME}}
+
+> **Hand-maintained.** The canonical record of what each column means,
+> where it comes from, and what's weird about it. The auto-generated
+> column profile (dtype, distinct count, null rate, sample values) is
+> at [`variables.md`](variables.md) — that's the *mechanical* counterpart;
+> this is the *human* one.
+>
+> **If `variables.csv` and this dictionary disagree on a dtype or
+> meaning, one of them is wrong.** Resolve it before merging.
+
+## How to read this file
+
+Each column gets its own H2 heading. Sections:
+
+- **Type** — the canonical dtype after schema validation.
+- **Source(s)** — which upstream artifacts contribute this column.
+- **Description** — a sentence or two of plain English.
+- **Known caveats** — quirks the user must know to avoid mistakes.
+- **Cross-walks** — which `data/lookups/` file(s) this column joins to.
+
+The CU Salaries project's `DATA_DICTIONARY.md` is the model. Especially
+valuable are caveats like *"2022's roster ID format changed from
+R###### to R21-######, so roster IDs are not safely comparable across
+that boundary"* — that kind of note is what makes the dictionary worth
+maintaining.
+
+---
+
+## `source`
+
+- **Type:** `string`
+- **Source(s):** Pipeline-assigned; not from upstream data.
+- **Description:** Source registry slug. Maps 1:1 to entries in
+  `scripts.config.SOURCES`. Joins to `data/processed/provenance.csv`
+  for retrieval URL, sha256, and extraction-quality flags.
+- **Known caveats:** None. This is a controlled vocabulary; values
+  are stable across vintages.
+- **Cross-walks:** N/A (controlled in `scripts/config.py`).
+
+## `vintage`
+
+- **Type:** `string`
+- **Source(s):** Pipeline-assigned from `Artifact.vintage`.
+- **Description:** Year or version of the source artifact (e.g.,
+  `"2024"`, `"2024-Q1"`, `"2024-11-05"`). String, not int —
+  vintages aren't always years, and even when they are, treating
+  them as strings prevents accidental arithmetic.
+- **Known caveats:** Format varies by source. Document the format
+  this project uses for each source under the source's own column.
+- **Cross-walks:** N/A.
+
+## `observation_id`
+
+- **Type:** `string`
+- **Source(s):** Replace this row with the column(s) that uniquely identify a row within a source × vintage.
+- **Description:** The natural-key identifier for this observation. The composite key `(source, vintage, observation_id)` is unique across the entire processed CSV.
+- **Known caveats:** Format may shift across vintages — document any breakpoints here so downstream consumers don't try to join across them naively.
+- **Cross-walks:** None by default; add joins to `data/lookups/` files here.
+
+## `concept`
+
+- **Type:** `string` (nullable)
+- **Source(s):** Harmonization-as-a-column. Pipeline-assigned per
+  the cross-source field-map in `data/lookups/concepts.yaml`.
+- **Description:** When ≥2 sources measure the same underlying thing
+  under different names (e.g., "total enrollment" in source A and
+  "headcount" in source B both → `concept = "enrollment"`), this
+  column carries the harmonized label. Null when the row does not
+  participate in cross-source harmonization.
+- **Known caveats:** Concepts are added as cross-source comparisons
+  are actually needed — not preemptively. If a concept is missing,
+  add it to `data/lookups/concepts.yaml` and re-run `clean`.
+- **Cross-walks:** `data/lookups/concepts.yaml`.
+
+---
+
+## _(Add project-specific columns below this line.)_
+
+Use this template:
+
+```markdown
+## `<column_name>`
+
+- **Type:** `<dtype>` _(`string` | `int` | `float` | `bool` | `date` | `datetime`)_
+- **Source(s):** _Which upstream artifacts contribute this column._
+- **Description:** _One or two sentences in plain English._
+- **Known caveats:** _Edge cases, vintage breakpoints, definitional shifts._
+- **Cross-walks:** _Joining lookup tables in `data/lookups/`, if any._
+```

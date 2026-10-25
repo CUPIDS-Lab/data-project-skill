@@ -1,0 +1,151 @@
+"""{{PROJECT_NAME}} pipeline CLI.
+
+Subcommands:
+  discover    — enumerate available artifacts upstream
+  fetch       — download missing artifacts to data/original/
+  clean       — run parsers, validate, write data/processed/
+  audit       — generate Markdown summary + variables report
+  reconcile   — (opt-in) verify against authoritative top-line totals
+  publish     — build SQLite + metadata for Datasette (delegates to scripts.publish)
+  run         — discover → fetch → clean → audit, in sequence
+
+Run as `uv run python -m scripts.pipeline <subcommand>` or via the
+installed `{{PROJECT_SLUG}}` entry point.
+"""
+
+from __future__ import annotations
+
+import argparse
+import logging
+import sys
+
+import structlog
+
+
+def _configure_logging(verbose: bool) -> None:
+    """structlog + stdlib logging; INFO by default, DEBUG with --verbose."""
+    level = logging.DEBUG if verbose else logging.INFO
+    logging.basicConfig(format="%(message)s", level=level)
+    structlog.configure(
+        wrapper_class=structlog.make_filtering_bound_logger(level),
+        processors=[
+            structlog.processors.add_log_level,
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.dev.ConsoleRenderer(),
+        ],
+    )
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="{{PROJECT_SLUG}}",
+        description="{{DESCRIPTION}}",
+    )
+    p.add_argument("-v", "--verbose", action="store_true", help="Enable DEBUG logging.")
+
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    sub.add_parser("discover", help="Enumerate available artifacts upstream")
+
+    fetch_p = sub.add_parser("fetch", help="Download artifacts to data/original/")
+    fetch_p.add_argument("--force", action="store_true", help="Redownload even if file exists")
+    fetch_p.add_argument("--source", help="Limit to one source slug")
+
+    clean_p = sub.add_parser("clean", help="Parse artifacts and write data/processed/")
+    clean_p.add_argument(
+        "--fail-on-empty",
+        action="store_true",
+        help="Exit non-zero if the combined output has zero rows",
+    )
+    clean_p.add_argument("--source", help="Limit to one source slug")
+
+    sub.add_parser("audit", help="Generate audit summary and variables report")
+    sub.add_parser("reconcile", help="Verify top-line totals (opt-in; per-source)")
+
+    publish_p = sub.add_parser("publish", help="Build SQLite + metadata for Datasette")
+    publish_p.add_argument(
+        "publish_cmd",
+        nargs="?",
+        default="build",
+        choices=["build", "serve", "deploy"],
+        help="What to do (default: build)",
+    )
+    publish_p.add_argument(
+        "--provider",
+        default="vercel",
+        choices=["vercel", "fly", "cloudrun", "heroku"],
+        help="Deploy target (for `publish deploy`)",
+    )
+    publish_p.add_argument("--project", help="Project/app/service name for deploy")
+    publish_p.add_argument("--port", type=int, default=8001, help="Local serve port")
+
+    run_p = sub.add_parser("run", help="discover → fetch → clean → audit, in sequence")
+    run_p.add_argument("--force", action="store_true")
+    run_p.add_argument("--fail-on-empty", action="store_true")
+
+    return p
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _build_parser().parse_args(argv)
+    _configure_logging(args.verbose)
+
+    # Local imports keep --help fast — each subcommand pays its own import cost.
+    if args.cmd == "discover":
+        from scripts.discover import discover_all
+
+        return discover_all()
+
+    if args.cmd == "fetch":
+        from scripts.fetch import fetch_all
+
+        return fetch_all(force=args.force, source=args.source)
+
+    if args.cmd == "clean":
+        from scripts.clean import clean_all
+
+        return clean_all(fail_on_empty=args.fail_on_empty, source=args.source)
+
+    if args.cmd == "audit":
+        from scripts.audit import audit_all
+
+        return audit_all()
+
+    if args.cmd == "reconcile":
+        from scripts.reconcile import reconcile_all
+
+        return reconcile_all()
+
+    if args.cmd == "publish":
+        from scripts.publish import build, deploy, serve
+
+        if args.publish_cmd == "build":
+            return build()
+        if args.publish_cmd == "serve":
+            return serve(port=args.port)
+        if args.publish_cmd == "deploy":
+            return deploy(provider=args.provider, project=args.project)
+        return 1
+
+    if args.cmd == "run":
+        from scripts.audit import audit_all
+        from scripts.clean import clean_all
+        from scripts.discover import discover_all
+        from scripts.fetch import fetch_all
+
+        for phase in (
+            discover_all,
+            lambda: fetch_all(force=args.force),
+            lambda: clean_all(fail_on_empty=args.fail_on_empty),
+            audit_all,
+        ):
+            rc = phase()
+            if rc != 0:
+                return rc
+        return 0
+
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

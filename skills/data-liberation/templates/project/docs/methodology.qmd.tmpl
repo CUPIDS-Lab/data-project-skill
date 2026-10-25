@@ -1,0 +1,101 @@
+---
+title: "Methodology"
+---
+
+How {{PROJECT_NAME}} is built, validated, and kept current.
+
+## The pipeline at a glance
+
+The project's CLI runs four phases in sequence; publishing is a separate
+step (and a separate workflow) so a routine refresh doesn't deploy
+without human review.
+
+```
+discover → fetch → clean → audit         (the `run` subcommand)
+                                  ↓
+                              publish     (separate; see `scripts/publish.py`)
+```
+
+This maps to the data-liberation skill's six-phase workflow as follows:
+*Survey* and *Scaffold* happen once per project (outside the CLI);
+*Extract* + *Tidy* are what `clean.py` does; *Audit* and *Publish* are
+the last two CLI subcommands. `scripts/pipeline.py` is the entry point;
+each phase is independently invokable.
+
+## Source artifacts
+
+(Document each upstream source here. Recommended template per source:)
+
+### {Source name}
+
+- **Provider:** {organization, URL}
+- **What it covers:** {temporal range, unit of observation, scope}
+- **Format:** {PDF / XLSX / CSV / HTML / JSON}
+- **Cadence:** {annual / quarterly / on-demand}
+- **Extraction approach:** {brief sentence on which toolchain is used and why}
+- **Known structural quirks:** {merged cells, schema migrations, columns
+  renamed mid-period, footnoted rows, etc.}
+- **Vintage breakpoints:** {years where parsing must branch}
+
+## Extraction pipeline
+
+`scripts/sources.py` defines a `Source` ABC with two methods:
+
+- `discover()` — enumerates what's available upstream, returning
+  `Artifact` records. Cheap, no downloads. Idempotent.
+- `ingest(artifact)` — reads a previously-fetched local file and
+  returns a canonical-schema DataFrame. Per-vintage parsers in
+  `scripts/parsers/` do the actual parsing work.
+
+The split is deliberate: discovery is an *online* question; ingest is
+an *offline* question; separating them makes parsers unit-testable
+against fixtures without network access.
+
+## Canonical schema
+
+Every parser's output is validated against `scripts.schema.CanonicalLong`
+before being written to disk. The schema declares:
+
+- Required columns (`source`, `vintage`, plus the project's natural-key
+  columns)
+- Per-column dtypes, with `coerce=True` to be forgiving of parser output
+- `strict=True` to reject unknown columns — schema drift fails loudly
+- Nullable types for measurements where missingness must be preserved
+
+See `docs/data-dictionary.md` for the full column-by-column reference.
+
+## Reconciliation
+
+For sources with authoritative top-line totals (vote totals, enrollment
+counts, budget line items), `scripts/reconcile.py` re-opens each
+original file, independently computes those totals, and compares to
+what's in the processed deliverable. Mismatches are regressions: the
+pipeline run completes, but CI fails on the reconcile job.
+
+Reconcilers are opt-in per source; the project's reconcile registry is
+in `scripts/reconcile.py::RECONCILE_REGISTRY`.
+
+## Caveats and known issues
+
+(Document specifics as they emerge. Examples:)
+
+- {Some vintage's source PDF was scanned; OCR'd values have ±N% error
+  estimated from a manual sample.}
+- {Source X and source Y use different denominators for "enrollment"
+  — see the `concepts.yaml` caveats.}
+- {Records before {year} have imputed geocodes; flagged in the
+  `geocode_quality` column.}
+
+## How to verify a finding
+
+For any specific number that matters:
+
+1. Look up the row in `data/processed/{{PROJECT_SLUG}}.csv`.
+2. Join to `provenance.csv` on `(source, vintage)` to get the source
+   URL, retrieval timestamp, and file sha256.
+3. Cross-check against the corresponding original under
+   `data/original/<source>/<vintage>/`.
+
+The published Datasette instance exposes this join as a canned query
+named `with_provenance` — see
+[the Datasette URL](https://{{PROJECT_SLUG}}.vercel.app/).

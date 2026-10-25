@@ -1,0 +1,70 @@
+---
+title: "Changelog"
+---
+
+Per-vintage changes to {{PROJECT_NAME}}: what changed, what's deprecated,
+and what consumers need to know.
+
+This document complements `git log`. The git history records *code*
+changes; this changelog records changes to *the data and the schema*
+that downstream users care about.
+
+::: {.callout-note}
+The pipeline tags vintage-by-vintage in semantic-ish form:
+`YYYY.MM.<vintage>` (e.g., `2026.05.2024-general`). Each tag's release
+on GitHub attaches the full CSV / Parquet / SQLite snapshot.
+:::
+
+## Unreleased
+
+(Use this section for in-progress changes. Move entries to a dated
+section on release.)
+
+## 2026.XX.YYYY — {Description of release}
+
+### Added
+
+- {New source X, with vintage range covered}
+- {New column Y in the canonical schema}
+- {New concept Z in `data/lookups/concepts.yaml`}
+
+### Changed
+
+- {Source X's URL pattern changed; parser updated. No data change.}
+- {Column Y now uses `Int64` (nullable) instead of `int64`; preserves
+  missingness explicitly.}
+
+### Deprecated
+
+- {Column Z is deprecated in favor of column W; will be removed in
+  version 2027.XX.YYYY.}
+
+### Fixed
+
+- {Reconciliation found a 12-row discrepancy in vintage 2018; root
+  caused to a header-row offset; fixed in parser commit abc1234.}
+- {Vintage 2015 votes column was string-typed; now properly Int64.}
+
+### Schema migrations
+
+- {When the unit of observation changes, document the migration here
+  in detail. Example: "Prior to vintage 2020, observations were one
+  row per precinct × contest; from 2020 onward, also include candidate.
+  Old rows have `candidate = NULL`."}
+
+## How to read this changelog
+
+- **Added**: new sources, new columns, new concepts.
+- **Changed**: behavior changes that don't affect output rows or
+  schema.
+- **Deprecated**: features that still work but will be removed.
+- **Removed**: features no longer in the pipeline.
+- **Fixed**: bug fixes that change output values. **These are the
+  entries to read carefully if you've already cited a number from this
+  dataset.**
+- **Schema migrations**: changes to the canonical column list or
+  unit of observation. The most disruptive category; pay closest
+  attention here.
+
+When a fix changes a previously-cited number, the entry will note that
+explicitly and link to the affected commit.
