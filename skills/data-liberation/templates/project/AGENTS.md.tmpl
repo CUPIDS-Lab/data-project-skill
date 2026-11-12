@@ -21,6 +21,30 @@ uv run python -m scripts.pipeline fetch --fresh  # re-download originals that ma
 uv run nbstripout --install                      # once per clone, if you use notebooks
 ```
 
+## Checks by change type
+
+Run the cheapest check that covers the change, and say in the PR which one you ran. Replace "measure it" with the real time the first time you run each check.
+
+| Change | Check | Time |
+| --- | --- | --- |
+| Docs, README, dictionary prose | `uv run ruff check scripts tests && uv run pytest` | ~1 min |
+| A parser or `scripts/source.py` | the pipeline on the affected vintages, then `uv run python -m scripts.pipeline reconcile` | measure it |
+| A rename or a moved file | `uv run pytest` and `uv run python -m scripts.pipeline run --help` | ~1 min |
+| The schema, a lookup, or a model or parameter | `uv run python -m scripts.pipeline run` (a long run: see below) | measure it |
+
+## Long runs
+
+A full run can take long enough to be interrupted. Run it against a copy of `data/` so nothing half-finished lands in the repository, then copy the result back and commit once:
+
+```bash
+VAR=$(uv run python -c "from scripts.config import DATA_DIR_ENV; print(DATA_DIR_ENV)")
+export "$VAR=$(mktemp -d)/data" && cp -R data "${!VAR}"
+uv run python -m scripts.pipeline run
+rm -rf data && cp -R "${!VAR}" data && unset "$VAR"   # review the diff, then commit once
+```
+
+Print paths with `scripts.config.display_path()`, never `relative_to(ROOT)`, which fails for the copy.
+
 ## Where things are
 
 - `scripts/source.py`: what is fetched (`artifacts()`) and which parser reads each file (`parser_for()`). `scripts/parsers/`: one module per layout era.
@@ -45,6 +69,9 @@ Add a rule when the project learns one, with the date and the reason.
 - **One source until there are two.** The registry and concept catalog come with the second source, following the skill's "Adding a second source" procedure.
 - **Failures are loud.** A failed artifact is in `data/audit/extraction_errors.json` and the audit summary; rejected rows are in `data/audit/rejected.csv` with a reason. Never hide a failure, and never fill a gap with sample, synthetic or stale data.
 - **Numbers in prose are generated.** Don't type counts into the README or this file; `audit` fills the generated blocks and a test fails when they are stale.
+- **Reconcile at the grain we publish.** The expected totals are read independently of the parser, a printed key missing from the data is a mismatch, and known differences live in `data/lookups/reconcile-exceptions.csv` with their evidence. A new mismatch blocks the merge until it is explained.
+- **The schema rejects only impossible values.** Unusual-but-real values are flagged in the audit report, not by loosening the schema.
+- **Size a fix before proposing it.** Count the records it would change, from a query on the current data, and spot-check five before writing the rule.
 - **Schema changes are contract changes.** Changing `LONG_COLUMNS`, a type or the natural key needs a `CHANGELOG.md` entry saying what breaks for users.
 - **Storage budget.** Committed, Git LFS or external storage per source, as recorded in the decision-log; CI fails on any file near 100 MB.
 <!-- IF:PUBLISH -->
@@ -53,13 +80,16 @@ Add a rule when the project learns one, with the date and the reason.
 <!-- IF:REFRESH -->
 - **Refreshes arrive as pull requests.** The scheduled workflow never commits to `main`; review its audit diff and spot-check sample before merging. A scheduled run can be late or skipped, so check `data/audit/discovery.md` for gaps.
 <!-- /IF -->
+<!-- IF:AMENDMENTS -->
+- **Publishers' revisions are originals too.** A recount or amended file is fetched beside the file it amends and merged by group in `scripts/amendments.py`; errors in the publication are fixed through the reviewed `data/lookups/corrections.csv`. When `clean` reports a correction that no longer matches, the publisher probably fixed it: review and remove the correction.
+<!-- /IF -->
 <!-- IF:MULTI_SOURCE -->
 - **Concepts carry caveats.** Every concept in `data/lookups/concepts.yaml` that maps more than one source says what is and is not comparable; a test enforces it.
 <!-- /IF -->
 
 ## Pull requests
 
-A pull request says what changed, why, what you checked (tests, the audit summary diff, reconcile), and what you left alone on purpose. A PR that changes data carries the audit diff; a new reconcile mismatch blocks the merge until it is explained.
+A pull request says what changed, why, what you checked (which row of "Checks by change type" you ran, and the audit summary and reconcile diffs), and what you left alone on purpose. A PR that changes data carries the audit diff; a new reconcile mismatch blocks the merge until it is explained.
 
 ## Background
 

@@ -12,6 +12,7 @@ This reference specifies what a data-liberation project's source tree looks like
 - [Tests](#tests)
 - [Generated numbers in docs](#generated-numbers-in-docs)
 - [Storage budget](#storage-budget)
+- [Long runs](#long-runs)
 - [CI workflows](#ci-workflows)
 - [The `data/` directories](#the-data-directories)
 - [Adding a second source](#adding-a-second-source)
@@ -78,9 +79,10 @@ A project starts with `core` and nothing else. Every other group is generated wh
 <!-- BEGIN file-groups -->
 | Group | Flag | Generate when | Files |
 | --- | --- | --- | --- |
-| `core` | — | always: any project (sections 2–6) | every file not listed below: the five working files (`README.md.tmpl`, `AGENTS.md.tmpl` with `CLAUDE.md`, `ROADMAP.md.tmpl`, `decision-log.md.tmpl`, `CHANGELOG.md.tmpl`), `LICENSE.tmpl`, `pyproject.toml.tmpl`, `.gitignore`, `.gitattributes.tmpl`, `data/*/.gitkeep`, the pipeline core in `scripts/`, `tests/`, `docs/data-dictionary.md.tmpl`, `docs/filter-pivot-recipes.md.tmpl`, `.github/workflows/tests.yml` |
+| `core` | — | always: any project (sections 2–6) | every file not listed below: the five working files (`README.md.tmpl`, `AGENTS.md.tmpl` with `CLAUDE.md`, `ROADMAP.md.tmpl`, `decision-log.md.tmpl`, `CHANGELOG.md.tmpl`), `LICENSE.tmpl`, `pyproject.toml.tmpl`, `.gitignore`, `.gitattributes.tmpl`, `data/*/.gitkeep`, the pipeline core in `scripts/`, `tests/`, `docs/data-dictionary.md.tmpl`, `docs/filter-pivot-recipes.md.tmpl`, `.github/workflows/tests.yml`, `.github/workflows/reconcile.yml.disabled` |
 | `publish` | `PUBLISH` | section 8 is in scope (visibility is public or embargoed) | `scripts/publish.py.tmpl`, `scripts/upload_documentcloud.py`, `_quarto.yml.tmpl`, `docs/*.qmd.tmpl`, `.github/workflows/publish.yml.disabled.tmpl`, `.github/workflows/gh-pages.yml.disabled`, `.github/ISSUE_TEMPLATE/data-correction.yml` |
 | `multi-source` | `MULTI_SOURCE` | a second source arrives (see [Adding a second source](#adding-a-second-source)) | `scripts/concepts.py`, `data/lookups/concepts.yaml`, `tests/test_concepts.py` |
+| `amendments` | `AMENDMENTS` | the source publishes recounts or amended files, or an official figure is known to be wrong (sections 4–5) | `scripts/amendments.py`, `data/lookups/corrections.csv`, `tests/test_amendments.py` |
 | `refresh` | `REFRESH` | the source publishes new vintages on a cadence (section 10) | `scripts/discover.py`, `.github/workflows/refresh.yml.disabled` |
 <!-- END file-groups -->
 
@@ -122,7 +124,7 @@ These are the files people keep current; every project starts with them (the Out
 
 The pipeline is a small package in `scripts/`, one responsibility per module, run as `uv run python -m scripts.pipeline run`. That command runs fetch, clean, audit and reconcile (with discover first when the refresh group is present) and stops at the first non-zero exit.
 
-- **`config.py`:** paths, the processed-file names (`data/processed/<pkg_name>.csv`), the audit outputs, HTTP defaults (a user agent with a contact), and the source's `SOURCE_SLUG`, `SOURCE_LABEL` and `SOURCE_LICENSE`.
+- **`config.py`:** paths (with a data-directory override for long runs and `display_path()` for printing them; see [Long runs](#long-runs)), `SOURCE_PRINTS_TOTALS`, the processed-file names (`data/processed/<pkg_name>.csv`), the audit outputs, HTTP defaults (a user agent with a contact), and the source's `SOURCE_SLUG`, `SOURCE_LABEL` and `SOURCE_LICENSE`.
 - **`source.py`:** the one source. `artifacts()` lists every file upstream as an `Artifact` (source, vintage, URL, local path), cheaply and without downloading: a static list for predictable URLs, or a scrape of the index page. `parser_for(artifact)` returns the parser module by an explicit condition on the vintage; no registry and no dynamic import dispatch. `vintage_from_filename()` reads the period from the file's own name, never from the publish directory (a Q4 file posted in next February's folder is still Q4), and a test pins that case.
 - **`parsers/`:** one module per layout era, `parse(path) -> DataFrame`, plus `METHOD` (a canonical `extraction_method`), `TOOLS` (distributions whose versions are recorded) and optionally `QUALITY` and `NOTES`. Keep text extraction separate from line parsing so the PDF engine can change without touching the parser. Per-era modules beat one function full of `if vintage < 2015` branches.
 - **`fetch.py`:** downloads what is missing into `data/original/<source>/<vintage>/` and records it in `data/original/manifest.json`. Idempotent; retries with backoff on connection errors and 429/5xx only; rejects an empty body or an HTML error page served for a PDF; prints throttled progress. `--fresh` bypasses the HTTP cache and re-downloads everything; changed bytes replace the file, keep the old hash in `previous_sha256`, and are reported. A file listed in the manifest but missing from disk (kept outside git) is re-downloaded and checked against its recorded sha256. Failures go to a fresh `data/audit/fetch_errors.json` and exit 1; nothing ever substitutes sample, synthetic or stale data.
@@ -131,7 +133,8 @@ The pipeline is a small package in `scripts/`, one responsibility per module, ru
 - **`provenance.py`:** the `provenance.csv` columns (one row per artifact and parser run), the canonical `extraction_method` and `extraction_quality` vocabularies, which `clean` enforces, and tool-version capture. `retrieved_at` comes from the manifest, not the clock, so cleaning is deterministic.
 - **`runlog.py`:** throttled progress lines and the error log that starts empty every run.
 - **`audit.py`:** reads the processed CSV, checks it holds exactly the rows `clean` wrote, and writes `data/audit/summary.md` (headline, ledger, coverage, artifacts with no rows, extraction methods, null rates, small vocabularies, errors, rejects, and a spot-check sample drawn by hashing the natural key), `data/audit/headline.json`, `docs/variables.{md,csv}`, and the generated blocks in README and AGENTS. None of these contain a timestamp, so an unchanged refresh changes nothing.
-- **`reconcile.py`:** opt-in reconcilers that recompute the source's printed totals from the processed rows; `compare_totals` compares the finest grain both sides share and reports one-sided keys as scope differences, not mismatches. Writes `data/audit/reconcile.md` and exits 2 on a mismatch. See `pipeline.md`.
+- **`reconcile.py`:** reconcilers that check the published table against totals read independently of the parser, at the grain the project publishes. `compare_totals` treats a printed key missing from the data as a mismatch and a data-only key as a scope difference; `duplicate_keys` and `mixed_values` are structural checks. A reconciler that compares nothing fails, and with `SOURCE_PRINTS_TOTALS = True` an empty registry fails. Listed exceptions (`data/lookups/reconcile-exceptions.csv`) are reported as `excepted`, and as `stale` once they no longer differ. Writes `data/audit/reconcile.md` and exits 2 on a mismatch. See `pipeline.md`.
+- **`amendments.py`** *(amendments):* merges recount or amended files by group (`SUPPLEMENTS`, `SUPPLEMENT_GROUP`) and applies the reviewed `data/lookups/corrections.csv`; a supplement group with no match in its base, or a correction that no longer matches, fails `clean` with exit 4. See `data-modeling.md`, "Recounts, amendments and published errors".
 - **`pipeline.py`:** argparse subcommands; `-q` hides progress.
 - **`discover.py`** *(refresh):* lists the artifacts upstream, flags the new ones, and writes `data/audit/discovery.md`.
 - **`concepts.py`** *(multi-source):* loads `data/lookups/concepts.yaml`; `concept_for()` and `caveats_for()`.
@@ -144,7 +147,9 @@ The core tests check the machinery, not any particular source, so they pass on a
 - `test_schema.py`: good frames validate, missing and unknown columns fail, vintages coerce to strings, `dedupe` keeps the last reading, `split_valid` routes bad rows to the reject file. It imports `pandera.pandas as pa` (pandera 0.24 or later).
 - `test_clean.py`: drives `clean.build` with a stand-in parser: the ledger balances with duplicates and rejects, an empty extraction is an error, all-empty keys are degenerate, provenance is deterministic, and an unknown `extraction_method` fails the artifact.
 - `test_source.py`: vintage keys come from file names, including the publish-directory trap.
-- `test_reconcile.py`: one-sided keys are scope differences; differences beyond the tolerance are mismatches.
+- `test_config.py`: the data-directory override moves every data path, and `display_path` still reads like the repository.
+- `test_reconcile.py`: printed keys missing from the data are mismatches and data-only keys are scope; a truncated table fails; a reconciler that compares nothing fails; an empty registry fails when the source prints totals; structural checks; exceptions turn `excepted` then `stale`; corrected keys are labelled.
+- `test_amendments.py` *(amendments)*: a supplement replaces its groups whole; a supplement group missing from the base fails; a correction applies while it matches and fails once it doesn't.
 - `test_generated_docs.py`: the generated blocks in README and AGENTS match `headline.json`, and `headline.json` matches the processed data.
 - `test_lookups.py`: each `data/lookups/vocab_<column>.csv` matches the dictionary's vocabulary line for that column, and observed values stay inside it.
 - `test_concepts.py` *(multi-source)*: every concept that maps more than one source has caveats.
@@ -169,9 +174,23 @@ Decide per source, during section 2, where the originals live, and record it in 
 
 The processed CSV is committed by default and the Parquet and SQLite copies are rebuilt from it. CI's storage-budget step fails on any committed file over 95 MiB, short of GitHub's 100 MB hard limit, because a file over the limit can't be pushed and removing it means rewriting history. When the processed data is too large to commit, the committed audit reports and `headline.json` are the shared record, and regenerating must reproduce them.
 
+## Long runs
+
+A full run over many vintages or large PDFs can take minutes or hours. If it writes straight into the working tree and is interrupted (a stop hook, a session limit, a laptop lid), `data/` is left half-written and easy to commit by accident. `scripts/config.py` reads the data directory from an environment variable named after the project (`config.DATA_DIR_ENV`: the project's `PKG_NAME` in upper case plus `_DATA_DIR`, for example `MY_PROJECT_DATA_DIR`): copy `data/` somewhere outside the repository, point the variable at the copy, run there, and copy the result back and commit it once.
+
+```bash
+export MY_PROJECT_DATA_DIR="$(mktemp -d)/data"     # the name is config.DATA_DIR_ENV
+cp -R data "$MY_PROJECT_DATA_DIR"                   # start from the committed state
+uv run python -m scripts.pipeline run
+rm -rf data && cp -R "$MY_PROJECT_DATA_DIR" data   # then review the diff and commit once
+```
+
+`docs/` and the generated README and AGENTS blocks stay in the working tree. Print paths with `config.display_path(path)`, never `path.relative_to(ROOT)`, which raises for a file in the copy. The project's AGENTS.md lists which commands count as long runs.
+
 ## CI workflows
 
 - **`tests.yml`** *(core, on):* `uv sync`, ruff check and format, mypy (advisory), pytest, `pipeline --help` and `run --help`, and the storage-budget check. Python 3.13 via `astral-sh/setup-uv@v7`; `actions/checkout@v7` without LFS, since tests use committed fixtures.
+- **`reconcile.yml.disabled`** *(core, off):* rename to enable once the originals are in the repository (committed or in LFS) and a reconciler is registered. On pull requests that touch `scripts/`, `data/original/`, `data/lookups/` or `pyproject.toml`, it fetches LFS objects (cached between runs), rebuilds with `clean --strict` and runs `reconcile`, so a parser change can't merge with a new mismatch.
 - **`refresh.yml.disabled`** *(refresh):* rename to enable once the pipeline runs cleanly by hand. On a schedule it runs `pipeline run` and opens a pull request with `peter-evans/create-pull-request@v8` whose diff holds the data, `manifest.json`, `data/audit/*.md`, `headline.json`, `docs/variables.*` and the regenerated README and AGENTS blocks, plus a review checklist. A failed stage fails the job, so no PR opens on bad data. See `pipeline.md` for cadence and ephemeral sources.
 - **`publish.yml.disabled`** and **`gh-pages.yml.disabled`** *(publish):* deploy Datasette and render the Quarto site after a merge; see `publishing.md`.
 

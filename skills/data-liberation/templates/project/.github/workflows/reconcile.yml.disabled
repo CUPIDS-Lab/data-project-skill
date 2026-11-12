@@ -1,0 +1,54 @@
+# Rename to reconcile.yml once the originals are in the repository (committed or in
+# Git LFS) and a reconciler is registered. It rebuilds the data from the originals and
+# fails the pull request on any reconcile mismatch, at the grain the project publishes.
+# The path filter keeps it off docs-only changes; LFS objects are cached between runs.
+name: reconcile
+
+on:
+  pull_request:
+    paths:
+      - "scripts/**"
+      - "data/original/**"
+      - "data/lookups/**"
+      - "pyproject.toml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reconcile-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: List LFS objects
+        run: git lfs ls-files --long | cut -d ' ' -f1 | sort > .lfs-ids
+
+      - name: Restore LFS objects
+        uses: actions/cache@v6
+        with:
+          path: .git/lfs
+          key: lfs-${{ hashFiles('.lfs-ids') }}
+          restore-keys: lfs-
+
+      - name: Fetch LFS objects
+        run: git lfs pull
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          python-version: "3.13"
+
+      - name: Install
+        run: uv sync
+
+      - name: Rebuild from the originals
+        run: uv run python -m scripts.pipeline clean --strict
+
+      - name: Reconcile (fails on any mismatch)
+        run: uv run python -m scripts.pipeline reconcile

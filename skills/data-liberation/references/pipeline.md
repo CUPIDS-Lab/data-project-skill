@@ -429,29 +429,41 @@ Each run's errors start from an empty log: `fetch` and `clean` delete the previo
 
 ## Reconciliation
 
-When the source prints totals (statements of vote, financial statements, statistical tables), recompute them from the processed rows and compare. A mismatch is a regression: the run completes, so data isn't lost, but `reconcile` exits 2 and the refresh PR shows the mismatch in `data/audit/reconcile.md`.
+When the source prints totals (statements of vote, financial statements, statistical tables), check the published table against them. Set `SOURCE_PRINTS_TOTALS = True` in `scripts/config.py` and register a reconciler in `scripts/reconcile.py`; from then on an empty registry fails instead of quietly passing. A mismatch is a regression: the run completes, so data isn't lost, but `reconcile` exits 2 and the refresh PR shows it in `data/audit/reconcile.md`. Every mismatch accounted for, not zero mismatches, is what safe scrutiny looks like.
 
-[BoulderPublicData/Election-Results' `reconcile.py`](https://github.com/BoulderPublicData/Election-Results) is the model: 149 of 150 cross-checks match exactly, and the one mismatch is documented with its upstream cause (the source PDF had an arithmetic error in one precinct subtotal). Every mismatch accounted for, not zero mismatches, is what safe scrutiny looks like.
+**Reconcile at the grain you publish.** If the dataset is contest × candidate, check contest × candidate, not just the contest totals or the grand total. A top-line check let four kinds of defect ship in one project: most of one contest type's votes missing, one year's top race at a fraction of its votes, more than a thousand duplicate keys per year, and wrong pass rates on ballot measures. Every one of them summed to plausible top lines. Grand totals also cover different scopes (a date window, a list of entities), so a top-line gap can be correct while the published rows are wrong.
 
-**Reconcile at the finest grain both sides share.** Compare per office, per precinct, per page or per line item, not only the grand total. Grand totals often cover different scopes (a different date window, a different list of entities, inclusion rules), so a large top-line gap can be correct and a top-line match can hide offsetting errors. One project spent days chasing a large grand-total gap that turned out to be a documented scope difference, while the per-entity totals matched to the cent. Compare the keys both sides have; report keys present on only one side as a documented scope difference, not a mismatch. `compare_totals` in `scripts/reconcile.py` does exactly this:
+**Read the expected totals independently of the parser**: the file's own Totals rows, the printed summary page, or the same page read with a second library. A total recomputed through the same code path as the data agrees with the data's bugs.
+
+**Make it able to fail.** `compare_totals` treats a key the source prints but the processed data lacks as a mismatch (missing data) and a key only in the processed data as a scope difference. A reconciler that compares nothing fails the run, because a reconcile that can't fail passed a CSV truncated to its header in one project. Add structural checks alongside the totals: `duplicate_keys` on the published key, and `mixed_values` for things that must be constant within a group (one option type per contest, one unit per measure).
 
 ```python
 # scripts/reconcile.py
 def reconcile_example() -> ReconcileResult:
     df = pd.read_csv(PROCESSED_CSV, dtype={"votes": "Int64"})
-    checks = []
+    checks = [duplicate_keys(df, KEY_COLUMNS), mixed_values(df, ["vintage", "contest"], "option_type")]
     for pdf in sorted((DATA_ORIGINAL / "example_source").rglob("*.pdf")):
         vintage = pdf.parent.name
-        printed = read_printed_contest_totals(pdf)  # independent of the parser's path
-        recomputed = df.query("vintage == @vintage").groupby("contest")["votes"].sum().to_dict()
-        checks += compare_totals(printed, recomputed, prefix=f"{vintage}:", tolerance=0)
+        printed = read_printed_totals(pdf)  # {(contest, option): votes}, read independently
+        published = df.query("vintage == @vintage").groupby(["contest", "option"])["votes"].sum()
+        checks += compare_totals(
+            {f"{c}|{o}": v for (c, o), v in printed.items()},
+            {f"{c}|{o}": v for (c, o), v in published.items()},
+            prefix=f"{vintage}:", tolerance=0,
+        )
     return ReconcileResult("example_source", checks)
 
 
 RECONCILERS = {"example_source": reconcile_example}
 ```
 
-Turn reconciliation on whenever the source prints totals and the data will be cited or is contested. Skip it only when there is no independent total to compare against, and say so in the dictionary. Document what the reconcile checks (which totals, at which grain, against which originals) and every known mismatch with its explanation in the dictionary's caveats, so a future maintainer knows which numbers are authoritative.
+**Run it in CI.** Once the originals are in the repository (committed or in Git LFS), rename `.github/workflows/reconcile.yml.disabled`: it rebuilds from the originals and reconciles on pull requests that touch `scripts/`, `data/original/` or `data/lookups/`, with LFS objects cached between runs, so a parser change can't merge with a new mismatch.
+
+**Known differences are reviewed, not ignored.** A difference you understand (an arithmetic error in the source, a documented scope gap) goes in `data/lookups/reconcile-exceptions.csv` with the reason, the evidence and when to remove it. Reconcile reports it as `excepted`; once the difference disappears, the row is reported as `stale` so it gets removed. Keys a reviewed correction changed are reported as `corrected` (see `data-modeling.md`, "Recounts, amendments and published errors").
+
+**Scoring against a hand-made reference.** When accuracy is measured against hand-keyed values (golden pages, a reference sample), check each disagreement against the original before counting it, because hand-made references have errors too. Record a verdict per disagreement (`reference_error`, `extraction_error`, `pipeline_fixed`, …) in an adjudications file, such as `data/lookups/adjudications.csv`, and report the adjudicated accuracy next to the raw agreement.
+
+Turn reconciliation on whenever the source prints totals and the data will be cited or is contested. Skip it only when there is no independent total, and say so in the dictionary. Document what the reconcile checks (which totals, at which grain, against which originals) and every known mismatch with its explanation in the dictionary's caveats, so a future maintainer knows which numbers are authoritative.
 
 ## The recurring-refresh pattern
 
@@ -484,6 +496,9 @@ For sources that publish on a cadence, the refresh group's `.github/workflows/re
 | A stale original survives a refresh | The file existed, so fetch skipped it | `fetch --fresh`; the manifest records the old and new hashes |
 | Reconcile passed for years and now fails on one check | A regression in a new parser, or an arithmetic error in the source | Recompute that total by hand from the original. If the source is wrong, document it in the dictionary's caveats and adjust the expected value with a note |
 | The grand total is far off but every per-entity total matches | The two files cover different scopes | Reconcile at the shared grain; document the scope difference |
+| Reconcile passes but the published table is wrong | It checks a coarser grain than the one published | Reconcile at the published grain, with duplicate-key and mixed-value checks |
+| Reconcile passes on an empty or truncated table | The check could not fail: missing keys counted as scope, or nothing was compared | Missing keys are mismatches; a reconciler that compares nothing fails |
+| A long run leaves half-finished files in `data/` | It wrote into the working tree and was interrupted | Point the data-directory variable at a copy, run there, and commit once (`project-template.md`, "Long runs") |
 | The cron runs daily for an annual publisher | Cadence mismatch | Move the cron; use `workflow_dispatch` for impatient refreshes |
 | A refresh PR sits unreviewed for months | Nobody is accountable for it | Name the reviewer in AGENTS.md and set up notifications (and `CODEOWNERS` with branch protection when there is a team) |
 
@@ -493,4 +508,15 @@ For sources that publish on a cadence, the refresh group's `.github/workflows/re
 - **Discovery surface:** what `artifacts()` checks (URL pattern, index page, year range); the first place to look after a publisher redesign.
 - **Storage budget:** where each source's originals live.
 - **Reconcile scope:** which totals are checked at which grain against which originals, with a pointer to the known mismatches in the dictionary.
+- **Checks by change type:** what each kind of change needs before its PR, with measured run times. Without it, agents default to the most expensive check or skip checking; with it, one project's figure change went from a 28-minute full run to about a minute. For example:
+
+  | Change | Check | Time |
+  | --- | --- | --- |
+  | Docs only | lint and tests | ~1 min |
+  | A parser | pipeline on the affected vintages, then reconcile | measure it |
+  | A rename | smoke test (`pipeline run --help`, tests) | ~1 min |
+  | Model or parameters | full run | measure it |
+
+  The PR says which check was run.
+- **Long runs:** which commands take more than a few minutes, and the data-directory copy they should use.
 - **Audit invariants** the summary can't express on its own, such as "source X is non-empty for every vintage from 2010" or "the null rate of `precinct` stays at or below 0.01".

@@ -6,8 +6,9 @@ Stages and the row ledger they keep:
            └─ validate ─► rejected (data/audit/rejected.csv, with a reason)
                        └─► written (data/processed/<name>.csv)
 
-Conservation: `parsed == duplicates_dropped + rejected + written`, or the build
-fails. A parser that raises, returns no rows, or returns rows whose key columns are
+Conservation: `parsed == amended_out + duplicates_dropped + rejected + written`,
+or the build fails (`amended_out` counts rows a recount replaced or a reviewed
+correction dropped, when `scripts/amendments.py` is part of the project). A parser that raises, returns no rows, or returns rows whose key columns are
 all empty is recorded in `data/audit/extraction_errors.json` (a fresh log each run)
 and the other artifacts carry on. If nothing at all survives, nothing is written:
 the previous good outputs stay in place and the command exits non-zero. No step
@@ -27,6 +28,11 @@ from typing import Any
 import pandas as pd
 
 from scripts import provenance, source
+
+try:  # the amendments group: recounts, amended files, reviewed corrections
+    from scripts import amendments
+except ImportError:  # pragma: no cover - absent from projects without it
+    amendments = None  # type: ignore[assignment]
 from scripts.config import (
     EXTRACTION_ERRORS_JSON,
     MANIFEST_JSON,
@@ -52,12 +58,15 @@ class ConservationError(RuntimeError):
 @dataclass
 class Ledger:
     parsed: int = 0
+    amended_out: int = 0
     duplicates_dropped: int = 0
     rejected: int = 0
     written: int = 0
 
     def balanced(self) -> bool:
-        return self.parsed == self.duplicates_dropped + self.rejected + self.written
+        return self.parsed == (
+            self.amended_out + self.duplicates_dropped + self.rejected + self.written
+        )
 
 
 @dataclass
@@ -133,6 +142,8 @@ def build(
         combined = pd.concat(frames, ignore_index=True)
     else:
         combined = pd.DataFrame(columns=[*LONG_COLUMNS, "_artifact"])
+    if amendments is not None:
+        combined, ledger.amended_out = amendments.apply(combined)
     artifact_of = combined["_artifact"]
 
     deduped, ledger.duplicates_dropped = dedupe(combined)
@@ -171,7 +182,8 @@ def load_manifest() -> dict[str, dict[str, Any]]:
 
 def clean_all(*, strict: bool = False, show_progress: bool = True) -> int:
     """Run `build` on the configured source and write the outputs. Exit codes:
-    0 ok · 1 errors or rejects under --strict · 2 nothing to write · 3 rows lost."""
+    0 ok · 1 errors or rejects under --strict · 2 nothing to write · 3 rows lost ·
+    4 a supplement or correction no longer lines up (see scripts/amendments.py)."""
     started = datetime.now(UTC).isoformat()
     errors = ErrorLog(EXTRACTION_ERRORS_JSON, "clean").start()
     arts = source.artifacts()
@@ -180,7 +192,16 @@ def clean_all(*, strict: bool = False, show_progress: bool = True) -> int:
         errors.write()
         return 2
 
-    result = build(arts, source.parser_for, load_manifest(), errors, show_progress=show_progress)
+    try:
+        result = build(
+            arts, source.parser_for, load_manifest(), errors, show_progress=show_progress
+        )
+    except Exception as exc:
+        if amendments is None or not isinstance(exc, amendments.AmendmentError):
+            raise
+        errors.write()
+        print(f"FAIL: {exc}", file=sys.stderr)
+        return 4
     errors.write()
     ledger = result.ledger
     RUN_JSON.write_text(

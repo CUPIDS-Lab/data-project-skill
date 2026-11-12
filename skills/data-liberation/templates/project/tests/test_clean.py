@@ -52,7 +52,13 @@ def test_ledger_balances_with_duplicates_and_rejects(tmp_path: Path) -> None:
     }
     result = _build(tmp_path, frames)
     ledger = result.ledger
-    assert asdict(ledger) == {"parsed": 5, "duplicates_dropped": 1, "rejected": 1, "written": 3}
+    assert asdict(ledger) == {
+        "parsed": 5,
+        "amended_out": 0,
+        "duplicates_dropped": 1,
+        "rejected": 1,
+        "written": 3,
+    }
     assert ledger.balanced()
     assert result.rejected["artifact"].str.endswith("2021/file.csv").all()
     prov = result.provenance.set_index("vintage")

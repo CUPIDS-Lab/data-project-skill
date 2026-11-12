@@ -55,6 +55,8 @@ data-liberation:
   templates/project/tests/test_clean.py: 4
   templates/project/tests/test_concepts.py: 4
   templates/project/tests/test_lookups.py: 4
+  templates/project/scripts/amendments.py: 4
+  templates/project/tests/test_amendments.py: 4
   # Pipeline & audit
   templates/project/scripts/__init__.py.tmpl: 5
   templates/project/scripts/__main__.py: 5
@@ -66,6 +68,8 @@ data-liberation:
   templates/project/data/audit/.gitkeep: 5
   templates/project/tests/conftest.py: 5
   templates/project/tests/test_reconcile.py: 5
+  templates/project/tests/test_config.py: 5
+  templates/project/.github/workflows/reconcile.yml.disabled: 5
   templates/project/pyproject.toml.tmpl: 5
   templates/project/.gitignore: 5
   templates/project/.gitattributes.tmpl: 5

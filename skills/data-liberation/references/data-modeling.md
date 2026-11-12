@@ -11,6 +11,8 @@ The conventions in this reference are distilled from PUDL, the [IPEDS pipeline](
 - [Data dictionary](#data-dictionary)
 - [Lookup tables: vocabularies, crosswalks, entity seeds](#lookup-tables-vocabularies-crosswalks-entity-seeds)
 - [Concept catalogs](#concept-catalogs)
+- [Recounts, amendments and published errors](#recounts-amendments-and-published-errors)
+- [Aggregate rows and cross-source checks](#aggregate-rows-and-cross-source-checks)
 - [Provenance](#provenance)
 - [Data quality](#data-quality)
 - [Free-text quality: the narrative-column pattern](#free-text-quality-the-narrative-column-pattern)
@@ -186,6 +188,26 @@ Three patterns worth holding to:
 
 For single-source projects, no concept catalog is needed: the column names of the source *are* the concepts. The catalog, `scripts/concepts.py` and the `concept` column arrive in the same change as the second source; the procedure is "Adding a second source" in [`project-template.md`](project-template.md#adding-a-second-source). Building the registry and catalog for one source produced abstraction that projects later had to remove.
 
+## Recounts, amendments and published errors
+
+Publishers revise. A recount, an amended file or a correction notice changes what is true without changing what was first released, and an official publication can itself be wrong (a precinct group counted twice, a transposed subtotal). Handle all three so the originals stay what the publisher released and every change is reviewable. The template's `amendments` file group implements this pattern (`scripts/amendments.py`, `data/lookups/corrections.csv`).
+
+- **A recount or amended file is its own original.** Fetch it into `data/original/` beside the file it amends, record it in the manifest, and never overwrite the earlier file.
+- **Merge it by group, whole.** Register it as a supplement of the full file (`SUPPLEMENTS`) and name the unit it replaces (`SUPPLEMENT_GROUP`, usually a contest or an office). Every group the supplement reports replaces that group of the base file entirely; groups it doesn't report keep the base file's rows. Don't merge row by row: a recount that drops a write-in line must drop it from the data too.
+- **A supplement must line up with its base.** If the supplement reports a group with no exact match in the base file, fail the build. It means the two files disagree about what exists, which is a parsing or labeling problem to fix, not a number to merge.
+- **Errors in an official publication go in a reviewed corrections file.** One row per fix in `data/lookups/corrections.csv`: the natural key of the published row, the action (`set` a column or `drop` the row), the value as published, the corrected value, the evidence (a link to the correction notice, the arithmetic, the second source) and a note. Corrections are reviewed like code, in a PR.
+- **Apply corrections in code, and fail when one stops matching.** `clean` applies them after parsing; a correction whose row is gone, or whose published value has changed, fails the build, because the publisher has probably fixed the error upstream and the correction should be reviewed and removed. Reconcile reports corrected keys as `corrected`, not `match`, so the audit shows where the data departs from the publication and why.
+
+Record each supplement and correction in the decision-log and the dictionary's caveats, and count the rows they replace or drop in the row ledger (`amended_out`), so conservation still balances.
+
+## Aggregate rows and cross-source checks
+
+Publishers often fold small counts into privacy aggregates ("Precincts with fewer than 10 ballots," "Other," "Suppressed") or publish summary rows beside detail rows. Don't drop them silently: a total that excludes them can't be checked against anything, and a reader can't tell what was left out.
+
+- **Publish aggregate rows in a side table**, not in the main tidy table: the label as published, a record count when the label states one, and a flag column saying what kind of aggregate it is. The main table stays one row per observation; the side table keeps the totals honest.
+- **Check across sources with the aggregates included.** When two sources measure the same totals (individual records plus their aggregates against an official summary), a cross-source reconcile can fail the run. Compare at the grain both publish.
+- **Known differences go in a reviewed exceptions file**, `data/lookups/reconcile-exceptions.csv`: the source, the check's label, the reason, the evidence and when to remove the row. Reconcile reports a listed difference as `excepted`, and an exception whose difference has gone to zero as `stale` (to remove), not as a failure. The list then shrinks on its own as upstream fixes land, instead of growing into a set of ignored warnings.
+
 ## Provenance
 
 The audit trail. This section is the canonical definition of `provenance.csv` and its vocabularies for every data-liberation reference and template.
@@ -317,6 +339,8 @@ The pandera schema in `scripts/schema.py` is the most consequential of the three
 
 Pandera schemas also double as documentation. The schema declaration is more enforceable than prose in `docs/data-dictionary.md`; treat the two as complementary — the schema declares the contract, the dictionary explains it.
 
+**The contract rejects only impossible values.** Negative counts, a percentage over 100, a date before the series began: those fail the schema. Values that are unusual but real (ten members present at a post-election transition meeting, a precinct with three voters) are not schema failures; send them to the audit report as flags for a person to check. A bound set at "plausible" instead of "possible" gets loosened every time reality exceeds it, and each loosening weakens the contract a little more.
+
 Per-parser pytest tests live at `tests/test_<source>_<vintage>.py`. The minimum useful test:
 
 ```python
@@ -378,6 +402,8 @@ Spend the probing and scoping time on these specifically. The cost of revisiting
 | Pivot recipe in `filter-pivot-recipes.md` returns mostly NaN | New source introduced sparse coverage on the pivoted variable | Document in the concept catalog's `caveats`; consider whether the pivot is honest given the sparsity |
 | Two sources have the "same" concept but different totals | Definitional difference not yet caveated | Add the caveat to the concept entry; do not silently average or pick a winner |
 | Per-row hashes or `extracted_at` on every row | Provenance design drifted into per-row | Move to the sidecar; carry only `source` and `vintage` (and `page` where needed) on the row |
+| A schema bound is edited again and again | The bound encodes "plausible," not "possible" | Keep only impossible values in the schema; flag unusual-but-real ones in the audit report |
+| A recount or amended file overwrote the original | Supplements handled in place | Keep it as its own original; merge it by group in `amendments.py` |
 | Duplicates fail validation | Validation ran before dedup | Deduplicate on the natural key first (`schema.dedupe`), then validate |
 | A categorical column gains a value nobody approved | Vocabulary edited without a check | Add `data/lookups/vocab_<column>.csv`; `tests/test_lookups.py` enforces it |
 | `provenance.csv` has rows with no matching data | Source was registered but parser failed silently | `audit.py` should flag this; check for empty parser output upstream |
@@ -390,3 +416,4 @@ Spend the probing and scoping time on these specifically. The cost of revisiting
 - **Concept catalog status** — none / single-source, or which concepts harmonize across which sources with which caveats.
 - **Provenance scope** — per-extract sidecar by default; note any per-row provenance columns for OCR-fragile parsers.
 - **Validation surface** — which parsers have pytest fixtures.
+- **Amendments** — which supplements amend which base files, the replacement group, and where the corrections and reconcile-exceptions files are.

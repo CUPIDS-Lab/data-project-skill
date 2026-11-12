@@ -29,9 +29,21 @@ uv run python -m scripts.pipeline run     # discover, fetch, clean, audit
 <!-- IF:PIPELINES -->Each pipeline is its own project: `cd pipelines/<name> && uv sync && uv run pytest`. CI discovers pipelines by their `pyproject.toml`. Land a new pipeline in its own PR titled `Add <name> pipeline`, with the README's pipeline table updated in the same PR; shared plumbing lives in `pipelines/_core/`.<!-- /IF -->
 <!-- IF:NOTEBOOKS -->Run `nbstripout --install` once per clone so notebook outputs never reach history.<!-- /IF -->
 
+## Checks by change type
+
+Run the cheapest check that covers the change, and say in the PR which one you ran. Replace "measure it" with the real time the first time you run each check; without this table agents either run the slowest check for everything or skip checking.
+
+| Change | Check | Time |
+| --- | --- | --- |
+| Docs and governance text | lint and `uv run pytest` (or the link check, if there is no pipeline) | ~1 min |
+| A parser or a source | the pipeline on the affected vintages, then reconcile | measure it |
+| A rename or a moved file | tests and a smoke run of the command line | ~1 min |
+| The schema, a model or its parameters | a full run, against a copy of `data/` if it is long | measure it |
+
 ## Task notes
 
 - **Adding a source:** probe the live source first, record its origin, license and access path in provenance at fetch time, and confirm the project may use it. Ask the people who collected the data what it means before interpreting it.
+- **Proposing a fix:** give the number of records it would change, from a query on the current data, and spot-check five before writing the rule into code or a brief.
 - **Changing the data or schema:** update `docs/data-dictionary.md` in the same change, add a CHANGELOG line, and a decision-log entry for any non-obvious choice.
 - **Releasing or sharing:** finish the pre-release checklist, apply the access tiers, and stop at a draft until the owner confirms.
 

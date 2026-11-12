@@ -166,6 +166,8 @@ Record license limits in the Survey note: AGPL (PyMuPDF) matters if the pipeline
 Paid OCR fails expensively: a retry loop pays twice, a schema-constrained mode costs many times the base price, and a crash halfway through loses the pages already paid for. The guardrails real projects converged on:
 
 - **Estimate, then confirm.** Nothing is sent until a dry run prints pages, mode and estimated cost, and a second explicit flag (`--yes`) confirms. Set a per-run cap and refuse to start a run that would exceed it.
+- **Check the key's own spend limit.** The account or API key usually has a limit of its own, separate from your cap. Look it up (the vendor's dashboard or usage endpoint) and compare it with the projected cost before a batch, so the run doesn't stop halfway on the vendor's side.
+- **Buy the decision set first.** Extract the pages you will score against (the golden pages or the reference sample) before the rest of the corpus. If a limit stops the run, you can still measure accuracy on what was bought and decide whether the rest is worth paying for.
 - **Cache every paid page** keyed on the source hash, page number and configuration hash, and never call the service again for a cached key.
 - **Keep a crash ledger.** Write a pending entry before each request and clear it after the response is cached, so a crash never causes a second payment for the same page.
 - **Stop on spend limits.** An HTTP 402 or a quota error ends the run; it is not retried.
@@ -232,6 +234,8 @@ A VLM or hosted parser is not a re-runnable pure function. Treat its output as a
 **Human audit sample.** Stratify by source, vintage, page class and engine. For acceptance use the rule of three: with zero errors in *n* randomly sampled cells, the 95% upper bound on the error rate is about 3/*n*, so 60 clean cells bound it near 5% and 300 near 1%. Values that feed published totals or headlines get 100% review or are covered by reconciliation. Build the audit sheet automatically from the box citations (crop each sampled region from the original page and put it beside the value) and record each verdict in `data/audit/review-<date>.csv`. Report the measured error rate per engine in the provenance notes.
 
 **Golden pages as a regression set.** Hand-key 20–50 pages from the actual corpus (expected cells and boxes) and commit them as fixtures. Rerun extraction against them on any change to tool version, model revision, prompt or configuration, score cell-exact match, and fail CI on regression. A bump is a new parser vintage: re-extract, diff against the previous output, and note the diff in `CHANGELOG.md`.
+
+**Adjudicate disagreements before counting them.** Hand-made references have errors too. When extraction and the reference disagree, check the original and record a verdict per disagreement (`reference_error`, `extraction_error`, `pipeline_fixed`, …) in an adjudications file such as `data/lookups/adjudications.csv`, fix the reference where it was wrong, and report adjudicated accuracy next to raw agreement.
 
 ## 9. The provenance row
 
