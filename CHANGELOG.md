@@ -6,7 +6,7 @@ Pre-monorepo history: [`data-project`](history/data-project/CHANGELOG.md) (throu
 
 ## Repository
 
-### [Unreleased]
+### 2026-11-12 (data-project 0.11.0, data-liberation 0.5.0)
 
 #### Added
 - **One repository for both skills** (`skills/data-project/`, `skills/data-liberation/`), with `data-liberation`'s history imported from `CUPIDS-Lab/data-liberation-skill`. Repository files (CI, evals, changelog, retros) live at the root so installs stay clean.
@@ -19,7 +19,7 @@ Pre-monorepo history: [`data-project`](history/data-project/CHANGELOG.md) (throu
 
 ## data-project
 
-### [0.11.0] — Unreleased
+### [0.11.0] — 2026-11-12
 
 #### Added (from project sprint feedback, #18–#27)
 - **Checks by change type** in the project `AGENTS.md` template, and "which check I ran" in the PR template (#21).
@@ -39,7 +39,7 @@ Pre-monorepo history: [`data-project`](history/data-project/CHANGELOG.md) (throu
 
 ## data-liberation
 
-### [0.5.0] — Unreleased
+### [0.5.0] — 2026-11-12
 
 #### Added (from project sprint feedback, #18–#27)
 - **Long runs:** `config.py` reads the data directory from `<PKG_NAME>_DATA_DIR` so long runs write to a copy and are committed once, with `display_path()` for printing paths; a "Long runs" section in `project-template.md` and the AGENTS template (#18).
