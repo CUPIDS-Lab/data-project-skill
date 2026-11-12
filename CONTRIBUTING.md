@@ -26,7 +26,7 @@ Before each release, triage everything open; the release notes list the issues c
 
 - **A reference:** put it in the skill that leads its Outline section (or `shared/references/` if both skills need it), add it to `shared/outline.yaml`, and link it from that skill's `SKILL.md` reference list. References over 100 lines start with a table of contents; references are read one level deep from `SKILL.md`, so don't make one depend on reading another first. `data-project` references carry OKF frontmatter (`type`, `title`, `description`, `tags`).
 - **A template:** use only the documented slot-fills and flags (`data-project`: `references/procedures/scaffold.md`; `data-liberation`: `references/project-template.md`), give token-bearing files a `.tmpl` suffix, and add it to `shared/outline.yaml`.
-- **A version bump:** any change under `skills/<name>/` bumps that skill's `metadata.version` (patch for fixes and wording, minor for new guidance or templates, major for changes that alter what existing projects must do) and adds a CHANGELOG line.
+- **A version bump:** any change under `skills/<name>/` adds a CHANGELOG line under that skill's unreleased version. Once a version is tagged `<skill>--v<version>`, the next change bumps `metadata.version` (patch for fixes and wording, minor for new guidance or templates, major for changes that alter what existing projects must do).
 
 ## Before you open a PR
 

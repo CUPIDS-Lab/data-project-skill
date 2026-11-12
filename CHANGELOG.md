@@ -6,7 +6,7 @@ Pre-monorepo history: [`data-project`](history/data-project/CHANGELOG.md) (throu
 
 ## Repository
 
-### [Unreleased]
+### 2026-11-12 (data-project 0.11.0, data-liberation 0.5.0)
 
 #### Added
 - **One repository for both skills** (`skills/data-project/`, `skills/data-liberation/`), with `data-liberation`'s history imported from `CUPIDS-Lab/data-liberation-skill`. Repository files (CI, evals, changelog, retros) live at the root so installs stay clean.
@@ -19,7 +19,11 @@ Pre-monorepo history: [`data-project`](history/data-project/CHANGELOG.md) (throu
 
 ## data-project
 
-### [0.11.0] — Unreleased
+### [0.11.0] — 2026-11-12
+
+#### Added (from project sprint feedback, #18–#27)
+- **Checks by change type** in the project `AGENTS.md` template, and "which check I ran" in the PR template (#21).
+- **Size a fix before recommending it**, in the shared quality reference and the AGENTS template's task notes (#20).
 
 #### Changed
 - **Outline instead of levels.** `SKILL.md` is a router over the Outline's sections, with the hard rules first. Projects start with five working files (README, AGENTS.md + `CLAUDE.md`, ROADMAP, decision-log, CHANGELOG); every other artifact is generated only when its section is in scope. ROADMAP tracks the ten sections as now/later/skip.
@@ -35,7 +39,15 @@ Pre-monorepo history: [`data-project`](history/data-project/CHANGELOG.md) (throu
 
 ## data-liberation
 
-### [0.5.0] — Unreleased
+### [0.5.0] — 2026-11-12
+
+#### Added (from project sprint feedback, #18–#27)
+- **Long runs:** `config.py` reads the data directory from `<PKG_NAME>_DATA_DIR` so long runs write to a copy and are committed once, with `display_path()` for printing paths; a "Long runs" section in `project-template.md` and the AGENTS template (#18).
+- **Reconcile at the published grain, able to fail:** a printed key missing from the data is a mismatch, a reconciler that compares nothing fails, `SOURCE_PRINTS_TOTALS` makes an empty registry fail, `duplicate_keys` and `mixed_values` structural checks, and an opt-in `reconcile.yml` CI job with a path filter and cached LFS objects (#19).
+- **Recounts, amendments and published errors:** a new `amendments` file group merges supplements by group and applies reviewed corrections that fail once they stop matching; reconcile reports `corrected` keys (#22).
+- **Aggregate rows and documented exceptions:** publish privacy aggregates in a side table; `reconcile-exceptions.csv` entries are reported `excepted`, then `stale` once they no longer differ (#23).
+- **Checks by change type** table in the AGENTS template (#21); **size a fix before recommending it** in the shared quality reference (#20).
+- Paid extraction: check the key's own spend limit and extract the reference set first (#24). Batch exports before per-record fetchers (#25). The schema rejects only impossible values (#26). Adjudicate disagreements with a hand-made reference (#27).
 
 #### Changed
 - **Outline instead of levels.** `SKILL.md` is a router with non-negotiables first; a one-off extraction still generates nothing but the data. The description fits the spec's 1,024-character limit (it was 1,237).

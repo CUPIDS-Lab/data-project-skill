@@ -31,7 +31,7 @@ These hold on every request, at every size.
 2. **Every value is traceable.** Each extract records source hash, page and region (or URL and selector), tool and version. Provenance is per extract in a sidecar `provenance.csv`, not repeated on every row.
 3. **Probe before parsing.** Open the real files (several pages, several vintages) before writing a parser. Don't trust a landing page, a first page, or an OCR text layer that came embedded in a scan.
 4. **Fail loudly, never silently.** Empty or degenerate output is an error. Never substitute synthetic, sample or stale cached data for a failed download. Rows that can't be parsed go to a fresh per-run error log, and the count is reported.
-5. **Reconcile against the source.** When the document prints totals, check the extracted rows sum to them, and report the result, including mismatches.
+5. **Reconcile at the grain you publish.** When the document prints totals, check the published rows against them at the grain you publish (contest × candidate, not just the contest), using totals read independently of the parser, and report the result, including mismatches. A check that can't fail (one that compared nothing, or treats missing rows as fine) is worse than none.
 6. **Tidy long is the storage shape.** One row per observation, one column per variable; documented in a data dictionary; concepts that cross sources carry caveats about what is and isn't comparable.
 7. **Respect the gates.** Ask about sensitivity before handling personal data, and never send documents to a hosted service (OCR, LLM, upload) when the project's sensitivity or visibility forbids it. See `references/_shared/values-and-gates.md`.
 8. **Write only into the user's working directory**, never into this skill's folder.
@@ -47,6 +47,7 @@ This skill follows the shared ten-section Outline (`references/_shared/OUTLINE.m
 | "reproducible," "pipeline," "someone can re-run this," "audit," "reconcile," "add tests" | 2–5 | **Project.** Scaffold from the bundled template (below). |
 | "add a source," "add this year," "the format changed" | 2–5 | Extend an existing project (below). |
 | "harmonize," "crosswalk," "combine these sources," "compare across years or agencies" | 4 | Concept catalog with caveats, only now that a second source exists. |
+| "there was a recount," "they published an amended file," "the official total is wrong" | 4, 5 | Keep the new file as its own original and merge it by group, or add a reviewed correction (`references/data-modeling.md`, "Recounts, amendments and published errors"). |
 | "publish," "Datasette," "put it online," "documentation site," "DocumentCloud" | 8 | Only if visibility is public or embargoed; generate only the chosen surface. |
 | "start a data collaboration," "governance," "deposit," "DOI," "share with a partner," "we finished a sprint" | 1, 7, 9, 10 | Hand off to the `data-project` skill. If it isn't installed, follow `references/_shared/OUTLINE.md` for that section. |
 
@@ -77,7 +78,7 @@ When the request is ambiguous, start with the smallest route that satisfies it, 
 
 The project starts with the five working files from the Outline (`README.md`, `AGENTS.md` plus a one-line `CLAUDE.md`, `ROADMAP.md`, `decision-log.md`, `CHANGELOG.md`) and the pipeline core. Publishing files are generated only when section 8 is in scope.
 
-**Verify** before saying it's done: `uv sync && uv run pytest`, then `uv run python -m scripts.pipeline run` on a sample file. Confirm the audit report, the reconcile result and the error log say what you claim.
+**Verify** before saying it's done: `uv sync && uv run pytest`, then `uv run python -m scripts.pipeline run` on a sample file. Confirm the audit report, the reconcile result and the error log say what you claim. Run long jobs against a copy of `data/` and commit once (`references/project-template.md`, "Long runs"); use the project's "Checks by change type" table to pick the cheapest check that covers a change.
 
 **Adding a source or a vintage to an existing project:**
 

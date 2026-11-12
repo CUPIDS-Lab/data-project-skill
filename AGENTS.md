@@ -12,7 +12,7 @@ To *use* a skill, read its `SKILL.md`. This file is for changing the repository.
 - **Each skill folder is installed as-is** by claude.ai uploads, `npx skills` and manual copies, so it must be self-contained and must not hold repository files (README, CHANGELOG, CI, evals, retros). Those live at the root.
 - **Shared content is edited in `shared/` only.** `tools/vendor.py` copies it into each skill at the paths in `shared/vendor.toml`; never edit a vendored copy (it carries a header saying so).
 - **Frontmatter stays inside the Agent Skills spec:** only `name`, `description`, `license`, `compatibility`, `metadata`, `allowed-tools`; description ≤ 1,024 characters; `metadata.version` in semver. Claude Code-only keys break claude.ai uploads.
-- **Any change under `skills/<name>/` bumps that skill's `metadata.version`** and adds a line under that skill in `CHANGELOG.md`.
+- **Any change under `skills/<name>/` adds a line under that skill in `CHANGELOG.md`**, and bumps `metadata.version` if the current version is already released (tagged `<skill>--v<version>`); an untagged version keeps collecting changes.
 - **Markdown prose is one line per paragraph** (no hard wraps), in American English.
 
 ## Checks

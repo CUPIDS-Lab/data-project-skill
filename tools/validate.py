@@ -23,7 +23,8 @@ Checks
 6. **Per-skill validators** — `tools/validate_data_project.py` and
    `tools/validate_data_liberation.py` (`--smoke` is passed through).
 7. **Version bump** (`--base REF`) — any change under `skills/<name>/` since REF must bump
-   that skill's `metadata.version`.
+   that skill's `metadata.version` once that version is released (tagged
+   `<skill>--v<version>`); an untagged version keeps collecting changes.
 
 Usage
 -----
@@ -234,8 +235,16 @@ def check_version_bumps(base: str) -> list[str]:
         m = re.match(r"^---\n(.*?)\n---\n", old.stdout, re.S)
         old_version = ((yaml.safe_load(m.group(1)) or {}).get("metadata") or {}).get("version") if m else None
         new_version = (frontmatter(SKILLS / name / "SKILL.md")[0].get("metadata") or {}).get("version")
-        if old_version is not None and old_version == new_version:
-            errors.append(f"skills/{name}/ changed since {base} but metadata.version is still {new_version}")
+        if old_version is None or old_version != new_version:
+            continue
+        # An unreleased version (no <skill>--v<version> tag yet) can keep collecting changes;
+        # once it is tagged, any further change needs a new version.
+        tag = f"{name}--v{new_version}"
+        tagged = subprocess.run(["git", "tag", "--list", tag], cwd=REPO,
+                                capture_output=True, text=True, check=True).stdout.strip()
+        if tagged:
+            errors.append(f"skills/{name}/ changed since {base} but metadata.version is still "
+                          f"{new_version}, which is already released as {tag}")
     return errors
 
 

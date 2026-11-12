@@ -8,12 +8,19 @@ skill's `project-template.md`: that is when a source registry earns its place.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 # ─── Paths ──────────────────────────────────────────────────────────────────
 
 ROOT = Path(__file__).resolve().parent.parent
-DATA = ROOT / "data"
+
+# Long runs: set {{PKG_NAME}} in upper case + _DATA_DIR (DATA_DIR_ENV below) to a copy
+# of data/ outside the working tree. The run writes there, nothing half-finished lands
+# in the repository, and you copy the result back and commit once (AGENTS.md, "Long
+# runs"). Unset, the project's own data/ is used.
+DATA_DIR_ENV = "{{PKG_NAME}}".upper() + "_DATA_DIR"
+DATA = Path(os.environ.get(DATA_DIR_ENV, ROOT / "data")).resolve()
 DATA_ORIGINAL = DATA / "original"  # immutable: written only by fetch.py
 DATA_PROCESSED = DATA / "processed"  # the dataset and its provenance sidecar
 DATA_AUDIT = DATA / "audit"  # generated reports and per-run logs
@@ -22,6 +29,23 @@ DOCS = ROOT / "docs"
 
 for _p in (DATA_ORIGINAL, DATA_PROCESSED, DATA_AUDIT, DATA_LOOKUPS, DOCS):
     _p.mkdir(parents=True, exist_ok=True)
+
+
+def display_path(path: Path | str) -> Path:
+    """A path to show people: repository-relative, or data/... when DATA is a copy.
+
+    Use it for every path printed or written into a report. `path.relative_to(ROOT)`
+    raises for files under a data directory outside the repository.
+    """
+    path = Path(path).resolve()
+    try:
+        return path.relative_to(ROOT)
+    except ValueError:
+        try:
+            return Path("data") / path.relative_to(DATA)
+        except ValueError:
+            return path
+
 
 # The dataset. File stems use the import-safe name so SQL engines need no quoting.
 PROCESSED_CSV = DATA_PROCESSED / "{{PKG_NAME}}.csv"
@@ -57,6 +81,9 @@ SOURCE_SLUG = "example_source"
 SOURCE_LABEL = "Replace with the publisher and the series name"
 # The publisher's terms, as found in its terms of use, metadata or records response.
 SOURCE_LICENSE = "unknown: record the publisher's terms before sharing the data"
+# Does the publisher print totals or subtotals the data can be checked against? When
+# True, `reconcile` fails until a reconciler is registered in scripts/reconcile.py.
+SOURCE_PRINTS_TOTALS = False
 
 # ─── HTTP defaults ──────────────────────────────────────────────────────────
 
